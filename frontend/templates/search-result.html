@@ -1,0 +1,11 @@
+<div class="box" id="results-content" data-geojson='{{ .BAGData.GeoJSON }}'>
+    <div class="content">
+        <h5 class="title is-5">{{ .BAGData.Address }}</h5>
+        <div class="tags">
+            <span class="tag is-primary">Viability: {{ .PropertyScore.Viability }}</span>
+            <span class="tag is-info">ESG: {{ .PropertyScore.ESG }}</span>
+            <span class="tag is-warning">Investment: {{ .PropertyScore.Investment }}</span>
+        </div>
+        <button class="button is-link mt-3" hx-get="http://localhost:8080/details/{{ .ID }}" hx-target="#modal-target" hx-swap="innerHTML">Show Details</button>
+    </div>
+</div>

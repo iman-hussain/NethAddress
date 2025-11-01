@@ -1,0 +1,13 @@
+<div id="details-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-50">
+  <div class="bg-white rounded-lg p-8 w-full max-w-2xl relative">
+    <button class="absolute top-4 right-4 text-gray-700" onclick="document.getElementById('modal-target').innerHTML = ''">Close</button>
+    <h2 class="text-xl font-bold mb-4">Parcel Details</h2>
+    <ul class="mb-4">
+      <li><strong>Address:</strong> {{ .Address }}</li>
+      <li><strong>Municipality:</strong> {{ .Municipality }}</li>
+      <li><strong>Scores:</strong> Viability: {{ .PropertyScore.Viability }}, Investment: {{ .PropertyScore.Investment }}, ESG: {{ .PropertyScore.ESG }}</li>
+    </ul>
+    <h3 class="font-semibold mb-2">Raw JSON</h3>
+    <pre class="bg-gray-100 p-2 rounded text-xs">{{ .RawJSON }}</pre>
+  </div>
+</div>

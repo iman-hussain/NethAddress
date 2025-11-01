@@ -1,0 +1,16 @@
+/.github/*
+.env
+*.db
+/backend/locatenl
+/backend/go.work
+/docs/*
+
+# Ignore transient logs and partial data dumps created during local runs
+*.log
+*_sample.json
+server.log
+cbs_sample.json
+
+# Ignore compiled binaries and editor backup files
+*.exe
+*~
