@@ -1,0 +1,22 @@
+# Ignore local development files
+docker-compose.local.yml
+start_localwebapp.bat
+start_localwebapp.command
+start_localwebapp.sh
+end_localwebapp.bat
+end_localwebapp.command
+end_localwebapp.sh
+
+# Ignore git files
+.git
+.gitignore
+
+# Ignore local tooling and artifacts
+addressiq-backend.exe~
+addressiq.exe
+test-api.ps1
+test-endpoints.ps1
+
+# Ignore documentation
+../docs/
+README.md
