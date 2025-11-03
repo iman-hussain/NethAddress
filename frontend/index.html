@@ -489,7 +489,10 @@
                 return;
             }
 
+            console.log('showAllResults called with', currentResponse.apiResults.length, 'total APIs');
+            console.log('enabledAPIs size:', enabledAPIs.size, 'contents:', [...enabledAPIs]);
             const filtered = currentResponse.apiResults.filter(r => enabledAPIs.has(r.name));
+            console.log('filtered results:', filtered.length);
 
             let html = '<div class="api-results-grid">';
 
