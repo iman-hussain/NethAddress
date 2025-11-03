@@ -18,12 +18,12 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 WORKDIR /home/appuser
 
 COPY --from=builder /app/addressiq ./addressiq
-RUN chown appuser:appgroup ./addressiq
+RUN chown appuser:appgroup ./addressiq && chmod +x ./addressiq
 
 USER appuser
 
 EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 CMD sh -c "curl -f http://localhost:${PORT:-8080}/healthz || exit 1"
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 CMD wget --quiet --tries=1 --spider http://127.0.0.1:8080/healthz || exit 1
 
 CMD ["./addressiq"]

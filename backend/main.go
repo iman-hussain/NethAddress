@@ -1,12 +1,9 @@
 package main
 
 import (
-	"context"
 	"log"
 	"net/http"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/aggregator"
@@ -98,42 +95,20 @@ func main() {
 		IdleTimeout:  120 * time.Second,
 	}
 
-	// Start server in goroutine
-	go func() {
-		log.Printf("🚀 AddressIQ API server starting on port %s", port)
-		log.Printf("📍 Endpoints available:")
-		log.Printf("   GET  /                                  - API information")
-		log.Printf("   GET  /healthz                           - Health check")
-		log.Printf("   GET  /search                            - Legacy search")
-		log.Printf("   GET  /api/property                      - Full property data")
-		log.Printf("   GET  /api/property/scores               - Property scores")
-		log.Printf("   GET  /api/property/recommendations      - Recommendations")
-		log.Printf("   GET  /api/property/analysis             - Complete analysis")
-		log.Printf("")
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("❌ Server failed: %v", err)
-		}
-	}()
+	// Start server
+	log.Printf("🚀 AddressIQ API server starting on port %s", port)
+	log.Printf("📍 Endpoints available:")
+	log.Printf("   GET  /                                  - API information")
+	log.Printf("   GET  /healthz                           - Health check")
+	log.Printf("   GET  /search                            - Legacy search")
+	log.Printf("   GET  /api/property                      - Full property data")
+	log.Printf("   GET  /api/property/scores               - Property scores")
+	log.Printf("   GET  /api/property/recommendations      - Recommendations")
+	log.Printf("   GET  /api/property/analysis             - Complete analysis")
+	log.Printf("")
 
-	// Graceful shutdown
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
-	<-stop
-
-	log.Println("🛑 Shutting down server...")
-
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
-	if cacheService != nil {
-		if err := cacheService.Close(); err != nil {
-			log.Printf("Warning: error closing cache: %v", err)
-		}
+	log.Printf("✅ Server ready, listening on port %s", port)
+	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		log.Fatalf("❌ Server failed: %v", err)
 	}
-
-	if err := srv.Shutdown(ctx); err != nil {
-		log.Fatalf("❌ Server shutdown failed: %v", err)
-	}
-
-	log.Println("✅ Server stopped gracefully")
 }
