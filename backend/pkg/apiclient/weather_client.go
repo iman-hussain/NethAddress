@@ -3,6 +3,7 @@ package apiclient
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -32,12 +33,16 @@ type HistoricalData struct {
 // Documentation: https://dataplatform.knmi.nl
 func (c *ApiClient) FetchKNMIWeatherData(cfg *config.Config, lat, lon float64) (*KNMIWeatherData, error) {
 	if cfg.KNMIWeatherApiURL == "" {
+		log.Printf("[WEATHER] KNMIWeatherApiURL not configured")
 		return nil, fmt.Errorf("KNMIWeatherApiURL not configured")
 	}
 
 	url := fmt.Sprintf("%s/forecast?latitude=%f&longitude=%f&current_weather=true&hourly=precipitation,relativehumidity_2m,pressure_msl&timezone=Europe/Amsterdam", cfg.KNMIWeatherApiURL, lat, lon)
+	log.Printf("[WEATHER] Fetching weather from: %s", url)
+	
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
+		log.Printf("[WEATHER] Failed to create request: %v", err)
 		return nil, err
 	}
 
@@ -45,11 +50,13 @@ func (c *ApiClient) FetchKNMIWeatherData(cfg *config.Config, lat, lon float64) (
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
+		log.Printf("[WEATHER] HTTP request failed: %v", err)
 		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		log.Printf("[WEATHER] API returned status %d", resp.StatusCode)
 		return nil, fmt.Errorf("weather API returned status %d", resp.StatusCode)
 	}
 
@@ -190,12 +197,16 @@ type KNMISolarData struct {
 // Documentation: https://dataplatform.knmi.nl/group/sunshine-and-radiation
 func (c *ApiClient) FetchKNMISolarData(cfg *config.Config, lat, lon float64) (*KNMISolarData, error) {
 	if cfg.KNMISolarApiURL == "" {
+		log.Printf("[SOLAR] KNMISolarApiURL not configured")
 		return nil, fmt.Errorf("KNMISolarApiURL not configured")
 	}
 
 	url := fmt.Sprintf("%s/forecast?latitude=%f&longitude=%f&hourly=shortwave_radiation&daily=sunshine_duration,uv_index_max&timezone=Europe/Amsterdam", cfg.KNMISolarApiURL, lat, lon)
+	log.Printf("[SOLAR] Fetching solar data from: %s", url)
+	
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
+		log.Printf("[SOLAR] Failed to create request: %v", err)
 		return nil, err
 	}
 
@@ -203,11 +214,13 @@ func (c *ApiClient) FetchKNMISolarData(cfg *config.Config, lat, lon float64) (*K
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
+		log.Printf("[SOLAR] HTTP request failed: %v", err)
 		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
+		log.Printf("[SOLAR] API returned status %d", resp.StatusCode)
 		return nil, fmt.Errorf("solar API returned status %d", resp.StatusCode)
 	}
 

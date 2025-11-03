@@ -2,6 +2,7 @@ package aggregator
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/apiclient"
@@ -109,6 +110,8 @@ func (pa *PropertyAggregator) AggregatePropertyData(postcode, houseNumber string
 	lat := bagData.Coordinates[1]
 	lon := bagData.Coordinates[0]
 
+	log.Printf("[AGGREGATOR] Coordinates from BAG: lat=%.6f, lon=%.6f", lat, lon)
+
 	// Extract BAG ID from response (would need to be added to BAG API response)
 	bagID := "extracted-bag-id" // TODO: Get actual BAG ID from response
 
@@ -186,16 +189,26 @@ func (pa *PropertyAggregator) fetchPropertyData(data *ComprehensivePropertyData,
 }
 
 func (pa *PropertyAggregator) fetchEnvironmentalData(data *ComprehensivePropertyData, lat, lon float64) {
+	log.Printf("[AGGREGATOR] fetchEnvironmentalData called with lat=%.6f, lon=%.6f", lat, lon)
+	
 	// Weather
+	log.Printf("[AGGREGATOR] Calling FetchKNMIWeatherData...")
 	if weather, err := pa.apiClient.FetchKNMIWeatherData(pa.config, lat, lon); err == nil {
 		data.Weather = weather
 		data.DataSources = append(data.DataSources, "KNMI Weather")
+		log.Printf("[AGGREGATOR] ✓ Weather data fetched successfully")
+	} else {
+		log.Printf("[AGGREGATOR] ✗ Weather fetch failed: %v", err)
 	}
 
 	// Solar Potential
+	log.Printf("[AGGREGATOR] Calling FetchKNMISolarData...")
 	if solar, err := pa.apiClient.FetchKNMISolarData(pa.config, lat, lon); err == nil {
 		data.SolarPotential = solar
 		data.DataSources = append(data.DataSources, "KNMI Solar")
+		log.Printf("[AGGREGATOR] ✓ Solar data fetched successfully")
+	} else {
+		log.Printf("[AGGREGATOR] ✗ Solar fetch failed: %v", err)
 	}
 
 	// Soil Data
@@ -223,9 +236,13 @@ func (pa *PropertyAggregator) fetchEnvironmentalData(data *ComprehensiveProperty
 	}
 
 	// Air Quality
+	log.Printf("[AGGREGATOR] Calling FetchAirQualityData...")
 	if airQuality, err := pa.apiClient.FetchAirQualityData(pa.config, lat, lon); err == nil {
 		data.AirQuality = airQuality
-		data.DataSources = append(data.DataSources, "Luchtmeetnet")
+		data.DataSources = append(data.DataSources, "Air Quality")
+		log.Printf("[AGGREGATOR] ✓ Air quality data fetched successfully")
+	} else {
+		log.Printf("[AGGREGATOR] ✗ Air quality fetch failed: %v", err)
 	}
 
 	// Noise Pollution
