@@ -190,7 +190,7 @@ func (pa *PropertyAggregator) fetchPropertyData(data *ComprehensivePropertyData,
 
 func (pa *PropertyAggregator) fetchEnvironmentalData(data *ComprehensivePropertyData, lat, lon float64) {
 	log.Printf("[AGGREGATOR] fetchEnvironmentalData called with lat=%.6f, lon=%.6f", lat, lon)
-	
+
 	// Weather
 	log.Printf("[AGGREGATOR] Calling FetchKNMIWeatherData...")
 	if weather, err := pa.apiClient.FetchKNMIWeatherData(pa.config, lat, lon); err == nil {

@@ -17,11 +17,11 @@ import (
 )
 
 type TestResult struct {
-	Name        string
-	URL         string
-	Success     bool
-	Message     string
-	Details     string
+	Name           string
+	URL            string
+	Success        bool
+	Message        string
+	Details        string
 	ResponseSample string
 }
 
@@ -35,7 +35,7 @@ func main() {
 	godotenv.Load(".env")
 	godotenv.Load("../.env")
 	godotenv.Load("../../.env")
-	
+
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 
@@ -45,7 +45,7 @@ func main() {
 
 	testPostcode := "1012LG"
 	testHouseNum := "1"
-	
+
 	fmt.Printf("Test address: %s %s\n\n", testPostcode, testHouseNum)
 
 	results := []TestResult{}
@@ -114,14 +114,14 @@ func main() {
 	fmt.Println("\n========================================")
 	fmt.Println("📊 SUMMARY")
 	fmt.Println("========================================")
-	
+
 	successCount := 0
 	for _, r := range results {
 		if r.Success {
 			successCount++
 		}
 	}
-	
+
 	fmt.Printf("Total APIs tested: %d\n", len(results))
 	fmt.Printf("✅ Working: %d\n", successCount)
 	fmt.Printf("❌ Failed: %d\n\n", len(results)-successCount)
@@ -166,9 +166,9 @@ func testBAG(ctx context.Context, postcode, houseNum string) (TestResult, Coordi
 	query := url.Values{}
 	query.Set("q", fmt.Sprintf("%s %s", postcode, houseNum))
 	query.Set("rows", "1")
-	
+
 	fullURL := endpoint + "?" + query.Encode()
-	
+
 	body, status, err := doGet(ctx, fullURL)
 	if err != nil {
 		return TestResult{
@@ -228,11 +228,11 @@ func testBAG(ctx context.Context, postcode, houseNum string) (TestResult, Coordi
 	}
 
 	return TestResult{
-		Name:    "BAG Locatieserver",
-		URL:     fullURL,
-		Success: true,
-		Message: "Address resolved",
-		Details: fmt.Sprintf("Found: %s", doc.Weergavenaam),
+		Name:           "BAG Locatieserver",
+		URL:            fullURL,
+		Success:        true,
+		Message:        "Address resolved",
+		Details:        fmt.Sprintf("Found: %s", doc.Weergavenaam),
 		ResponseSample: doc.Weergavenaam,
 	}, coords
 }
@@ -247,9 +247,9 @@ func testOpenMeteoWeather(ctx context.Context, coords Coordinates) TestResult {
 	query.Set("latitude", fmt.Sprintf("%.5f", coords.Lat))
 	query.Set("longitude", fmt.Sprintf("%.5f", coords.Lon))
 	query.Set("current_weather", "true")
-	
+
 	fullURL := endpoint + "?" + query.Encode()
-	
+
 	body, status, err := doGet(ctx, fullURL)
 	if err != nil {
 		return TestResult{Name: "Open-Meteo Weather", URL: fullURL, Success: false, Message: err.Error()}
@@ -290,9 +290,9 @@ func testOpenMeteoSolar(ctx context.Context, coords Coordinates) TestResult {
 	query.Set("longitude", fmt.Sprintf("%.5f", coords.Lon))
 	query.Set("hourly", "shortwave_radiation")
 	query.Set("forecast_days", "1")
-	
+
 	fullURL := endpoint + "?" + query.Encode()
-	
+
 	body, status, err := doGet(ctx, fullURL)
 	if err != nil {
 		return TestResult{Name: "Open-Meteo Solar", URL: fullURL, Success: false, Message: err.Error()}
@@ -332,7 +332,7 @@ func testLuchtmeetnet(ctx context.Context, coords Coordinates) TestResult {
 	}
 
 	fullURL := strings.TrimSuffix(endpoint, "/") + "/stations"
-	
+
 	body, status, err := doGet(ctx, fullURL)
 	if err != nil {
 		return TestResult{Name: "Luchtmeetnet Air Quality", URL: fullURL, Success: false, Message: err.Error()}
@@ -344,9 +344,9 @@ func testLuchtmeetnet(ctx context.Context, coords Coordinates) TestResult {
 
 	var stationsResp struct {
 		Data []struct {
-			Number string  `json:"number"`
-			Location string `json:"location"`
-			Latitude float64 `json:"latitude"`
+			Number    string  `json:"number"`
+			Location  string  `json:"location"`
+			Latitude  float64 `json:"latitude"`
 			Longitude float64 `json:"longitude"`
 		} `json:"data"`
 	}
@@ -362,7 +362,7 @@ func testLuchtmeetnet(ctx context.Context, coords Coordinates) TestResult {
 	// Find nearest station
 	nearest := stationsResp.Data[0]
 	minDist := haversine(coords.Lat, coords.Lon, nearest.Latitude, nearest.Longitude)
-	
+
 	for _, station := range stationsResp.Data[1:] {
 		dist := haversine(coords.Lat, coords.Lon, station.Latitude, station.Longitude)
 		if dist < minDist {
@@ -388,7 +388,7 @@ func testOpenOV(ctx context.Context) TestResult {
 
 	// Test just the base endpoint to see if it responds
 	fullURL := strings.TrimSuffix(endpoint, "/")
-	
+
 	body, status, err := doGet(ctx, fullURL)
 	if err != nil {
 		return TestResult{Name: "openOV Public Transport", URL: fullURL, Success: false, Message: err.Error()}
@@ -615,9 +615,9 @@ func testWFS(ctx context.Context, envVar, name string, coords Coordinates) TestR
 	}
 
 	// Try GetFeature with bbox around our point
-	bbox := fmt.Sprintf("%.6f,%.6f,%.6f,%.6f", 
+	bbox := fmt.Sprintf("%.6f,%.6f,%.6f,%.6f",
 		coords.Lon-0.01, coords.Lat-0.01, coords.Lon+0.01, coords.Lat+0.01)
-	
+
 	featureParams := url.Values{}
 	featureParams.Set("service", "WFS")
 	featureParams.Set("request", "GetFeature")
@@ -627,7 +627,7 @@ func testWFS(ctx context.Context, envVar, name string, coords Coordinates) TestR
 	featureParams.Set("srsName", "EPSG:4326")
 	featureParams.Set("count", "1")
 	featureParams.Set("outputFormat", "application/json")
-	
+
 	featureURL := baseURL + "?" + featureParams.Encode()
 	featureBody, featureStatus, err := doGet(ctx, featureURL)
 	if err != nil {
