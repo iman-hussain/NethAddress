@@ -110,7 +110,7 @@
         #results-header:empty {
             display: none;
         }
-        
+
         /* Mobile layout */
         @media screen and (max-width: 768px) {
             html, body {
@@ -236,9 +236,9 @@
                     <div class="panel-grid">
                         <div class="search-panel">
                             <div class="box">
-                                <form 
-                                    hx-post="http://localhost:8080/search" 
-                                    hx-target="#results-container" 
+                                <form
+                                    id="search-form"
+                                    hx-target="#results-container"
                                     hx-swap="innerHTML"
                                 >
                                     <div class="field">
@@ -287,6 +287,21 @@
                 zoom: 7
             });
             window.map = map;
+
+            // Define apiHost based on hostname
+            let apiHost;
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                apiHost = 'http://localhost:8080';
+            } else {
+                apiHost = 'https://api.addressiq.imanhussain.com';
+            }
+
+            // Set hx-post on the form
+            const searchForm = document.getElementById('search-form');
+            searchForm.setAttribute('hx-post', apiHost + '/search');
+
+            // Process with HTMX
+            htmx.process(searchForm);
 
             // Load API preferences from localStorage
             const savedAPIs = localStorage.getItem('enabledAPIs');
@@ -370,31 +385,31 @@
         // Listen for HTMX swaps in #results-container
         document.body.addEventListener('htmx:afterSwap', function(event) {
             const elt = event.detail.elt;
-            
+
             if (elt && elt.id === 'results-container') {
                 const container = elt;
                 console.log('afterSwap container html', container.innerHTML.substring(0, 200));
-                
+
                 // Find header, results, and data elements directly in container
                 const headerContent = container.querySelector('[data-target="header"]');
                 console.log('headerContent found?', !!headerContent);
                 const resultsContent = container.querySelector('[data-target="results"]');
                 const dataHolder = container.querySelector('[data-geojson]');
-                
+
                 if (headerContent) {
                     document.getElementById('results-header').innerHTML = headerContent.innerHTML;
                 }
-                
+
                 if (resultsContent) {
                     document.getElementById('results').innerHTML = resultsContent.innerHTML;
                 }
-                
+
                 if (dataHolder) {
                     const geojsonStr = dataHolder.getAttribute('data-geojson');
                     if (geojsonStr) {
                         updateMap(geojsonStr);
                     }
-                    
+
                     // Extract and store response data
                     const responseStr = dataHolder.getAttribute('data-response');
                     if (responseStr) {
@@ -413,15 +428,15 @@
             }
 
             const filtered = currentResponse.apiResults.filter(r => enabledAPIs.has(r.name));
-            
+
             let html = '<div class="api-results-grid">';
-            
+
             filtered.forEach((result, idx) => {
-                const statusClass = result.status === 'success' ? 'is-success' : 
+                const statusClass = result.status === 'success' ? 'is-success' :
                                    result.status === 'error' ? 'is-danger' : 'is-warning';
                 const statusText = result.status === 'success' ? '✓' :
                                   result.status === 'error' ? '✗' : '⚠';
-                
+
                 html += `
                     <div class="notification ${statusClass} result-card is-size-7 p-3">
                         <p class="has-text-weight-bold is-size-7">${statusText} ${result.name}</p>
@@ -433,9 +448,9 @@
                     </div>
                 `;
             });
-            
+
             html += '</div>';
-            
+
             const desktopResults = document.getElementById('results-desktop');
             const mobileResults = document.getElementById('results-mobile');
             if (desktopResults) desktopResults.innerHTML = html;
@@ -456,7 +471,7 @@
             rows.push(['Longitude', currentResponse.coordinates[0]]);
             rows.push([]);
             rows.push(['API Name', 'Status', 'Data']);
-            
+
             currentResponse.apiResults
                 .filter(r => enabledAPIs.has(r.name))
                 .forEach(result => {
@@ -464,7 +479,7 @@
                     rows.push([result.name, result.status, dataStr]);
                 });
 
-            const csvContent = rows.map(row => 
+            const csvContent = rows.map(row =>
                 row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')
             ).join('\n');
 
@@ -487,7 +502,7 @@
             }
 
             const allAPIs = currentResponse.apiResults.map(r => r.name);
-            
+
             let html = `
                 <div class="modal is-active" id="settings-modal">
                     <div class="modal-background" onclick="closeSettings()"></div>
@@ -503,7 +518,7 @@
                             </div>
                             <div id="api-checkboxes">
             `;
-            
+
             allAPIs.forEach(apiName => {
                 const checked = enabledAPIs.has(apiName) ? 'checked' : '';
                 html += `
@@ -513,7 +528,7 @@
                     </label>
                 `;
             });
-            
+
             html += `
                             </div>
                         </section>
@@ -524,7 +539,7 @@
                     </div>
                 </div>
             `;
-            
+
             document.getElementById('modal-target').innerHTML = html;
         }
 
