@@ -272,6 +272,7 @@
         </div>
     </div>
     <div class="mobile-results-wrapper">
+        <button id="show-all-results-btn" class="button is-primary is-fullwidth mb-3" style="display:none;">Show All Results</button>
         <div id="results-mobile"></div>
     </div>
     <script>
@@ -284,7 +285,13 @@
                 container: 'map',
                 style: 'https://demotiles.maplibre.org/style.json',
                 center: [5.3878, 52.1561], // Center on Netherlands
-                zoom: 7
+                zoom: 7,
+                minZoom: 6,
+                maxZoom: 18,
+                maxBounds: [
+                    [2.5, 50.5],   // Southwest corner (just into the sea, below Belgium)
+                    [8.5, 54.2]    // Northeast corner (just into Germany)
+                ]
             });
             window.map = map;
 
@@ -334,7 +341,7 @@
             }
         });
 
-        // Update the map with new GeoJSON
+        // Update the map with new GeoJSON and zoom/circle location
         function updateMap(geojsonString) {
             if (!map) return;
             let geojson;
@@ -345,31 +352,68 @@
                 return;
             }
 
-            // Remove old source/layer if they exist
-            if (map.getLayer('parcel-layer')) {
-                map.removeLayer('parcel-layer');
-            }
-            if (map.getSource('parcel-source')) {
-                map.removeSource('parcel-source');
+            // Remove old sources/layers if they exist
+            if (map.getLayer('parcel-layer')) map.removeLayer('parcel-layer');
+            if (map.getSource('parcel-source')) map.removeSource('parcel-source');
+            if (map.getLayer('location-circle')) map.removeLayer('location-circle');
+            if (map.getSource('location-point')) map.removeSource('location-point');
+
+            // Add parcel polygon if present
+            if (geojson.type === 'Polygon' || geojson.type === 'FeatureCollection') {
+                map.addSource('parcel-source', {
+                    type: 'geojson',
+                    data: geojson
+                });
+                map.addLayer({
+                    id: 'parcel-layer',
+                    type: 'fill',
+                    source: 'parcel-source',
+                    paint: {
+                        'fill-color': '#2563eb', // blue
+                        'fill-opacity': 0.5,
+                        'fill-outline-color': '#000'
+                    }
+                });
             }
 
-            map.addSource('parcel-source', {
-                type: 'geojson',
-                data: geojson
-            });
-            map.addLayer({
-                id: 'parcel-layer',
-                type: 'fill',
-                source: 'parcel-source',
-                paint: {
-                    'fill-color': '#2563eb', // blue
-                    'fill-opacity': 0.5,
-                    'fill-outline-color': '#000'
+            // If we have a point, zoom and circle it
+            let point = null;
+            if (geojson.type === 'Point' && Array.isArray(geojson.coordinates)) {
+                point = geojson.coordinates;
+            } else if (geojson.type === 'Feature' && geojson.geometry && geojson.geometry.type === 'Point') {
+                point = geojson.geometry.coordinates;
+            } else if (geojson.type === 'FeatureCollection') {
+                for (const feat of geojson.features) {
+                    if (feat.geometry && feat.geometry.type === 'Point') {
+                        point = feat.geometry.coordinates;
+                        break;
+                    }
                 }
-            });
+            }
 
-            // Fit map to bounds
-            if (geojson.type === 'Polygon' && Array.isArray(geojson.coordinates)) {
+            if (point) {
+                map.flyTo({ center: point, zoom: 17 });
+                map.addSource('location-point', {
+                    type: 'geojson',
+                    data: {
+                        type: 'Feature',
+                        geometry: { type: 'Point', coordinates: point }
+                    }
+                });
+                map.addLayer({
+                    id: 'location-circle',
+                    type: 'circle',
+                    source: 'location-point',
+                    paint: {
+                        'circle-radius': 18,
+                        'circle-color': '#e63946',
+                        'circle-opacity': 0.7,
+                        'circle-stroke-width': 3,
+                        'circle-stroke-color': '#fff'
+                    }
+                });
+            } else if (geojson.type === 'Polygon' && Array.isArray(geojson.coordinates)) {
+                // Fit map to bounds for polygon
                 const coords = geojson.coordinates.flat(2);
                 let minLng = coords[0][0], minLat = coords[0][1], maxLng = coords[0][0], maxLat = coords[0][1];
                 coords.forEach(([lng, lat]) => {
@@ -457,7 +501,30 @@
             if (desktopResults) desktopResults.innerHTML = html;
             if (mobileResults) mobileResults.innerHTML = html;
             document.body.classList.add('has-results');
+
+            // Show the button only on mobile when results are present
+            const showBtn = document.getElementById('show-all-results-btn');
+            if (window.innerWidth <= 768 && showBtn) {
+                showBtn.style.display = 'block';
+            }
         }
+
+        // Button click handler for mobile
+        document.addEventListener('DOMContentLoaded', function () {
+            const showBtn = document.getElementById('show-all-results-btn');
+            if (showBtn) {
+                showBtn.addEventListener('click', function () {
+                    showAllResults();
+                    // Scroll to results
+                    setTimeout(() => {
+                        const resultsMobile = document.getElementById('results-mobile');
+                        if (resultsMobile) {
+                            resultsMobile.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                    }, 100);
+                });
+            }
+        });
 
         // Export data as CSV
         function exportCSV() {
