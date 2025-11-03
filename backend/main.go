@@ -88,7 +88,7 @@ func main() {
 	log.Printf("📡 Server will listen on port %s", port)
 
 	srv := &http.Server{
-		Addr:         ":" + port,
+		Addr:         "0.0.0.0:" + port,
 		Handler:      handler,
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 60 * time.Second,
@@ -107,7 +107,7 @@ func main() {
 	log.Printf("   GET  /api/property/analysis             - Complete analysis")
 	log.Printf("")
 
-	log.Printf("✅ Server ready, listening on port %s", port)
+	log.Printf("✅ Server ready, listening on 0.0.0.0:%s", port)
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("❌ Server failed: %v", err)
 	}

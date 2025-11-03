@@ -42,6 +42,11 @@ func (router *Router) SetupRoutes(mux *http.ServeMux) {
 
 // Health check endpoint
 func handleHealthCheck(w http.ResponseWriter, r *http.Request) {
+	// Only accept exact path match
+	if r.URL.Path != "/healthz" {
+		http.NotFound(w, r)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{
