@@ -14,3 +14,7 @@ cbs_sample.json
 # Ignore compiled binaries and editor backup files
 *.exe
 *~
+addressiq
+addressiq-*
+/backend/addressiq
+/backend/addressiq-*

@@ -3,8 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="build-commit" content="06ce80e">
-    <meta name="build-date" content="2025-11-03T21:17:25Z">
     <title>AddressIQ</title>
     <!-- Bulma CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bulma@1/css/bulma.min.css" rel="stylesheet">
@@ -232,9 +230,12 @@
             </div>
             <div class="navbar-end">
                 <div class="navbar-item">
-                    <span class="tag is-light is-size-7">
-                        Build: <span id="build-info">Loading...</span>
-                    </span>
+                    <div class="tags has-addons">
+                        <span class="tag is-light is-size-7">
+                            <strong>Build Info</strong>
+                        </span>
+                        <span class="tag is-info is-size-7" id="build-info" style="white-space: pre-line;">Loading...</span>
+                    </div>
                 </div>
             </div>
         </nav>
@@ -293,24 +294,45 @@
         let currentResponse = null;
         let enabledAPIs = new Set(); // Track which APIs are enabled
 
-        document.addEventListener('DOMContentLoaded', function () {
-            // Populate build info
-            const commitMeta = document.querySelector('meta[name="build-commit"]');
-            const dateMeta = document.querySelector('meta[name="build-date"]');
-            const buildInfoEl = document.getElementById('build-info');
-            if (buildInfoEl && commitMeta && dateMeta) {
-                const commit = commitMeta.content;
-                const date = new Date(dateMeta.content);
-                const formattedDate = date.toLocaleString('en-GB', {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: false
-                });
-                buildInfoEl.textContent = `${commit} | ${formattedDate}`;
+        // Fetch build info from API
+        async function fetchBuildInfo() {
+            try {
+                const response = await fetch(apiHost + '/build-info');
+                const data = await response.json();
+                const buildInfoEl = document.getElementById('build-info');
+                if (buildInfoEl && data.backend && data.frontend) {
+                    const backendDate = new Date(data.backend.date);
+                    const frontendDate = new Date(data.frontend.date);
+                    const backendFormatted = backendDate.toLocaleString('en-GB', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false
+                    });
+                    const frontendFormatted = frontendDate.toLocaleString('en-GB', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false
+                    });
+                    buildInfoEl.innerHTML = `BE: ${data.backend.commit} | ${backendFormatted}<br>FE: ${data.frontend.commit} | ${frontendFormatted}`;
+                }
+            } catch (error) {
+                console.warn('Failed to fetch build info:', error);
+                const buildInfoEl = document.getElementById('build-info');
+                if (buildInfoEl) {
+                    buildInfoEl.textContent = 'Build info unavailable';
+                }
             }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // Populate build info dynamically from API
+            fetchBuildInfo();
 
             map = new maplibregl.Map({
                 container: 'map',

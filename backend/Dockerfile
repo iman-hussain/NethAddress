@@ -7,7 +7,9 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . .
-RUN go build -o addressiq .
+RUN CGO_ENABLED=0 GOOS=linux go build \
+    -ldflags "-X 'main.BuildCommit=$(git rev-parse --short HEAD)' -X 'main.BuildDate=$(date -u +%Y-%m-%dT%H:%M:%SZ)'" \
+    -o addressiq .
 
 # Final stage
 FROM alpine:3.18

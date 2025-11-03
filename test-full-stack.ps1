@@ -79,7 +79,7 @@ if ($LASTEXITCODE -eq 0 -and (Test-Path ../test-backend.exe)) {
         Write-Host ""
         Write-Host "6. Testing backend endpoints..." -ForegroundColor Yellow
         try {
-            $health = Invoke-RestMethod -Uri "http://localhost:8082/healthz" -TimeoutSec 5
+            Invoke-RestMethod -Uri "http://localhost:8082/healthz" -TimeoutSec 5 | Out-Null
             Write-Host "  ✓ Health check passed" -ForegroundColor Green
 
             # Test search endpoint
@@ -138,16 +138,19 @@ Pop-Location
 
 # Check frontend build info
 Write-Host ""
-Write-Host "8. Checking frontend build info..." -ForegroundColor Yellow
-$indexPath = "frontend/index.html"
-if (Test-Path $indexPath) {
-    $indexContent = Get-Content $indexPath -Raw
-    if ($indexContent -match 'meta name="build-commit" content="([^"]+)"') {
-        Write-Host "  Build commit: $($matches[1])" -ForegroundColor Cyan
+Write-Host "8. Checking build info via API..." -ForegroundColor Yellow
+try {
+    $buildInfoResponse = Invoke-RestMethod -Uri "http://localhost:8080/build-info" -TimeoutSec 10
+    if ($buildInfoResponse.backend) {
+        Write-Host "  Backend commit: $($buildInfoResponse.backend.commit)" -ForegroundColor Cyan
+        Write-Host "  Backend date: $($buildInfoResponse.backend.date)" -ForegroundColor Cyan
     }
-    if ($indexContent -match 'meta name="build-date" content="([^"]+)"') {
-        Write-Host "  Build date: $($matches[1])" -ForegroundColor Cyan
+    if ($buildInfoResponse.frontend) {
+        Write-Host "  Frontend commit: $($buildInfoResponse.frontend.commit)" -ForegroundColor Cyan
+        Write-Host "  Frontend date: $($buildInfoResponse.frontend.date)" -ForegroundColor Cyan
     }
+} catch {
+    Write-Host "  Failed to fetch build info: $($_.Exception.Message)" -ForegroundColor Red
 }
 
 Write-Host ""

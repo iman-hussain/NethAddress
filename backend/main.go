@@ -16,6 +16,14 @@ import (
 	"github.com/rs/cors"
 )
 
+// Build-time variables (injected by ldflags during build)
+var (
+	BuildCommit         = "unknown"
+	BuildDate           = "unknown"
+	FrontendBuildCommit = "unknown"
+	FrontendBuildDate   = "unknown"
+)
+
 func main() {
 	// Load configuration
 	cfg, err := config.LoadConfig()
@@ -58,6 +66,20 @@ func main() {
 	// Initialize handlers
 	propertyHandler := handlers.NewPropertyHandler(propertyAggregator, scoringEngine, cfg)
 	legacySearchHandler := handlers.NewLegacySearchHandler(apiClient, cfg)
+
+	// Set build info for routes
+	routes.SetBuildInfo(BuildCommit, BuildDate)
+
+	// Set frontend build info from environment variables (for production deployment)
+	frontendCommit := os.Getenv("FRONTEND_BUILD_COMMIT")
+	if frontendCommit == "" {
+		frontendCommit = "unknown"
+	}
+	frontendDate := os.Getenv("FRONTEND_BUILD_DATE")
+	if frontendDate == "" {
+		frontendDate = "unknown"
+	}
+	routes.SetFrontendBuildInfo(frontendCommit, frontendDate)
 
 	// Initialize router
 	router := routes.NewRouter(propertyHandler, legacySearchHandler)

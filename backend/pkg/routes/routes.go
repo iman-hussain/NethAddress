@@ -7,6 +7,26 @@ import (
 	"github.com/iman-hussain/AddressIQ/backend/pkg/handlers"
 )
 
+// Build-time variables (set by main.go during initialization)
+var (
+	BuildCommit         = "unknown"
+	BuildDate           = "unknown"
+	FrontendBuildCommit = "unknown"
+	FrontendBuildDate   = "unknown"
+)
+
+// SetBuildInfo sets the build information variables
+func SetBuildInfo(commit, date string) {
+	BuildCommit = commit
+	BuildDate = date
+}
+
+// SetFrontendBuildInfo sets the frontend build information variables
+func SetFrontendBuildInfo(commit, date string) {
+	FrontendBuildCommit = commit
+	FrontendBuildDate = date
+}
+
 // Router holds all HTTP handlers
 type Router struct {
 	propertyHandler     *handlers.PropertyHandler
@@ -28,6 +48,7 @@ func NewRouter(
 func (router *Router) SetupRoutes(mux *http.ServeMux) {
 	// Health check
 	mux.HandleFunc("/healthz", handleHealthCheck)
+	mux.HandleFunc("/build-info", handleBuildInfo)
 	mux.HandleFunc("/", handleRoot)
 
 	// Legacy endpoint (backward compatibility)
@@ -55,6 +76,27 @@ func handleHealthCheck(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// Build info endpoint
+func handleBuildInfo(w http.ResponseWriter, r *http.Request) {
+	// Only accept exact path match
+	if r.URL.Path != "/build-info" {
+		http.NotFound(w, r)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"backend": map[string]string{
+			"commit": BuildCommit,
+			"date":   BuildDate,
+		},
+		"frontend": map[string]string{
+			"commit": FrontendBuildCommit,
+			"date":   FrontendBuildDate,
+		},
+	})
+}
+
 // Root endpoint
 func handleRoot(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
@@ -67,6 +109,7 @@ func handleRoot(w http.ResponseWriter, r *http.Request) {
 		"version": "2.0",
 		"endpoints": map[string]string{
 			"GET /healthz":                      "Health check",
+			"GET /build-info":                   "Build information",
 			"GET /search":                       "Legacy search endpoint",
 			"GET /api/property":                 "Get comprehensive property data",
 			"GET /api/property/scores":          "Get property scores (ESG, Profit, Opportunity)",
