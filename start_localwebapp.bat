@@ -6,7 +6,7 @@ echo ========================================
 echo.
 
 REM Step 1: Check if .env exists
-echo [1/4] Checking for .env file...
+echo [1/5] Checking for .env file...
 if not exist .env (
     copy .env.example .env
     echo       Copied .env.example to .env
@@ -15,20 +15,26 @@ if not exist .env (
 )
 echo.
 
-REM Step 2: Run docker-compose
-echo [2/4] Starting Docker services (PostgreSQL, Redis, Backend)...
+REM Step 2: Build frontend with dynamic build info
+echo [2/5] Building frontend with current commit info...
+powershell -ExecutionPolicy Bypass -File build-frontend.ps1
+echo       Frontend build info updated.
+echo.
+
+REM Step 3: Run docker-compose
+echo [3/5] Starting Docker services (PostgreSQL, Redis, Backend)...
 docker-compose -f docker-compose.local.yml up --build -d
 echo       Docker services started in background.
 echo.
 
-REM Step 3: Start frontend server
-echo [3/4] Starting frontend server on port 3000...
+REM Step 4: Start frontend server
+echo [4/5] Starting frontend server on port 3000...
 start cmd /k "cd frontend && python -m http.server 3000"
 echo       Frontend server started in new window.
 echo.
 
-REM Step 4: Open browser
-echo [4/4] Opening http://localhost:3000 in your browser...
+REM Step 5: Open browser
+echo [5/5] Opening http://localhost:3000 in your browser...
 start http://localhost:3000
 echo       Browser opened. Tailing backend logs below (Ctrl+C to stop).
 echo.
