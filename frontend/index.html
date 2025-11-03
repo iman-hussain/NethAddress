@@ -495,7 +495,13 @@
             console.log('filtered results:', filtered.length);
             console.log('First 5 filtered results:', filtered.slice(0, 5).map(r => ({ name: r.name, status: r.status, hasData: !!r.data, hasError: !!r.error })));
 
-            let html = '<div class="api-results-grid">';
+            let html = '<div class="notification is-info is-light mb-3">';
+            html += `<p><strong>Showing ${filtered.length} API data sources:</strong></p>`;
+            html += `<p class="is-size-7">✓ Success: ${filtered.filter(r => r.status === 'success').length} | `;
+            html += `✗ Error: ${filtered.filter(r => r.status === 'error').length} | `;
+            html += `⚠ Not Configured: ${filtered.filter(r => r.status === 'not_configured').length}</p>`;
+            html += '</div>';
+            html += '<div class="api-results-grid">';
 
             filtered.forEach((result, idx) => {
                 const statusClass = result.status === 'success' ? 'is-success' :
