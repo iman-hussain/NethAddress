@@ -12,7 +12,7 @@ RUN go build -o addressiq .
 # Final stage
 FROM alpine:3.18
 
-RUN apk --no-cache add ca-certificates curl
+RUN apk --no-cache add ca-certificates curl wget
 
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 WORKDIR /home/appuser
