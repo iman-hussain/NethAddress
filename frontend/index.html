@@ -257,42 +257,62 @@
         </div>
     </div>
     <script>
-        let map;
-        let currentResponse = null;
-        let enabledAPIs = new Set(); // Track which APIs are enabled
+    let map;
+    let currentResponse = null;
+    let enabledAPIs = new Set(); // Track which APIs are enabled
+    let apiHost = '';
 
         // Fetch build info from API
         async function fetchBuildInfo() {
+            const buildInfoEl = document.getElementById('build-info');
+            if (!buildInfoEl) {
+                return;
+            }
             try {
                 const response = await fetch(apiHost + '/build-info');
                 const data = await response.json();
-                const buildInfoEl = document.getElementById('build-info');
-                if (buildInfoEl && data.backend && data.frontend) {
-                    const backendDate = new Date(data.backend.date);
-                    const frontendDate = new Date(data.frontend.date);
-                    const mostRecentDate = backendDate > frontendDate ? backendDate : frontendDate;
-                    const formattedDate = mostRecentDate.toLocaleString('en-GB', {
+
+                const repoUrl = 'https://github.com/iman-hussain/AddressIQ/commit/';
+                const buildLine = (label, info) => {
+                    if (!info || !info.commit || info.commit === 'unknown') {
+                        return `${label}: (unknown)`;
+                    }
+                    const shortCommit = info.commit.substring(0, 7);
+                    return `${label}: (<a href="${repoUrl}${info.commit}" target="_blank" rel="noopener noreferrer">${shortCommit}</a>)`;
+                };
+
+                const backendDate = data?.backend?.date ? new Date(data.backend.date) : null;
+                const frontendDate = data?.frontend?.date ? new Date(data.frontend.date) : null;
+                const mostRecentDate = [backendDate, frontendDate]
+                    .filter(d => d instanceof Date && !isNaN(d.getTime()))
+                    .sort((a, b) => b - a)[0];
+
+                const formattedDate = mostRecentDate
+                    ? mostRecentDate.toLocaleString('en-GB', {
                         day: '2-digit',
                         month: '2-digit',
                         year: 'numeric',
                         hour: '2-digit',
                         minute: '2-digit',
                         hour12: false
-                    });
-                    
-                    const repoUrl = 'https://github.com/iman-hussain/AddressIQ/commit/';
-                    buildInfoEl.innerHTML = `Frontend Build: <a href="${repoUrl}${data.frontend.commit}" target="_blank">${data.frontend.commit.substring(0, 7)}</a> Backend Build: <a href="${repoUrl}${data.backend.commit}" target="_blank">${data.backend.commit.substring(0, 7)}</a> | ${formattedDate}`;
-                }
+                    })
+                    : 'unknown';
+
+                buildInfoEl.innerHTML = `${buildLine('Frontend Build', data.frontend)} ${buildLine('Backend Build', data.backend)} | ${formattedDate}`;
             } catch (error) {
                 console.warn('Failed to fetch build info:', error);
-                const buildInfoEl = document.getElementById('build-info');
-                if (buildInfoEl) {
-                    buildInfoEl.textContent = 'Build info unavailable';
-                }
+                buildInfoEl.textContent = 'Build info unavailable';
             }
         }
 
         document.addEventListener('DOMContentLoaded', function () {
+            // Define apiHost based on hostname
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                apiHost = 'http://localhost:8080';
+            } else {
+                apiHost = 'https://api.addressiq.imanhussain.com';
+            }
+
             // Populate build info dynamically from API
             fetchBuildInfo();
 
@@ -322,14 +342,6 @@
             };
             applyMapPadding();
             window.addEventListener('resize', applyMapPadding);
-
-            // Define apiHost based on hostname
-            let apiHost;
-            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                apiHost = 'http://localhost:8080';
-            } else {
-                apiHost = 'https://api.addressiq.imanhussain.com';
-            }
 
             // Set hx-post on the form
             const searchForm = document.getElementById('search-form');
@@ -484,10 +496,68 @@
                     const responseStr = dataHolder.getAttribute('data-response');
                     if (responseStr) {
                         currentResponse = JSON.parse(responseStr);
+                        renderApiResults();
                     }
                 }
             }
         });
+
+        function renderApiResults() {
+            const desktopResults = document.getElementById('results-desktop');
+            if (!desktopResults) {
+                return;
+            }
+
+            if (!currentResponse || !Array.isArray(currentResponse.apiResults)) {
+                desktopResults.innerHTML = '';
+                document.body.classList.remove('has-results');
+                return;
+            }
+
+            const filtered = currentResponse.apiResults.filter(result => enabledAPIs.has(result.name));
+            const successCount = filtered.filter(r => r.status === 'success').length;
+            const errorCount = filtered.filter(r => r.status === 'error').length;
+            const notConfiguredCount = filtered.filter(r => r.status === 'not_configured').length;
+
+            let html = '<div class="notification is-info is-light mb-3">';
+            html += `<strong>Showing ${filtered.length} API data sources:</strong> `;
+            html += `✓ ${successCount} success | ✗ ${errorCount} error | ⚠ ${notConfiguredCount} not configured`;
+            html += '</div>';
+            html += '<div class="api-results-grid">';
+
+            filtered.forEach(result => {
+                const statusClass = result.status === 'success'
+                    ? 'is-success'
+                    : result.status === 'error'
+                        ? 'is-danger'
+                        : 'is-warning';
+                const statusSymbol = result.status === 'success' ? '✓' : result.status === 'error' ? '✗' : '⚠';
+                const errorMessage = result.error ? `<p class="is-size-7 mt-1">${result.error}</p>` : '';
+                const dataBlock = result.data
+                    ? `<details class="mt-2">
+                            <summary class="button is-small is-light is-size-7">Data</summary>
+                            <pre class="mt-2" style="max-height: 150px; overflow-y: auto; font-size: 0.65rem;">${JSON.stringify(result.data, null, 2)}</pre>
+                        </details>`
+                    : '';
+
+                html += `
+                    <div class="notification ${statusClass} result-card is-size-7 p-3">
+                        <p class="has-text-weight-bold is-size-7">${statusSymbol} ${result.name}</p>
+                        ${errorMessage}
+                        ${dataBlock}
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+
+            desktopResults.innerHTML = html;
+            if (filtered.length > 0) {
+                document.body.classList.add('has-results');
+            } else {
+                document.body.classList.remove('has-results');
+            }
+        }
 
         // Export data as CSV
         function exportCSV() {
@@ -584,22 +654,26 @@
             } else {
                 enabledAPIs.add(apiName);
             }
+            renderApiResults();
         }
 
         function selectAllAPIs() {
             if (!currentResponse) return;
             currentResponse.apiResults.forEach(r => enabledAPIs.add(r.name));
             document.querySelectorAll('#api-checkboxes input[type="checkbox"]').forEach(cb => cb.checked = true);
+            renderApiResults();
         }
 
         function deselectAllAPIs() {
             enabledAPIs.clear();
             document.querySelectorAll('#api-checkboxes input[type="checkbox"]').forEach(cb => cb.checked = false);
+            renderApiResults();
         }
 
         function saveSettings() {
             localStorage.setItem('enabledAPIs', JSON.stringify([...enabledAPIs]));
             closeSettings();
+            renderApiResults();
             alert('Settings saved! Enabled APIs: ' + enabledAPIs.size);
         }
     </script>
