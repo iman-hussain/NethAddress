@@ -61,6 +61,10 @@
         .sidebar-content > * {
             direction: ltr; /* Reset content back to left-to-right */
         }
+        .sidebar-overlay,
+        .sidebar-content {
+            background: transparent;
+        }
         .panel-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -227,7 +231,7 @@
         </nav>
         <div class="columns is-gapless">
             <!-- Map (full background) -->
-            <div class="column" id="map-container" style="position: absolute; left: 25%; width: 75%; height: 100%;">
+            <div class="column" id="map-container">
                 <div id="map"></div>
             </div>
             <!-- Floating Sidebar -->
@@ -294,6 +298,19 @@
                 ]
             });
             window.map = map;
+
+            const applyMapPadding = () => {
+                if (!map) return;
+                if (window.innerWidth > 1024) {
+                    map.setPadding({ left: window.innerWidth * 0.35, right: 40, top: 20, bottom: 40 });
+                } else if (window.innerWidth > 768) {
+                    map.setPadding({ left: window.innerWidth * 0.25, right: 20, top: 20, bottom: 40 });
+                } else {
+                    map.setPadding({ left: 0, right: 0, top: 0, bottom: 0 });
+                }
+            };
+            applyMapPadding();
+            window.addEventListener('resize', applyMapPadding);
 
             // Define apiHost based on hostname
             let apiHost;
