@@ -227,7 +227,7 @@
         </nav>
         <div class="columns is-gapless">
             <!-- Map (full background) -->
-            <div class="column" id="map-container">
+            <div class="column" id="map-container" style="position: absolute; left: 25%; width: 75%; height: 100%;">
                 <div id="map"></div>
             </div>
             <!-- Floating Sidebar -->
@@ -506,6 +506,7 @@
             const showBtn = document.getElementById('show-all-results-btn');
             if (window.innerWidth <= 768 && showBtn) {
                 showBtn.style.display = 'block';
+                showBtn.disabled = false;
             }
         }
 
@@ -514,8 +515,8 @@
             const showBtn = document.getElementById('show-all-results-btn');
             if (showBtn) {
                 showBtn.addEventListener('click', function () {
+                    showBtn.disabled = true;
                     showAllResults();
-                    // Scroll to results
                     setTimeout(() => {
                         const resultsMobile = document.getElementById('results-mobile');
                         if (resultsMobile) {
