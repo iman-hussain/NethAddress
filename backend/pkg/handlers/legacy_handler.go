@@ -209,20 +209,20 @@ func (h *LegacySearchHandler) buildAPIResults(data *aggregator.ComprehensiveProp
 	if data.Weather != nil {
 		results = append(results, APIResult{Name: "KNMI Weather", Status: "success", Data: data.Weather})
 	} else {
-		results = append(results, APIResult{Name: "KNMI Weather", Status: "error", Error: "Failed to fetch weather data"})
+		results = append(results, APIResult{Name: "KNMI Weather", Status: "error", Error: getErrorMessage(data, "KNMI Weather", "Failed to fetch weather data")})
 	}
 
 	if data.SolarPotential != nil {
 		results = append(results, APIResult{Name: "KNMI Solar", Status: "success", Data: data.SolarPotential})
 	} else {
-		results = append(results, APIResult{Name: "KNMI Solar", Status: "error", Error: "Failed to fetch solar data"})
+		results = append(results, APIResult{Name: "KNMI Solar", Status: "error", Error: getErrorMessage(data, "KNMI Solar", "Failed to fetch solar data")})
 	}
 
 	// Environmental Quality
 	if data.AirQuality != nil {
 		results = append(results, APIResult{Name: "Luchtmeetnet Air Quality", Status: "success", Data: data.AirQuality})
 	} else {
-		results = append(results, APIResult{Name: "Luchtmeetnet Air Quality", Status: "error", Error: "Failed to fetch air quality data"})
+		results = append(results, APIResult{Name: "Luchtmeetnet Air Quality", Status: "error", Error: getErrorMessage(data, "Luchtmeetnet Air Quality", "Failed to fetch air quality data")})
 	}
 
 	if data.NoisePollution != nil {
@@ -384,4 +384,13 @@ func (h *LegacySearchHandler) buildAPIResults(data *aggregator.ComprehensiveProp
 	}
 
 	return results
+}
+
+func getErrorMessage(data *aggregator.ComprehensivePropertyData, source, fallback string) string {
+	if data != nil && data.Errors != nil {
+		if msg, ok := data.Errors[source]; ok && msg != "" {
+			return msg
+		}
+	}
+	return fallback
 }

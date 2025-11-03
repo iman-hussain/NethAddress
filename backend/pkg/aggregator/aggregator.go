@@ -86,8 +86,9 @@ type ComprehensivePropertyData struct {
 	SchipholFlights *apiclient.SchipholFlightData `json:"schipholFlights,omitempty"`
 
 	// Metadata
-	AggregatedAt time.Time `json:"aggregatedAt"`
-	DataSources  []string  `json:"dataSources"`
+	AggregatedAt time.Time         `json:"aggregatedAt"`
+	DataSources  []string          `json:"dataSources"`
+	Errors       map[string]string `json:"errors,omitempty"`
 }
 
 // AggregatePropertyData fetches and combines data from all available sources
@@ -121,6 +122,7 @@ func (pa *PropertyAggregator) AggregatePropertyData(postcode, houseNumber string
 		BAGID:        bagID,
 		AggregatedAt: time.Now(),
 		DataSources:  []string{"BAG"},
+		Errors:       make(map[string]string),
 	}
 
 	// Property & Valuation Data (parallel fetches where possible)
@@ -199,6 +201,9 @@ func (pa *PropertyAggregator) fetchEnvironmentalData(data *ComprehensiveProperty
 		log.Printf("[AGGREGATOR] ✓ Weather data fetched successfully")
 	} else {
 		log.Printf("[AGGREGATOR] ✗ Weather fetch failed: %v", err)
+		if data.Errors != nil {
+			data.Errors["KNMI Weather"] = err.Error()
+		}
 	}
 
 	// Solar Potential
@@ -209,6 +214,9 @@ func (pa *PropertyAggregator) fetchEnvironmentalData(data *ComprehensiveProperty
 		log.Printf("[AGGREGATOR] ✓ Solar data fetched successfully")
 	} else {
 		log.Printf("[AGGREGATOR] ✗ Solar fetch failed: %v", err)
+		if data.Errors != nil {
+			data.Errors["KNMI Solar"] = err.Error()
+		}
 	}
 
 	// Soil Data
@@ -243,6 +251,9 @@ func (pa *PropertyAggregator) fetchEnvironmentalData(data *ComprehensiveProperty
 		log.Printf("[AGGREGATOR] ✓ Air quality data fetched successfully")
 	} else {
 		log.Printf("[AGGREGATOR] ✗ Air quality fetch failed: %v", err)
+		if data.Errors != nil {
+			data.Errors["Luchtmeetnet Air Quality"] = err.Error()
+		}
 	}
 
 	// Noise Pollution
