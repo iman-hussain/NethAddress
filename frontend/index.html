@@ -108,9 +108,6 @@
         body:not(.has-results) .desktop-results {
             display: none;
         }
-        .mobile-results-wrapper {
-            display: none;
-        }
         #results-header:empty {
             display: none;
         }
@@ -196,27 +193,6 @@
             body.has-results #results-header {
                 margin-top: auto;
             }
-            .mobile-results-wrapper {
-                display: none;
-            }
-            body.has-results {
-                overflow-y: auto;
-            }
-            body.has-results .mobile-results-wrapper {
-                display: block;
-                position: relative;
-                z-index: 35;
-                margin-top: calc(100vh - 4.5rem);
-                padding: 1.5rem 1rem 3rem;
-                background: rgba(255, 255, 255, 0.95);
-                backdrop-filter: blur(4px);
-            }
-            body.has-results .mobile-results-wrapper .api-results-grid {
-                grid-template-columns: 1fr;
-            }
-            .api-results-grid {
-                grid-template-columns: 1fr;
-            }
         }
     </style>
 </head>
@@ -230,12 +206,7 @@
             </div>
             <div class="navbar-end">
                 <div class="navbar-item">
-                    <div class="tags has-addons">
-                        <span class="tag is-light is-size-7">
-                            <strong>Build Info</strong>
-                        </span>
-                        <span class="tag is-info is-size-7" id="build-info" style="white-space: pre-line;">Loading...</span>
-                    </div>
+                    <span class="tag is-light is-size-7" id="build-info">Loading...</span>
                 </div>
             </div>
         </nav>
@@ -285,10 +256,6 @@
             </div>
         </div>
     </div>
-    <div class="mobile-results-wrapper">
-        <button id="show-all-results-btn" class="button is-primary is-fullwidth mb-3" style="display:none;">Show All Results</button>
-        <div id="results-mobile"></div>
-    </div>
     <script>
         let map;
         let currentResponse = null;
@@ -303,7 +270,8 @@
                 if (buildInfoEl && data.backend && data.frontend) {
                     const backendDate = new Date(data.backend.date);
                     const frontendDate = new Date(data.frontend.date);
-                    const backendFormatted = backendDate.toLocaleString('en-GB', {
+                    const mostRecentDate = backendDate > frontendDate ? backendDate : frontendDate;
+                    const formattedDate = mostRecentDate.toLocaleString('en-GB', {
                         day: '2-digit',
                         month: '2-digit',
                         year: 'numeric',
@@ -311,15 +279,9 @@
                         minute: '2-digit',
                         hour12: false
                     });
-                    const frontendFormatted = frontendDate.toLocaleString('en-GB', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: false
-                    });
-                    buildInfoEl.innerHTML = `BE: ${data.backend.commit} | ${backendFormatted}<br>FE: ${data.frontend.commit} | ${frontendFormatted}`;
+                    
+                    const repoUrl = 'https://github.com/iman-hussain/AddressIQ/commit/';
+                    buildInfoEl.innerHTML = `Frontend Build: <a href="${repoUrl}${data.frontend.commit}" target="_blank">${data.frontend.commit.substring(0, 7)}</a> Backend Build: <a href="${repoUrl}${data.backend.commit}" target="_blank">${data.backend.commit.substring(0, 7)}</a> | ${formattedDate}`;
                 }
             } catch (error) {
                 console.warn('Failed to fetch build info:', error);
@@ -401,9 +363,7 @@
                 document.body.classList.remove('has-results');
                 document.getElementById('results-header').innerHTML = '';
                 const desktopResults = document.getElementById('results-desktop');
-                const mobileResults = document.getElementById('results-mobile');
                 if (desktopResults) desktopResults.innerHTML = '';
-                if (mobileResults) mobileResults.innerHTML = '';
             }
         });
 
@@ -512,7 +472,6 @@
 
                 if (resultsContent) {
                     document.getElementById('results-desktop').innerHTML = resultsContent.innerHTML;
-                    document.getElementById('results-mobile').innerHTML = resultsContent.innerHTML;
                 }
 
                 if (dataHolder) {
@@ -525,97 +484,8 @@
                     const responseStr = dataHolder.getAttribute('data-response');
                     if (responseStr) {
                         currentResponse = JSON.parse(responseStr);
-                        showAllResults();
                     }
                 }
-            }
-        });
-
-        // Show all API results in expandable cards
-        function showAllResults() {
-            if (!currentResponse || !currentResponse.apiResults) {
-                alert('No results loaded yet');
-                return;
-            }
-
-            console.log('showAllResults called with', currentResponse.apiResults.length, 'total APIs');
-            console.log('enabledAPIs size:', enabledAPIs.size, 'contents:', [...enabledAPIs]);
-            const filtered = currentResponse.apiResults.filter(r => enabledAPIs.has(r.name));
-            console.log('filtered results:', filtered.length);
-            console.log('First 5 filtered results:', filtered.slice(0, 5).map(r => ({ name: r.name, status: r.status, hasData: !!r.data, hasError: !!r.error })));
-
-            let html = '<div class="notification is-info is-light mb-3">';
-            html += `<p><strong>Showing ${filtered.length} API data sources:</strong></p>`;
-            html += `<p class="is-size-7">✓ Success: ${filtered.filter(r => r.status === 'success').length} | `;
-            html += `✗ Error: ${filtered.filter(r => r.status === 'error').length} | `;
-            html += `⚠ Not Configured: ${filtered.filter(r => r.status === 'not_configured').length}</p>`;
-            html += '</div>';
-            html += '<div class="api-results-grid">';
-
-            filtered.forEach((result, idx) => {
-                const statusClass = result.status === 'success' ? 'is-success' :
-                                   result.status === 'error' ? 'is-danger' : 'is-warning';
-                const statusText = result.status === 'success' ? '✓' :
-                                  result.status === 'error' ? '✗' : '⚠';
-
-                html += `
-                    <div class="notification ${statusClass} result-card is-size-7 p-3">
-                        <p class="has-text-weight-bold is-size-7">${statusText} ${result.name}</p>
-                        ${result.error ? `<p class="is-size-7 mt-1">${result.error}</p>` : ''}
-                        ${result.data ? `<details class="mt-2">
-                            <summary class="button is-small is-light is-size-7">Data</summary>
-                            <pre class="mt-2" style="max-height: 150px; overflow-y: auto; font-size: 0.65rem;">${JSON.stringify(result.data, null, 2)}</pre>
-                        </details>` : ''}
-                    </div>
-                `;
-            });
-
-            html += '</div>';
-
-            console.log('Generated HTML length:', html.length);
-            const desktopResults = document.getElementById('results-desktop');
-            const mobileResults = document.getElementById('results-mobile');
-            console.log('Desktop element found?', !!desktopResults, 'Mobile element found?', !!mobileResults);
-            if (desktopResults) {
-                desktopResults.innerHTML = html;
-                console.log('Desktop innerHTML set, now has', desktopResults.children.length, 'children');
-                if (desktopResults.children.length > 0) {
-                    const gridDiv = desktopResults.querySelector('.api-results-grid');
-                    console.log('Grid div found?', !!gridDiv, 'Grid has', gridDiv ? gridDiv.children.length : 0, 'cards');
-                }
-            }
-            if (mobileResults) {
-                mobileResults.innerHTML = html;
-                console.log('Mobile innerHTML set, now has', mobileResults.children.length, 'children');
-                if (mobileResults.children.length > 0) {
-                    const gridDiv = mobileResults.querySelector('.api-results-grid');
-                    console.log('Mobile grid div found?', !!gridDiv, 'Grid has', gridDiv ? gridDiv.children.length : 0, 'cards');
-                }
-            }
-            document.body.classList.add('has-results');
-
-            // Show the button only on mobile when results are present
-            const showBtn = document.getElementById('show-all-results-btn');
-            if (window.innerWidth <= 768 && showBtn) {
-                showBtn.style.display = 'block';
-                showBtn.disabled = false;
-            }
-        }
-
-        // Button click handler for mobile
-        document.addEventListener('DOMContentLoaded', function () {
-            const showBtn = document.getElementById('show-all-results-btn');
-            if (showBtn) {
-                showBtn.addEventListener('click', function () {
-                    showBtn.disabled = true;
-                    showAllResults();
-                    setTimeout(() => {
-                        const resultsMobile = document.getElementById('results-mobile');
-                        if (resultsMobile) {
-                            resultsMobile.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }
-                    }, 100);
-                });
             }
         });
 
