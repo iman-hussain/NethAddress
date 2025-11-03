@@ -6,8 +6,9 @@ import (
 )
 
 type Config struct {
-	DatabaseURL string `envconfig:"DATABASE_URL"`
-	RedisURL    string `envconfig:"REDIS_URL"`
+	DatabaseURL    string `envconfig:"DATABASE_URL"`
+	RedisURL       string `envconfig:"REDIS_URL"`
+	FrontendOrigin string `envconfig:"FRONTEND_ORIGIN"`
 
 	// Property & Land Data APIs
 	BagApiURL                string `envconfig:"BAG_API_URL"`

@@ -70,7 +70,7 @@ func main() {
 	// CORS middleware
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{
-			cfg.FRONTEND_ORIGIN,
+			cfg.FrontendOrigin,
 			"http://localhost:3000",
 		},
 		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
