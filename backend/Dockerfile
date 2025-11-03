@@ -18,13 +18,14 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 WORKDIR /home/appuser
 
 COPY --from=builder /app/addressiq ./addressiq
-RUN chown appuser:appgroup ./addressiq && chmod +x ./addressiq
+COPY docker-healthcheck.sh ./healthcheck.sh
+RUN chown appuser:appgroup ./addressiq ./healthcheck.sh && chmod +x ./addressiq ./healthcheck.sh
 
 USER appuser
 
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/healthz || exit 1
+    CMD ["./healthcheck.sh"]
 
 CMD ["./addressiq"]
