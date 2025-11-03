@@ -277,7 +277,7 @@
                     if (!info || !info.commit || info.commit === 'unknown') {
                         return `${label}: (unknown)`;
                     }
-                    const shortCommit = info.commit.substring(0, 7);
+                    const shortCommit = info.commit.length > 7 ? info.commit.substring(0, 7) : info.commit;
                     return `${label}: (<a href="${repoUrl}${info.commit}" target="_blank" rel="noopener noreferrer">${shortCommit}</a>)`;
                 };
 

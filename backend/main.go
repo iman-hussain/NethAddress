@@ -4,6 +4,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
+	"runtime/debug"
+	"strings"
 	"time"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/aggregator"
@@ -24,7 +27,48 @@ var (
 	FrontendBuildDate   = "unknown"
 )
 
+func populateBuildMetadata() {
+	if BuildCommit == "unknown" || BuildDate == "unknown" {
+		if info, ok := debug.ReadBuildInfo(); ok {
+			for _, setting := range info.Settings {
+				switch setting.Key {
+				case "vcs.revision":
+					if BuildCommit == "unknown" {
+						BuildCommit = strings.TrimSpace(setting.Value)
+					}
+				case "vcs.time":
+					if BuildDate == "unknown" {
+						BuildDate = setting.Value
+					}
+				}
+			}
+		}
+	}
+
+	if BuildCommit == "unknown" {
+		if commit, err := runGitCommand("rev-parse", "HEAD"); err == nil && commit != "" {
+			BuildCommit = commit
+		}
+	}
+
+	if BuildDate == "unknown" {
+		if date, err := runGitCommand("log", "-1", "--format=%cI"); err == nil && date != "" {
+			BuildDate = date
+		}
+	}
+}
+
+func runGitCommand(args ...string) (string, error) {
+	cmd := exec.Command("git", args...)
+	output, err := cmd.Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(output)), nil
+}
+
 func main() {
+	populateBuildMetadata()
 	// Load configuration
 	cfg, err := config.LoadConfig()
 	if err != nil {
@@ -73,11 +117,11 @@ func main() {
 	// Set frontend build info from environment variables (for production deployment)
 	frontendCommit := os.Getenv("FRONTEND_BUILD_COMMIT")
 	if frontendCommit == "" {
-		frontendCommit = "unknown"
+		frontendCommit = BuildCommit
 	}
 	frontendDate := os.Getenv("FRONTEND_BUILD_DATE")
 	if frontendDate == "" {
-		frontendDate = "unknown"
+		frontendDate = BuildDate
 	}
 	routes.SetFrontendBuildInfo(frontendCommit, frontendDate)
 
