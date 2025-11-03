@@ -13,12 +13,12 @@ if (Test-Path $envPath) {
     $hasWeather = $envContent -match "KNMI_WEATHER_API_URL=https"
     $hasSolar = $envContent -match "KNMI_SOLAR_API_URL=https"
     $hasAir = $envContent -match "LUCHTMEETNET_API_URL=https"
-    
+
     Write-Host "  BAG API URL: $(if($hasBAG){'✓'}else{'✗'})" -ForegroundColor $(if($hasBAG){'Green'}else{'Red'})
     Write-Host "  Weather API URL: $(if($hasWeather){'✓'}else{'✗'})" -ForegroundColor $(if($hasWeather){'Green'}else{'Red'})
     Write-Host "  Solar API URL: $(if($hasSolar){'✓'}else{'✗'})" -ForegroundColor $(if($hasSolar){'Green'}else{'Red'})
     Write-Host "  Air Quality API URL: $(if($hasAir){'✓'}else{'✗'})" -ForegroundColor $(if($hasAir){'Green'}else{'Red'})
-    
+
     if (!$hasBAG -or !$hasWeather -or !$hasSolar -or !$hasAir) {
         Write-Host "  ⚠ Missing API URLs in .env - copying from production template" -ForegroundColor Yellow
         Write-Host ""
@@ -64,28 +64,28 @@ Push-Location backend
 go build -o ../test-backend.exe . 2>&1 | Out-Null
 if ($LASTEXITCODE -eq 0 -and (Test-Path ../test-backend.exe)) {
     Write-Host "  ✓ Backend built successfully" -ForegroundColor Green
-    
+
     # Start backend in background
     Write-Host ""
     Write-Host "5. Starting backend server..." -ForegroundColor Yellow
     $env:PORT = "8082"
     $backendProcess = Start-Process -FilePath "..\test-backend.exe" -PassThru -WindowStyle Hidden -RedirectStandardOutput "../backend-test.log" -RedirectStandardError "../backend-test-error.log"
     Start-Sleep -Seconds 3
-    
+
     if (!$backendProcess.HasExited) {
         Write-Host "  ✓ Backend server started (PID: $($backendProcess.Id))" -ForegroundColor Green
-        
+
         # Test health endpoint
         Write-Host ""
         Write-Host "6. Testing backend endpoints..." -ForegroundColor Yellow
         try {
             $health = Invoke-RestMethod -Uri "http://localhost:8082/healthz" -TimeoutSec 5
             Write-Host "  ✓ Health check passed" -ForegroundColor Green
-            
+
             # Test search endpoint
             $search = Invoke-RestMethod -Uri "http://localhost:8082/search?address=1012LG+1" -TimeoutSec 10
             Write-Host "  ✓ Search endpoint responding" -ForegroundColor Green
-            
+
             # Parse response to count API results
             if ($search -match 'data-response=''([^'']+)''') {
                 $jsonData = $matches[1] -replace '&quot;', '"'
@@ -94,12 +94,12 @@ if ($LASTEXITCODE -eq 0 -and (Test-Path ../test-backend.exe)) {
                 $successAPIs = ($data.apiResults | Where-Object { $_.status -eq 'success' }).Count
                 $errorAPIs = ($data.apiResults | Where-Object { $_.status -eq 'error' }).Count
                 $notConfiguredAPIs = ($data.apiResults | Where-Object { $_.status -eq 'not_configured' }).Count
-                
+
                 Write-Host "  API Results: $totalAPIs total" -ForegroundColor Cyan
                 Write-Host "    ✓ Success: $successAPIs" -ForegroundColor Green
                 Write-Host "    ✗ Error: $errorAPIs" -ForegroundColor Red
                 Write-Host "    ⚠ Not Configured: $notConfiguredAPIs" -ForegroundColor Yellow
-                
+
                 # Show which APIs succeeded
                 $successNames = ($data.apiResults | Where-Object { $_.status -eq 'success' }).name
                 if ($successNames) {
@@ -107,18 +107,18 @@ if ($LASTEXITCODE -eq 0 -and (Test-Path ../test-backend.exe)) {
                     $successNames | ForEach-Object { Write-Host "    • $_" -ForegroundColor Green }
                 }
             }
-            
+
         } catch {
             Write-Host "  ✗ Backend test failed: $_" -ForegroundColor Red
         }
-        
+
         # Clean up
         Write-Host ""
         Write-Host "7. Cleaning up..." -ForegroundColor Yellow
         Stop-Process -Id $backendProcess.Id -Force
         Start-Sleep -Seconds 1
         Write-Host "  ✓ Backend stopped" -ForegroundColor Green
-        
+
     } else {
         Write-Host "  ✗ Backend failed to start" -ForegroundColor Red
         if (Test-Path "../backend-test-error.log") {
@@ -126,7 +126,7 @@ if ($LASTEXITCODE -eq 0 -and (Test-Path ../test-backend.exe)) {
             Get-Content "../backend-test-error.log"
         }
     }
-    
+
     # Clean up test binary
     if (Test-Path ../test-backend.exe) {
         Remove-Item ../test-backend.exe -Force
