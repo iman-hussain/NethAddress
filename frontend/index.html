@@ -493,6 +493,7 @@
             console.log('enabledAPIs size:', enabledAPIs.size, 'contents:', [...enabledAPIs]);
             const filtered = currentResponse.apiResults.filter(r => enabledAPIs.has(r.name));
             console.log('filtered results:', filtered.length);
+            console.log('First 5 filtered results:', filtered.slice(0, 5).map(r => ({ name: r.name, status: r.status, hasData: !!r.data, hasError: !!r.error })));
 
             let html = '<div class="api-results-grid">';
 
@@ -516,10 +517,18 @@
 
             html += '</div>';
 
+            console.log('Generated HTML length:', html.length);
             const desktopResults = document.getElementById('results-desktop');
             const mobileResults = document.getElementById('results-mobile');
-            if (desktopResults) desktopResults.innerHTML = html;
-            if (mobileResults) mobileResults.innerHTML = html;
+            console.log('Desktop element found?', !!desktopResults, 'Mobile element found?', !!mobileResults);
+            if (desktopResults) {
+                desktopResults.innerHTML = html;
+                console.log('Desktop innerHTML set, now has', desktopResults.children.length, 'children');
+            }
+            if (mobileResults) {
+                mobileResults.innerHTML = html;
+                console.log('Mobile innerHTML set, now has', mobileResults.children.length, 'children');
+            }
             document.body.classList.add('has-results');
 
             // Show the button only on mobile when results are present
