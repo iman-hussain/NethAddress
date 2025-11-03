@@ -25,6 +25,8 @@ func main() {
 	if err != nil {
 		log.Printf("Warning: could not load config: %v, using defaults", err)
 		cfg = &config.Config{}
+	} else {
+		log.Println("✅ Configuration loaded successfully")
 	}
 
 	// Initialize Redis client for caching
@@ -68,11 +70,13 @@ func main() {
 	router.SetupRoutes(mux)
 
 	// CORS middleware
+	allowedOrigins := []string{"http://localhost:3000"}
+	if cfg.FrontendOrigin != "" {
+		allowedOrigins = append(allowedOrigins, cfg.FrontendOrigin)
+	}
+	log.Printf("🌐 CORS allowed origins: %v", allowedOrigins)
 	c := cors.New(cors.Options{
-		AllowedOrigins: []string{
-			cfg.FrontendOrigin,
-			"http://localhost:3000",
-		},
+		AllowedOrigins:   allowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
 		AllowedHeaders:   []string{"*"},
 		AllowCredentials: false,
@@ -84,6 +88,7 @@ func main() {
 	if port == "" {
 		port = "8080"
 	}
+	log.Printf("📡 Server will listen on port %s", port)
 
 	srv := &http.Server{
 		Addr:         ":" + port,
