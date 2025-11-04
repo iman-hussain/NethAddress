@@ -46,7 +46,15 @@ func (c *ApiClient) FetchEnergyClimateData(cfg *config.Config, bagID string) (*E
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
-		return nil, err
+		// Return default data on network error
+		return &EnergyClimateData{
+			EnergyLabel:      "Unknown",
+			ClimateRisk:      "Unknown",
+			EfficiencyScore:  0,
+			AnnualEnergyCost: 0,
+			CO2Emissions:     0,
+			HeatLoss:         0,
+		}, nil
 	}
 	defer resp.Body.Close()
 
@@ -55,12 +63,28 @@ func (c *ApiClient) FetchEnergyClimateData(cfg *config.Config, bagID string) (*E
 	}
 
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("altum energy API returned status %d", resp.StatusCode)
+		// Return default data on non-200 status
+		return &EnergyClimateData{
+			EnergyLabel:      "Unknown",
+			ClimateRisk:      "Unknown",
+			EfficiencyScore:  0,
+			AnnualEnergyCost: 0,
+			CO2Emissions:     0,
+			HeatLoss:         0,
+		}, nil
 	}
 
 	var result EnergyClimateData
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode energy climate response: %w", err)
+		// Return default data on parse error
+		return &EnergyClimateData{
+			EnergyLabel:      "Unknown",
+			ClimateRisk:      "Unknown",
+			EfficiencyScore:  0,
+			AnnualEnergyCost: 0,
+			CO2Emissions:     0,
+			HeatLoss:         0,
+		}, nil
 	}
 
 	return &result, nil
@@ -117,7 +141,16 @@ func (c *ApiClient) FetchSustainabilityData(cfg *config.Config, bagID string) (*
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
-		return nil, err
+		// Return default data on network error
+		return &SustainabilityData{
+			CurrentRating:       "Unknown",
+			PotentialRating:     "Unknown",
+			RecommendedMeasures: []SustainabilityMeasure{},
+			TotalCO2Savings:     0,
+			TotalCostSavings:    0,
+			InvestmentCost:      0,
+			PaybackPeriod:       0,
+		}, nil
 	}
 	defer resp.Body.Close()
 
@@ -126,12 +159,30 @@ func (c *ApiClient) FetchSustainabilityData(cfg *config.Config, bagID string) (*
 	}
 
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("altum sustainability API returned status %d", resp.StatusCode)
+		// Return default data on non-200 status
+		return &SustainabilityData{
+			CurrentRating:       "Unknown",
+			PotentialRating:     "Unknown",
+			RecommendedMeasures: []SustainabilityMeasure{},
+			TotalCO2Savings:     0,
+			TotalCostSavings:    0,
+			InvestmentCost:      0,
+			PaybackPeriod:       0,
+		}, nil
 	}
 
 	var result SustainabilityData
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode sustainability response: %w", err)
+		// Return default data on parse error
+		return &SustainabilityData{
+			CurrentRating:       "Unknown",
+			PotentialRating:     "Unknown",
+			RecommendedMeasures: []SustainabilityMeasure{},
+			TotalCO2Savings:     0,
+			TotalCostSavings:    0,
+			InvestmentCost:      0,
+			PaybackPeriod:       0,
+		}, nil
 	}
 
 	return &result, nil
