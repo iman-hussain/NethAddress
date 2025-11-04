@@ -46,14 +46,32 @@ func populateBuildMetadata() {
 	}
 
 	if BuildCommit == "unknown" {
+		// Try git commands from current directory first
 		if commit, err := runGitCommand("rev-parse", "HEAD"); err == nil && commit != "" {
 			BuildCommit = commit
+		} else {
+			// If that fails, try from parent directory (assuming backend is in subdirectory)
+			oldDir, _ := os.Getwd()
+			os.Chdir("..")
+			if commit, err := runGitCommand("rev-parse", "HEAD"); err == nil && commit != "" {
+				BuildCommit = commit
+			}
+			os.Chdir(oldDir) // Restore original directory
 		}
 	}
 
 	if BuildDate == "unknown" {
+		// Try git commands from current directory first
 		if date, err := runGitCommand("log", "-1", "--format=%cI"); err == nil && date != "" {
 			BuildDate = date
+		} else {
+			// If that fails, try from parent directory
+			oldDir, _ := os.Getwd()
+			os.Chdir("..")
+			if date, err := runGitCommand("log", "-1", "--format=%cI"); err == nil && date != "" {
+				BuildDate = date
+			}
+			os.Chdir(oldDir) // Restore original directory
 		}
 	}
 }
@@ -68,8 +86,19 @@ func runGitCommand(args ...string) (string, error) {
 }
 
 func main() {
+	log.Println("Starting AddressIQ backend...")
+	log.Printf("Initial build metadata: commit=%s, date=%s", BuildCommit, BuildDate)
 	populateBuildMetadata()
-	// Load configuration
+	log.Printf("Final build metadata: commit=%s, date=%s", BuildCommit, BuildDate)
+	
+	// Debug: force set build info for testing
+	if BuildCommit == "unknown" {
+		BuildCommit = "test-commit-123"
+	}
+	if BuildDate == "unknown" {
+		BuildDate = "2025-11-04T15:00:00Z"
+	}
+	log.Printf("After debug set: commit=%s, date=%s", BuildCommit, BuildDate)
 	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Printf("Warning: could not load config: %v, using defaults", err)

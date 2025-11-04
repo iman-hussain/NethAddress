@@ -98,6 +98,13 @@
         }
         .result-card {
             margin: 0 !important;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            hyphens: auto;
+        }
+        .result-card pre {
+            word-break: break-all;
+            white-space: pre-wrap;
         }
         .results-wrapper {
             margin-top: 0;
@@ -109,6 +116,11 @@
             display: none;
         }
         #results-header:empty {
+            display: none;
+        }
+
+        /* Hide mobile results on desktop */
+        .mobile-results {
             display: none;
         }
 
@@ -395,10 +407,9 @@
             if (trigger && trigger.tagName === 'FORM' && trigger.getAttribute('hx-target') === '#results-container') {
                 document.body.classList.remove('has-results');
                 document.getElementById('results-header').innerHTML = '';
-                const desktopResults = document.getElementById('results-desktop');
-                const mobileResults = document.getElementById('results-mobile');
-                if (desktopResults) desktopResults.innerHTML = '';
-                if (mobileResults) mobileResults.innerHTML = '';
+                const isMobile = window.innerWidth <= 768;
+                const targetContainer = isMobile ? document.getElementById('results-mobile') : document.getElementById('results-desktop');
+                if (targetContainer) targetContainer.innerHTML = '';
             }
         });
 
@@ -506,8 +517,13 @@
                 }
 
                 if (resultsContent) {
-                    document.getElementById('results-desktop').innerHTML = resultsContent.innerHTML;
-                    document.getElementById('results-mobile').innerHTML = resultsContent.innerHTML;
+                    // Only populate the appropriate container based on screen size
+                    const isMobile = window.innerWidth <= 768;
+                    if (isMobile) {
+                        document.getElementById('results-mobile').innerHTML = resultsContent.innerHTML;
+                    } else {
+                        document.getElementById('results-desktop').innerHTML = resultsContent.innerHTML;
+                    }
                 }
 
                 if (dataHolder) {
@@ -648,15 +664,15 @@
         }
 
         function renderApiResults() {
-            const desktopResults = document.getElementById('results-desktop');
-            const mobileResults = document.getElementById('results-mobile');
-            if (!desktopResults && !mobileResults) {
+            const isMobile = window.innerWidth <= 768;
+            const targetContainer = isMobile ? document.getElementById('results-mobile') : document.getElementById('results-desktop');
+
+            if (!targetContainer) {
                 return;
             }
 
             if (!currentResponse || !currentResponse.apiResults) {
-                if (desktopResults) desktopResults.innerHTML = '';
-                if (mobileResults) mobileResults.innerHTML = '';
+                targetContainer.innerHTML = '';
                 document.body.classList.remove('has-results');
                 return;
             }
@@ -718,8 +734,7 @@
             html += renderSection('🔑 Freemium APIs (API Key Required)', grouped.freemium, 'has-text-warning');
             html += renderSection('💰 Premium APIs (Paid Services)', grouped.premium, 'has-text-danger');
 
-            if (desktopResults) desktopResults.innerHTML = html;
-            if (mobileResults) mobileResults.innerHTML = html;
+            targetContainer.innerHTML = html;
             if (filtered.length > 0) {
                 document.body.classList.add('has-results');
             } else {
