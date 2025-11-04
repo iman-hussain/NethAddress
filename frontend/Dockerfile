@@ -1,13 +1,11 @@
 # Frontend Dockerfile for static HTML deployment
 FROM nginx:alpine
 
-# Accept build arguments from Coolify
+# Accept build arguments from Coolify (for reference/documentation purposes)
+# Note: The backend will receive frontend build info via runtime environment variables,
+# not from this container. These args are kept for build-time logging/debugging.
 ARG COMMIT_SHA
 ARG BUILD_DATE
-
-# Set environment variables that nginx can use (these will be used by the backend API)
-ENV FRONTEND_BUILD_COMMIT=${COMMIT_SHA:-unknown}
-ENV FRONTEND_BUILD_DATE=${BUILD_DATE:-unknown}
 
 # Copy static files to nginx
 COPY index.html /usr/share/nginx/html/

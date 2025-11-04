@@ -14,10 +14,20 @@ RUN go mod download
 COPY . .
 
 # Use build args if provided, otherwise fallback to git commands
-RUN COMMIT_HASH=${COMMIT_SHA:-$(git rev-parse HEAD 2>/dev/null || echo "unknown")} && \
-    BUILD_TIMESTAMP=${BUILD_DATE:-$(date -u +%Y-%m-%dT%H:%M:%SZ)} && \
-    echo "Building with commit: $COMMIT_HASH" && \
-    echo "Building with date: $BUILD_TIMESTAMP" && \
+# Only run git commands if COMMIT_SHA or BUILD_DATE are not provided
+RUN set -ex; \
+    if [ -z "$COMMIT_SHA" ]; then \
+        COMMIT_HASH=$(git rev-parse HEAD 2>/dev/null || echo "unknown"); \
+    else \
+        COMMIT_HASH="$COMMIT_SHA"; \
+    fi; \
+    if [ -z "$BUILD_DATE" ]; then \
+        BUILD_TIMESTAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ); \
+    else \
+        BUILD_TIMESTAMP="$BUILD_DATE"; \
+    fi; \
+    echo "Building with commit: $COMMIT_HASH"; \
+    echo "Building with date: $BUILD_TIMESTAMP"; \
     CGO_ENABLED=0 GOOS=linux go build \
     -ldflags "-X 'main.BuildCommit=$COMMIT_HASH' -X 'main.BuildDate=$BUILD_TIMESTAMP'" \
     -o addressiq .
