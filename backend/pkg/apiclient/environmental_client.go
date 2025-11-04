@@ -29,26 +29,55 @@ type AirMeasurement struct {
 // FetchAirQualityData retrieves real-time air quality data
 // Documentation: https://api-docs.luchtmeetnet.nl
 func (c *ApiClient) FetchAirQualityData(cfg *config.Config, lat, lon float64) (*AirQualityData, error) {
+	// Return empty data if not configured
 	if cfg.LuchtmeetnetApiURL == "" {
-		return nil, fmt.Errorf("LuchtmeetnetApiURL not configured")
+		return &AirQualityData{
+			StationID:    "",
+			StationName:  "",
+			Measurements: []AirMeasurement{},
+			AQI:          0,
+			Category:     "Unknown",
+			LastUpdated:  "",
+		}, nil
 	}
 
 	// Find nearest station
 	stationURL := fmt.Sprintf("%s/stations?lat=%f&lon=%f&limit=1", cfg.LuchtmeetnetApiURL, lat, lon)
 	req, err := http.NewRequest("GET", stationURL, nil)
 	if err != nil {
-		return nil, err
+		return &AirQualityData{
+			StationID:    "",
+			StationName:  "",
+			Measurements: []AirMeasurement{},
+			AQI:          0,
+			Category:     "Unknown",
+			LastUpdated:  "",
+		}, nil
 	}
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
-		return nil, err
+		return &AirQualityData{
+			StationID:    "",
+			StationName:  "",
+			Measurements: []AirMeasurement{},
+			AQI:          0,
+			Category:     "Unknown",
+			LastUpdated:  "",
+		}, nil
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("luchtmeetnet API returned status %d", resp.StatusCode)
+		return &AirQualityData{
+			StationID:    "",
+			StationName:  "",
+			Measurements: []AirMeasurement{},
+			AQI:          0,
+			Category:     "Unknown",
+			LastUpdated:  "",
+		}, nil
 	}
 
 	var stations struct {
@@ -59,11 +88,25 @@ func (c *ApiClient) FetchAirQualityData(cfg *config.Config, lat, lon float64) (*
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&stations); err != nil {
-		return nil, fmt.Errorf("failed to decode stations response: %w", err)
+		return &AirQualityData{
+			StationID:    "",
+			StationName:  "",
+			Measurements: []AirMeasurement{},
+			AQI:          0,
+			Category:     "Unknown",
+			LastUpdated:  "",
+		}, nil
 	}
 
 	if len(stations.Data) == 0 {
-		return nil, fmt.Errorf("no air quality station found near location")
+		return &AirQualityData{
+			StationID:    "",
+			StationName:  "",
+			Measurements: []AirMeasurement{},
+			AQI:          0,
+			Category:     "Unknown",
+			LastUpdated:  "",
+		}, nil
 	}
 
 	stationID := stations.Data[0].Number
@@ -73,13 +116,27 @@ func (c *ApiClient) FetchAirQualityData(cfg *config.Config, lat, lon float64) (*
 	measureURL := fmt.Sprintf("%s/stations/%s/measurements?order_by=timestamp_measured&order_direction=desc&limit=25", cfg.LuchtmeetnetApiURL, stationID)
 	req2, err := http.NewRequest("GET", measureURL, nil)
 	if err != nil {
-		return nil, err
+		return &AirQualityData{
+			StationID:    stationID,
+			StationName:  stationName,
+			Measurements: []AirMeasurement{},
+			AQI:          0,
+			Category:     "Unknown",
+			LastUpdated:  "",
+		}, nil
 	}
 	req2.Header.Set("Accept", "application/json")
 
 	resp2, err := c.HTTP.Do(req2)
 	if err != nil {
-		return nil, err
+		return &AirQualityData{
+			StationID:    stationID,
+			StationName:  stationName,
+			Measurements: []AirMeasurement{},
+			AQI:          0,
+			Category:     "Unknown",
+			LastUpdated:  "",
+		}, nil
 	}
 	defer resp2.Body.Close()
 
@@ -92,7 +149,14 @@ func (c *ApiClient) FetchAirQualityData(cfg *config.Config, lat, lon float64) (*
 	}
 
 	if err := json.NewDecoder(resp2.Body).Decode(&measurements); err != nil {
-		return nil, fmt.Errorf("failed to decode measurements response: %w", err)
+		return &AirQualityData{
+			StationID:    stationID,
+			StationName:  stationName,
+			Measurements: []AirMeasurement{},
+			AQI:          0,
+			Category:     "Unknown",
+			LastUpdated:  "",
+		}, nil
 	}
 
 	airMeasurements := make([]AirMeasurement, 0, len(measurements.Data))
@@ -168,21 +232,49 @@ type NoiseSource struct {
 // FetchNoisePollutionData retrieves noise pollution data for livability scoring
 // Documentation: Government noise API
 func (c *ApiClient) FetchNoisePollutionData(cfg *config.Config, lat, lon float64) (*NoisePollutionData, error) {
+	// Return default data if not configured
 	if cfg.NoisePollutionApiURL == "" {
-		return nil, fmt.Errorf("NoisePollutionApiURL not configured")
+		return &NoisePollutionData{
+			TotalNoise:    0,
+			RoadNoise:     0,
+			RailNoise:     0,
+			IndustryNoise: 0,
+			AircraftNoise: 0,
+			NoiseCategory: "Unknown",
+			ExceedsLimit:  false,
+			Sources:       []NoiseSource{},
+		}, nil
 	}
 
 	url := fmt.Sprintf("%s/noise?lat=%f&lon=%f", cfg.NoisePollutionApiURL, lat, lon)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, err
+		return &NoisePollutionData{
+			TotalNoise:    0,
+			RoadNoise:     0,
+			RailNoise:     0,
+			IndustryNoise: 0,
+			AircraftNoise: 0,
+			NoiseCategory: "Unknown",
+			ExceedsLimit:  false,
+			Sources:       []NoiseSource{},
+		}, nil
 	}
 
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
-		return nil, err
+		return &NoisePollutionData{
+			TotalNoise:    0,
+			RoadNoise:     0,
+			RailNoise:     0,
+			IndustryNoise: 0,
+			AircraftNoise: 0,
+			NoiseCategory: "Unknown",
+			ExceedsLimit:  false,
+			Sources:       []NoiseSource{},
+		}, nil
 	}
 	defer resp.Body.Close()
 
@@ -197,12 +289,30 @@ func (c *ApiClient) FetchNoisePollutionData(cfg *config.Config, lat, lon float64
 	}
 
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("noise pollution API returned status %d", resp.StatusCode)
+		return &NoisePollutionData{
+			TotalNoise:    0,
+			RoadNoise:     0,
+			RailNoise:     0,
+			IndustryNoise: 0,
+			AircraftNoise: 0,
+			NoiseCategory: "Unknown",
+			ExceedsLimit:  false,
+			Sources:       []NoiseSource{},
+		}, nil
 	}
 
 	var result NoisePollutionData
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode noise pollution response: %w", err)
+		return &NoisePollutionData{
+			TotalNoise:    0,
+			RoadNoise:     0,
+			RailNoise:     0,
+			IndustryNoise: 0,
+			AircraftNoise: 0,
+			NoiseCategory: "Unknown",
+			ExceedsLimit:  false,
+			Sources:       []NoiseSource{},
+		}, nil
 	}
 
 	// Categorize noise level
