@@ -1,19 +1,13 @@
-	log.Printf("[APIClient] FetchKNMIWeatherData: url=%s, lat=%.6f, lon=%.6f", cfg.KNMIWeatherApiURL, lat, lon)
-	log.Printf("[APIClient] FetchKNMIWeatherData: response status=%d", resp.StatusCode)
-	log.Printf("[APIClient] FetchKNMIWeatherData: parsed result=%+v", weather)
-	log.Printf("[APIClient] FetchKNMISolarData: url=%s, lat=%.6f, lon=%.6f", cfg.KNMISolarApiURL, lat, lon)
-	log.Printf("[APIClient] FetchKNMISolarData: response status=%d", resp.StatusCode)
-	log.Printf("[APIClient] FetchKNMISolarData: parsed result=%+v", solar)
 package apiclient
 
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
+	"github.com/iman-hussain/AddressIQ/backend/pkg/logutil"
 )
 
 // KNMIWeatherData represents comprehensive weather data from KNMI
@@ -40,7 +34,7 @@ type HistoricalData struct {
 func (c *ApiClient) FetchKNMIWeatherData(cfg *config.Config, lat, lon float64) (*KNMIWeatherData, error) {
 	// Return empty data if not configured
 	if cfg.KNMIWeatherApiURL == "" {
-		log.Printf("[WEATHER] KNMIWeatherApiURL not configured")
+		logutil.Debugf("[APIClient] FetchKNMIWeatherData: KNMIWeatherApiURL not configured")
 		return &KNMIWeatherData{
 			Temperature:        0,
 			Precipitation:      0,
@@ -55,11 +49,11 @@ func (c *ApiClient) FetchKNMIWeatherData(cfg *config.Config, lat, lon float64) (
 	}
 
 	url := fmt.Sprintf("%s?latitude=%f&longitude=%f&current_weather=true&hourly=precipitation,relativehumidity_2m,pressure_msl&timezone=Europe/Amsterdam", cfg.KNMIWeatherApiURL, lat, lon)
-	log.Printf("[WEATHER] Fetching weather from: %s", url)
+	logutil.Debugf("[APIClient] FetchKNMIWeatherData: url=%s, lat=%.6f, lon=%.6f", cfg.KNMIWeatherApiURL, lat, lon)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		log.Printf("[WEATHER] Failed to create request: %v", err)
+		logutil.Debugf("[APIClient] FetchKNMIWeatherData: request creation failed: %v", err)
 		return &KNMIWeatherData{
 			Temperature:        0,
 			Precipitation:      0,
@@ -77,7 +71,7 @@ func (c *ApiClient) FetchKNMIWeatherData(cfg *config.Config, lat, lon float64) (
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
-		log.Printf("[WEATHER] HTTP request failed: %v", err)
+		logutil.Debugf("[APIClient] FetchKNMIWeatherData: HTTP request failed: %v", err)
 		return &KNMIWeatherData{
 			Temperature:        0,
 			Precipitation:      0,
@@ -93,7 +87,7 @@ func (c *ApiClient) FetchKNMIWeatherData(cfg *config.Config, lat, lon float64) (
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		log.Printf("[WEATHER] API returned status %d", resp.StatusCode)
+		logutil.Debugf("[APIClient] FetchKNMIWeatherData: response status=%d", resp.StatusCode)
 		return &KNMIWeatherData{
 			Temperature:        0,
 			Precipitation:      0,
@@ -177,6 +171,7 @@ func (c *ApiClient) FetchKNMIWeatherData(cfg *config.Config, lat, lon float64) (
 		})
 	}
 
+	logutil.Debugf("[APIClient] FetchKNMIWeatherData: parsed result=%+v", weather)
 	return weather, nil
 }
 
@@ -310,7 +305,7 @@ type KNMISolarData struct {
 func (c *ApiClient) FetchKNMISolarData(cfg *config.Config, lat, lon float64) (*KNMISolarData, error) {
 	// Return empty data if not configured
 	if cfg.KNMISolarApiURL == "" {
-		log.Printf("[SOLAR] KNMISolarApiURL not configured")
+		logutil.Debugf("[APIClient] FetchKNMISolarData: KNMISolarApiURL not configured")
 		return &KNMISolarData{
 			SolarRadiation: 0,
 			SunshineHours:  0,
@@ -321,11 +316,11 @@ func (c *ApiClient) FetchKNMISolarData(cfg *config.Config, lat, lon float64) (*K
 	}
 
 	url := fmt.Sprintf("%s?latitude=%f&longitude=%f&hourly=shortwave_radiation&daily=sunshine_duration,uv_index_max&timezone=Europe/Amsterdam", cfg.KNMISolarApiURL, lat, lon)
-	log.Printf("[SOLAR] Fetching solar data from: %s", url)
+	logutil.Debugf("[APIClient] FetchKNMISolarData: url=%s, lat=%.6f, lon=%.6f", cfg.KNMISolarApiURL, lat, lon)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		log.Printf("[SOLAR] Failed to create request: %v", err)
+		logutil.Debugf("[APIClient] FetchKNMISolarData: request creation failed: %v", err)
 		return &KNMISolarData{
 			SolarRadiation: 0,
 			SunshineHours:  0,
@@ -339,7 +334,7 @@ func (c *ApiClient) FetchKNMISolarData(cfg *config.Config, lat, lon float64) (*K
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
-		log.Printf("[SOLAR] HTTP request failed: %v", err)
+		logutil.Debugf("[APIClient] FetchKNMISolarData: HTTP request failed: %v", err)
 		return &KNMISolarData{
 			SolarRadiation: 0,
 			SunshineHours:  0,
@@ -351,7 +346,7 @@ func (c *ApiClient) FetchKNMISolarData(cfg *config.Config, lat, lon float64) (*K
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		log.Printf("[SOLAR] API returned status %d", resp.StatusCode)
+		logutil.Debugf("[APIClient] FetchKNMISolarData: response status=%d", resp.StatusCode)
 		return &KNMISolarData{
 			SolarRadiation: 0,
 			SunshineHours:  0,
@@ -410,5 +405,6 @@ func (c *ApiClient) FetchKNMISolarData(cfg *config.Config, lat, lon float64) (*K
 		})
 	}
 
+	logutil.Debugf("[APIClient] FetchKNMISolarData: parsed result=%+v", solar)
 	return solar, nil
 }

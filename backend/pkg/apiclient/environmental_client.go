@@ -1,9 +1,3 @@
-	log.Printf("[APIClient] FetchAirQualityData: url=%s, lat=%.6f, lon=%.6f", cfg.LuchtmeetnetApiURL, lat, lon)
-	log.Printf("[APIClient] FetchAirQualityData: stationURL=%s", stationURL)
-	log.Printf("[APIClient] FetchAirQualityData: response status=%d", resp.StatusCode)
-	log.Printf("[APIClient] FetchAirQualityData: measureURL=%s", measureURL)
-	log.Printf("[APIClient] FetchAirQualityData: response2 status=%d", resp2.StatusCode)
-	log.Printf("[APIClient] FetchAirQualityData: parsed result=%+v", airMeasurements)
 package apiclient
 
 import (
@@ -13,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
+	"github.com/iman-hussain/AddressIQ/backend/pkg/logutil"
 )
 
 // AirQualityData represents comprehensive air quality measurements
@@ -35,6 +30,8 @@ type AirMeasurement struct {
 // FetchAirQualityData retrieves real-time air quality data
 // Documentation: https://api-docs.luchtmeetnet.nl
 func (c *ApiClient) FetchAirQualityData(cfg *config.Config, lat, lon float64) (*AirQualityData, error) {
+	logutil.Debugf("[APIClient] FetchAirQualityData: url=%s, lat=%.6f, lon=%.6f", cfg.LuchtmeetnetApiURL, lat, lon)
+
 	// Return empty data if not configured
 	if cfg.LuchtmeetnetApiURL == "" {
 		return &AirQualityData{
@@ -49,6 +46,7 @@ func (c *ApiClient) FetchAirQualityData(cfg *config.Config, lat, lon float64) (*
 
 	// Find nearest station
 	stationURL := fmt.Sprintf("%s/stations?lat=%f&lon=%f&limit=1", cfg.LuchtmeetnetApiURL, lat, lon)
+	logutil.Debugf("[APIClient] FetchAirQualityData: stationURL=%s", stationURL)
 	req, err := http.NewRequest("GET", stationURL, nil)
 	if err != nil {
 		return &AirQualityData{
@@ -74,6 +72,8 @@ func (c *ApiClient) FetchAirQualityData(cfg *config.Config, lat, lon float64) (*
 		}, nil
 	}
 	defer resp.Body.Close()
+
+	logutil.Debugf("[APIClient] FetchAirQualityData: response status=%d", resp.StatusCode)
 
 	if resp.StatusCode != 200 {
 		return &AirQualityData{
@@ -105,6 +105,7 @@ func (c *ApiClient) FetchAirQualityData(cfg *config.Config, lat, lon float64) (*
 	}
 
 	if len(stations.Data) == 0 {
+		logutil.Debugf("[APIClient] FetchAirQualityData: measure request error: %v", err)
 		return &AirQualityData{
 			StationID:    "",
 			StationName:  "",
@@ -120,6 +121,7 @@ func (c *ApiClient) FetchAirQualityData(cfg *config.Config, lat, lon float64) (*
 
 	// Get measurements for this station
 	measureURL := fmt.Sprintf("%s/stations/%s/measurements?order_by=timestamp_measured&order_direction=desc&limit=25", cfg.LuchtmeetnetApiURL, stationID)
+	logutil.Debugf("[APIClient] FetchAirQualityData: measureURL=%s", measureURL)
 	req2, err := http.NewRequest("GET", measureURL, nil)
 	if err != nil {
 		return &AirQualityData{
