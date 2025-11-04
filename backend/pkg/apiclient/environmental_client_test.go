@@ -106,8 +106,11 @@ func TestFetchAirQualityData_NotFound(t *testing.T) {
 	}
 	client := NewApiClient(server.Client())
 
-	_, err := client.FetchAirQualityData(cfg, 0, 0)
-	if err == nil {
-		t.Error("Expected error for invalid coordinates, got nil")
+	data, err := client.FetchAirQualityData(cfg, 0, 0)
+	if err != nil {
+		t.Errorf("Expected no error with graceful degradation, got %v", err)
+	}
+	if data.StationID != "" || data.Category != "Unknown" {
+		t.Error("Expected empty data with Unknown category for invalid coordinates")
 	}
 }
