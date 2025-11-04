@@ -97,6 +97,32 @@ The project integrates many APIs; see `docs/APIs.md` for the canonical list. Key
 
 For the full table and provider links see `docs/APIs.md`.
 
+## Deployment
+
+### Build Hash Display
+
+The application displays Git commit hashes for both frontend and backend in the top right corner of the UI. These are automatically injected during the build process.
+
+**For Coolify or Docker deployments**, see [COOLIFY_DEPLOYMENT.md](COOLIFY_DEPLOYMENT.md) for detailed configuration instructions.
+
+**Quick summary:**
+
+Backend Dockerfile accepts build arguments:
+```bash
+docker build \
+  --build-arg COMMIT_SHA=$SOURCE_COMMIT \
+  --build-arg BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
+  -f backend/Dockerfile ./backend
+```
+
+Backend runtime environment variables (for frontend build info):
+```bash
+FRONTEND_BUILD_COMMIT=$SOURCE_COMMIT
+FRONTEND_BUILD_DATE=$BUILD_DATE
+```
+
+The frontend calls `/build-info` API endpoint to retrieve and display both hashes as clickable GitHub commit links.
+
 ## Next Steps
 
 - Test with full list of API's
