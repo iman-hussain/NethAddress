@@ -184,8 +184,8 @@ type BROSoilMapData struct {
 // FetchBROSoilMapData retrieves BRO soil map data for foundation quality
 // Documentation: https://www.dinoloket.nl/en/bro-soil-map
 func (c *ApiClient) FetchBROSoilMapData(cfg *config.Config, lat, lon float64) (*BROSoilMapData, error) {
+	// Return default data if not configured
 	if cfg.BROSoilMapApiURL == "" {
-		// Return default data when API is not configured
 		return &BROSoilMapData{
 			SoilType:          "Unknown",
 			PeatComposition:   0,
@@ -195,13 +195,52 @@ func (c *ApiClient) FetchBROSoilMapData(cfg *config.Config, lat, lon float64) (*
 		}, nil
 	}
 
-	// Note: This would need WFS query implementation for actual PDOK BRO service
-	// For now, return default data gracefully
-	return &BROSoilMapData{
-		SoilType:          "Unknown",
-		PeatComposition:   0,
-		Profile:           "Unknown",
-		FoundationQuality: "Unknown",
-		GroundwaterDepth:  0,
-	}, nil
+	url := fmt.Sprintf("%s/bro/soil-map?lat=%f&lon=%f", cfg.BROSoilMapApiURL, lat, lon)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return &BROSoilMapData{
+			SoilType:          "Unknown",
+			PeatComposition:   0,
+			Profile:           "Unknown",
+			FoundationQuality: "Unknown",
+			GroundwaterDepth:  0,
+		}, nil
+	}
+
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := c.HTTP.Do(req)
+	if err != nil {
+		return &BROSoilMapData{
+			SoilType:          "Unknown",
+			PeatComposition:   0,
+			Profile:           "Unknown",
+			FoundationQuality: "Unknown",
+			GroundwaterDepth:  0,
+		}, nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return &BROSoilMapData{
+			SoilType:          "Unknown",
+			PeatComposition:   0,
+			Profile:           "Unknown",
+			FoundationQuality: "Unknown",
+			GroundwaterDepth:  0,
+		}, nil
+	}
+
+	var result BROSoilMapData
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return &BROSoilMapData{
+			SoilType:          "Unknown",
+			PeatComposition:   0,
+			Profile:           "Unknown",
+			FoundationQuality: "Unknown",
+			GroundwaterDepth:  0,
+		}, nil
+	}
+
+	return &result, nil
 }

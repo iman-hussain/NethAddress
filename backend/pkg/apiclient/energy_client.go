@@ -21,7 +21,7 @@ type EnergyClimateData struct {
 // FetchEnergyClimateData retrieves energy labels and climate risk for ESG scoring
 // Documentation: https://docs.altum.ai/english/apis/energy-and-climate-api
 func (c *ApiClient) FetchEnergyClimateData(cfg *config.Config, bagID string) (*EnergyClimateData, error) {
-	if cfg.AltumEnergyApiURL == "" || cfg.AltumEnergyApiKey == "" {
+	if cfg.AltumEnergyApiURL == "" {
 		// Return default data when API is not configured (paid service)
 		return &EnergyClimateData{
 			EnergyLabel:      "Unknown",
@@ -51,14 +51,7 @@ func (c *ApiClient) FetchEnergyClimateData(cfg *config.Config, bagID string) (*E
 	defer resp.Body.Close()
 
 	if resp.StatusCode == 404 {
-		return &EnergyClimateData{
-			EnergyLabel:      "Unknown",
-			ClimateRisk:      "Unknown",
-			EfficiencyScore:  0,
-			AnnualEnergyCost: 0,
-			CO2Emissions:     0,
-			HeatLoss:         0,
-		}, nil
+		return nil, fmt.Errorf("energy data not found for BAG ID: %s", bagID)
 	}
 
 	if resp.StatusCode != 200 {
@@ -98,7 +91,7 @@ type SustainabilityMeasure struct {
 // FetchSustainabilityData retrieves sustainability recommendations and potential savings
 // Documentation: https://docs.altum.ai/english/apis/sustainability-api
 func (c *ApiClient) FetchSustainabilityData(cfg *config.Config, bagID string) (*SustainabilityData, error) {
-	if cfg.AltumSustainabilityApiURL == "" || cfg.AltumSustainabilityApiKey == "" {
+	if cfg.AltumSustainabilityApiURL == "" {
 		// Return default data when API is not configured (paid service)
 		return &SustainabilityData{
 			CurrentRating:       "Unknown",
@@ -129,15 +122,7 @@ func (c *ApiClient) FetchSustainabilityData(cfg *config.Config, bagID string) (*
 	defer resp.Body.Close()
 
 	if resp.StatusCode == 404 {
-		return &SustainabilityData{
-			CurrentRating:       "Unknown",
-			PotentialRating:     "Unknown",
-			RecommendedMeasures: []SustainabilityMeasure{},
-			TotalCO2Savings:     0,
-			TotalCostSavings:    0,
-			InvestmentCost:      0,
-			PaybackPeriod:       0,
-		}, nil
+		return nil, fmt.Errorf("sustainability data not found for BAG ID: %s", bagID)
 	}
 
 	if resp.StatusCode != 200 {

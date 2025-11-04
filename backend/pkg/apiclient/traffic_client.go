@@ -90,20 +90,50 @@ type Connection struct {
 // FetchOpenOVData retrieves public transport data for accessibility scoring
 // Documentation: https://openov.nl
 func (c *ApiClient) FetchOpenOVData(cfg *config.Config, lat, lon float64) (*OpenOVTransportData, error) {
+	// Return empty data if not configured
 	if cfg.OpenOVApiURL == "" {
-		// Return empty data when API is not configured
 		return &OpenOVTransportData{
 			NearestStops: []PublicTransportStop{},
 			Connections:  []Connection{},
 		}, nil
 	}
 
-	// Note: The ovapi.nl service has a different API structure
-	// For now, return empty data gracefully
-	return &OpenOVTransportData{
-		NearestStops: []PublicTransportStop{},
-		Connections:  []Connection{},
-	}, nil
+	url := fmt.Sprintf("%s/stops?lat=%f&lon=%f&radius=1000", cfg.OpenOVApiURL, lat, lon)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return &OpenOVTransportData{
+			NearestStops: []PublicTransportStop{},
+			Connections:  []Connection{},
+		}, nil
+	}
+
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := c.HTTP.Do(req)
+	if err != nil {
+		return &OpenOVTransportData{
+			NearestStops: []PublicTransportStop{},
+			Connections:  []Connection{},
+		}, nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return &OpenOVTransportData{
+			NearestStops: []PublicTransportStop{},
+			Connections:  []Connection{},
+		}, nil
+	}
+
+	var result OpenOVTransportData
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return &OpenOVTransportData{
+			NearestStops: []PublicTransportStop{},
+			Connections:  []Connection{},
+		}, nil
+	}
+
+	return &result, nil
 }
 
 // ParkingData represents parking availability data

@@ -29,6 +29,7 @@ type PopulationDemographics struct {
 // FetchCBSPopulationData retrieves grid population data for target market analysis
 // Documentation: https://api.pdok.nl/cbs/population-distribution
 func (c *ApiClient) FetchCBSPopulationData(cfg *config.Config, lat, lon float64) (*CBSPopulationData, error) {
+	// Return empty data if not configured
 	if cfg.CBSPopulationApiURL == "" {
 		return &CBSPopulationData{
 			TotalPopulation: 0,
@@ -45,21 +46,82 @@ func (c *ApiClient) FetchCBSPopulationData(cfg *config.Config, lat, lon float64)
 		}, nil
 	}
 
-	// Note: This would need WFS query implementation for actual PDOK service
-	// For now, return empty data gracefully
-	return &CBSPopulationData{
-		TotalPopulation: 0,
-		AgeDistribution: make(map[string]int),
-		Households:      0,
-		AverageHHSize:   0,
-		Demographics: PopulationDemographics{
-			Age0to14:  0,
-			Age15to24: 0,
-			Age25to44: 0,
-			Age45to64: 0,
-			Age65Plus: 0,
-		},
-	}, nil
+	url := fmt.Sprintf("%s/population?lat=%f&lon=%f", cfg.CBSPopulationApiURL, lat, lon)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		// Return empty data on error
+		return &CBSPopulationData{
+			TotalPopulation: 0,
+			AgeDistribution: make(map[string]int),
+			Households:      0,
+			AverageHHSize:   0,
+			Demographics: PopulationDemographics{
+				Age0to14:  0,
+				Age15to24: 0,
+				Age25to44: 0,
+				Age45to64: 0,
+				Age65Plus: 0,
+			},
+		}, nil
+	}
+
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := c.HTTP.Do(req)
+	if err != nil {
+		// Return empty data on error
+		return &CBSPopulationData{
+			TotalPopulation: 0,
+			AgeDistribution: make(map[string]int),
+			Households:      0,
+			AverageHHSize:   0,
+			Demographics: PopulationDemographics{
+				Age0to14:  0,
+				Age15to24: 0,
+				Age25to44: 0,
+				Age45to64: 0,
+				Age65Plus: 0,
+			},
+		}, nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		// Return empty data on non-200 status
+		return &CBSPopulationData{
+			TotalPopulation: 0,
+			AgeDistribution: make(map[string]int),
+			Households:      0,
+			AverageHHSize:   0,
+			Demographics: PopulationDemographics{
+				Age0to14:  0,
+				Age15to24: 0,
+				Age25to44: 0,
+				Age45to64: 0,
+				Age65Plus: 0,
+			},
+		}, nil
+	}
+
+	var result CBSPopulationData
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		// Return empty data on parse error
+		return &CBSPopulationData{
+			TotalPopulation: 0,
+			AgeDistribution: make(map[string]int),
+			Households:      0,
+			AverageHHSize:   0,
+			Demographics: PopulationDemographics{
+				Age0to14:  0,
+				Age15to24: 0,
+				Age25to44: 0,
+				Age45to64: 0,
+				Age65Plus: 0,
+			},
+		}, nil
+	}
+
+	return &result, nil
 }
 
 // CBSStatLineData represents comprehensive socioeconomic data
@@ -93,8 +155,8 @@ func (c *ApiClient) FetchCBSStatLineData(cfg *config.Config, regionCode string) 
 	}
 
 	// CBS OData API endpoint for regional statistics
-	// Using dataset 85039NED (Kerncijfers wijken en buurten 2023)
-	url := fmt.Sprintf("%s/odata/85039NED/Observations?$filter=RegioS eq '%s'&$orderby=Perioden desc&$top=1",
+	// Using dataset 84286NED for compatibility
+	url := fmt.Sprintf("%s/ODataFeed/v4/CBS/84286NED/Observations?$filter=RegioS eq '%s'&$orderby=Perioden desc&$top=1",
 		cfg.CBSStatLineApiURL, regionCode)
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -182,6 +244,7 @@ type CBSSquareStatsData struct {
 // FetchCBSSquareStats retrieves 100x100m microgrid statistics
 // Documentation: https://api.store (CBS Square Statistics)
 func (c *ApiClient) FetchCBSSquareStats(cfg *config.Config, lat, lon float64) (*CBSSquareStatsData, error) {
+	// Return empty data if not configured
 	if cfg.CBSSquareStatsApiURL == "" {
 		return &CBSSquareStatsData{
 			GridID:         "",
@@ -193,14 +256,56 @@ func (c *ApiClient) FetchCBSSquareStats(cfg *config.Config, lat, lon float64) (*
 		}, nil
 	}
 
-	// Note: This would need WFS query implementation for actual PDOK service
-	// For now, return empty data gracefully
-	return &CBSSquareStatsData{
-		GridID:         "",
-		Population:     0,
-		Households:     0,
-		AverageWOZ:     0,
-		AverageIncome:  0,
-		HousingDensity: 0,
-	}, nil
+	url := fmt.Sprintf("%s/square-stats?lat=%f&lon=%f", cfg.CBSSquareStatsApiURL, lat, lon)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return &CBSSquareStatsData{
+			GridID:         "",
+			Population:     0,
+			Households:     0,
+			AverageWOZ:     0,
+			AverageIncome:  0,
+			HousingDensity: 0,
+		}, nil
+	}
+
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := c.HTTP.Do(req)
+	if err != nil {
+		return &CBSSquareStatsData{
+			GridID:         "",
+			Population:     0,
+			Households:     0,
+			AverageWOZ:     0,
+			AverageIncome:  0,
+			HousingDensity: 0,
+		}, nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return &CBSSquareStatsData{
+			GridID:         "",
+			Population:     0,
+			Households:     0,
+			AverageWOZ:     0,
+			AverageIncome:  0,
+			HousingDensity: 0,
+		}, nil
+	}
+
+	var result CBSSquareStatsData
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return &CBSSquareStatsData{
+			GridID:         "",
+			Population:     0,
+			Households:     0,
+			AverageWOZ:     0,
+			AverageIncome:  0,
+			HousingDensity: 0,
+		}, nil
+	}
+
+	return &result, nil
 }

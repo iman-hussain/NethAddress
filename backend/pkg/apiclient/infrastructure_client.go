@@ -30,8 +30,8 @@ type GreenSpace struct {
 // FetchGreenSpacesData retrieves parks and green areas for environmental quality
 // Documentation: https://api.store (PDOK Green Spaces)
 func (c *ApiClient) FetchGreenSpacesData(cfg *config.Config, lat, lon float64, radius int) (*GreenSpacesData, error) {
+	// Return empty data if not configured
 	if cfg.GreenSpacesApiURL == "" {
-		// Return empty data when API is not configured
 		return &GreenSpacesData{
 			TotalGreenArea:  0,
 			GreenPercentage: 0,
@@ -42,16 +42,58 @@ func (c *ApiClient) FetchGreenSpacesData(cfg *config.Config, lat, lon float64, r
 		}, nil
 	}
 
-	// Note: This would need WFS query implementation for actual PDOK service
-	// For now, return empty data gracefully
-	return &GreenSpacesData{
-		TotalGreenArea:  0,
-		GreenPercentage: 0,
-		NearestPark:     "",
-		ParkDistance:    0,
-		TreeCanopyCover: 0,
-		GreenSpaces:     []GreenSpace{},
-	}, nil
+	url := fmt.Sprintf("%s/green-spaces?lat=%f&lon=%f&radius=%d", cfg.GreenSpacesApiURL, lat, lon, radius)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return &GreenSpacesData{
+			TotalGreenArea:  0,
+			GreenPercentage: 0,
+			NearestPark:     "",
+			ParkDistance:    0,
+			TreeCanopyCover: 0,
+			GreenSpaces:     []GreenSpace{},
+		}, nil
+	}
+
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := c.HTTP.Do(req)
+	if err != nil {
+		return &GreenSpacesData{
+			TotalGreenArea:  0,
+			GreenPercentage: 0,
+			NearestPark:     "",
+			ParkDistance:    0,
+			TreeCanopyCover: 0,
+			GreenSpaces:     []GreenSpace{},
+		}, nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return &GreenSpacesData{
+			TotalGreenArea:  0,
+			GreenPercentage: 0,
+			NearestPark:     "",
+			ParkDistance:    0,
+			TreeCanopyCover: 0,
+			GreenSpaces:     []GreenSpace{},
+		}, nil
+	}
+
+	var result GreenSpacesData
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return &GreenSpacesData{
+			TotalGreenArea:  0,
+			GreenPercentage: 0,
+			NearestPark:     "",
+			ParkDistance:    0,
+			TreeCanopyCover: 0,
+			GreenSpaces:     []GreenSpace{},
+		}, nil
+	}
+
+	return &result, nil
 }
 
 // EducationData represents schools and education facilities
@@ -76,8 +118,8 @@ type School struct {
 // FetchEducationData retrieves school locations and quality ratings
 // Documentation: https://www.ocwincijfers.nl/open-data (CBS Education)
 func (c *ApiClient) FetchEducationData(cfg *config.Config, lat, lon float64) (*EducationData, error) {
+	// Return empty data if not configured
 	if cfg.EducationApiURL == "" {
-		// Return empty data when API is not configured
 		return &EducationData{
 			NearestPrimarySchool:   nil,
 			NearestSecondarySchool: nil,
@@ -86,14 +128,50 @@ func (c *ApiClient) FetchEducationData(cfg *config.Config, lat, lon float64) (*E
 		}, nil
 	}
 
-	// Note: Amsterdam education API requires different query structure
-	// For now, return empty data gracefully
-	return &EducationData{
-		NearestPrimarySchool:   nil,
-		NearestSecondarySchool: nil,
-		AllSchools:             []School{},
-		AverageQuality:         0,
-	}, nil
+	url := fmt.Sprintf("%s/schools?lat=%f&lon=%f&radius=2000", cfg.EducationApiURL, lat, lon)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return &EducationData{
+			NearestPrimarySchool:   nil,
+			NearestSecondarySchool: nil,
+			AllSchools:             []School{},
+			AverageQuality:         0,
+		}, nil
+	}
+
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := c.HTTP.Do(req)
+	if err != nil {
+		return &EducationData{
+			NearestPrimarySchool:   nil,
+			NearestSecondarySchool: nil,
+			AllSchools:             []School{},
+			AverageQuality:         0,
+		}, nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return &EducationData{
+			NearestPrimarySchool:   nil,
+			NearestSecondarySchool: nil,
+			AllSchools:             []School{},
+			AverageQuality:         0,
+		}, nil
+	}
+
+	var result EducationData
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return &EducationData{
+			NearestPrimarySchool:   nil,
+			NearestSecondarySchool: nil,
+			AllSchools:             []School{},
+			AverageQuality:         0,
+		}, nil
+	}
+
+	return &result, nil
 }
 
 // BuildingPermitsData represents recent construction activity
@@ -119,8 +197,8 @@ type BuildingPermit struct {
 // FetchBuildingPermitsData retrieves recent building activity
 // Documentation: https://api.store (CBS Building Permits)
 func (c *ApiClient) FetchBuildingPermitsData(cfg *config.Config, lat, lon float64, radius int) (*BuildingPermitsData, error) {
+	// Return empty data if not configured
 	if cfg.BuildingPermitsApiURL == "" {
-		// Return empty data when API is not configured
 		return &BuildingPermitsData{
 			TotalPermits:    0,
 			NewConstruction: 0,
@@ -130,15 +208,54 @@ func (c *ApiClient) FetchBuildingPermitsData(cfg *config.Config, lat, lon float6
 		}, nil
 	}
 
-	// Note: This would need specific municipal API implementation
-	// For now, return empty data gracefully
-	return &BuildingPermitsData{
-		TotalPermits:    0,
-		NewConstruction: 0,
-		Renovations:     0,
-		Permits:         []BuildingPermit{},
-		GrowthTrend:     "Unknown",
-	}, nil
+	url := fmt.Sprintf("%s/permits?lat=%f&lon=%f&radius=%d&years=2", cfg.BuildingPermitsApiURL, lat, lon, radius)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return &BuildingPermitsData{
+			TotalPermits:    0,
+			NewConstruction: 0,
+			Renovations:     0,
+			Permits:         []BuildingPermit{},
+			GrowthTrend:     "Unknown",
+		}, nil
+	}
+
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := c.HTTP.Do(req)
+	if err != nil {
+		return &BuildingPermitsData{
+			TotalPermits:    0,
+			NewConstruction: 0,
+			Renovations:     0,
+			Permits:         []BuildingPermit{},
+			GrowthTrend:     "Unknown",
+		}, nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return &BuildingPermitsData{
+			TotalPermits:    0,
+			NewConstruction: 0,
+			Renovations:     0,
+			Permits:         []BuildingPermit{},
+			GrowthTrend:     "Unknown",
+		}, nil
+	}
+
+	var result BuildingPermitsData
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return &BuildingPermitsData{
+			TotalPermits:    0,
+			NewConstruction: 0,
+			Renovations:     0,
+			Permits:         []BuildingPermit{},
+			GrowthTrend:     "Unknown",
+		}, nil
+	}
+
+	return &result, nil
 }
 
 // FacilitiesData represents nearby amenities
@@ -163,8 +280,8 @@ type Facility struct {
 // FetchFacilitiesData retrieves nearby retail, healthcare, and amenities
 // Documentation: Municipal API (varies by city)
 func (c *ApiClient) FetchFacilitiesData(cfg *config.Config, lat, lon float64) (*FacilitiesData, error) {
+	// Return empty data if not configured
 	if cfg.FacilitiesApiURL == "" {
-		// Return empty data when API is not configured
 		return &FacilitiesData{
 			TopFacilities:  []Facility{},
 			AmenitiesScore: 0,
@@ -172,13 +289,46 @@ func (c *ApiClient) FetchFacilitiesData(cfg *config.Config, lat, lon float64) (*
 		}, nil
 	}
 
-	// Note: Amsterdam facilities API requires different query structure
-	// For now, return empty data gracefully
-	return &FacilitiesData{
-		TopFacilities:  []Facility{},
-		AmenitiesScore: 0,
-		CategoryCounts: make(map[string]int),
-	}, nil
+	url := fmt.Sprintf("%s/facilities?lat=%f&lon=%f&radius=1500", cfg.FacilitiesApiURL, lat, lon)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return &FacilitiesData{
+			TopFacilities:  []Facility{},
+			AmenitiesScore: 0,
+			CategoryCounts: make(map[string]int),
+		}, nil
+	}
+
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := c.HTTP.Do(req)
+	if err != nil {
+		return &FacilitiesData{
+			TopFacilities:  []Facility{},
+			AmenitiesScore: 0,
+			CategoryCounts: make(map[string]int),
+		}, nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return &FacilitiesData{
+			TopFacilities:  []Facility{},
+			AmenitiesScore: 0,
+			CategoryCounts: make(map[string]int),
+		}, nil
+	}
+
+	var result FacilitiesData
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return &FacilitiesData{
+			TopFacilities:  []Facility{},
+			AmenitiesScore: 0,
+			CategoryCounts: make(map[string]int),
+		}, nil
+	}
+
+	return &result, nil
 }
 
 // AHNHeightData represents elevation and terrain data
@@ -193,8 +343,8 @@ type AHNHeightData struct {
 // FetchAHNHeightData retrieves elevation and terrain models
 // Documentation: https://www.ahn.nl (PDOK/Kadaster)
 func (c *ApiClient) FetchAHNHeightData(cfg *config.Config, lat, lon float64) (*AHNHeightData, error) {
+	// Return default data if not configured
 	if cfg.AHNHeightModelApiURL == "" {
-		// Return default data when API is not configured
 		return &AHNHeightData{
 			Elevation:     0,
 			TerrainSlope:  0,
@@ -204,13 +354,70 @@ func (c *ApiClient) FetchAHNHeightData(cfg *config.Config, lat, lon float64) (*A
 		}, nil
 	}
 
-	// Note: This would need WMS/WCS query implementation for actual PDOK AHN service
-	// For now, return default data gracefully
-	return &AHNHeightData{
-		Elevation:     0,
-		TerrainSlope:  0,
-		FloodRisk:     "Unknown",
-		ViewPotential: "Unknown",
-		Surrounding:   []float64{},
-	}, nil
+	url := fmt.Sprintf("%s/height?lat=%f&lon=%f", cfg.AHNHeightModelApiURL, lat, lon)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return &AHNHeightData{
+			Elevation:     0,
+			TerrainSlope:  0,
+			FloodRisk:     "Unknown",
+			ViewPotential: "Unknown",
+			Surrounding:   []float64{},
+		}, nil
+	}
+
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := c.HTTP.Do(req)
+	if err != nil {
+		return &AHNHeightData{
+			Elevation:     0,
+			TerrainSlope:  0,
+			FloodRisk:     "Unknown",
+			ViewPotential: "Unknown",
+			Surrounding:   []float64{},
+		}, nil
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 200 {
+		return &AHNHeightData{
+			Elevation:     0,
+			TerrainSlope:  0,
+			FloodRisk:     "Unknown",
+			ViewPotential: "Unknown",
+			Surrounding:   []float64{},
+		}, nil
+	}
+
+	var result AHNHeightData
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return &AHNHeightData{
+			Elevation:     0,
+			TerrainSlope:  0,
+			FloodRisk:     "Unknown",
+			ViewPotential: "Unknown",
+			Surrounding:   []float64{},
+		}, nil
+	}
+
+	// Assess flood risk based on elevation
+	if result.Elevation < -2.0 {
+		result.FloodRisk = "High"
+	} else if result.Elevation < 1.0 {
+		result.FloodRisk = "Medium"
+	} else {
+		result.FloodRisk = "Low"
+	}
+
+	// Assess view potential based on relative elevation
+	if result.Elevation > 5.0 {
+		result.ViewPotential = "Excellent"
+	} else if result.Elevation > 2.0 {
+		result.ViewPotential = "Good"
+	} else {
+		result.ViewPotential = "Fair"
+	}
+
+	return &result, nil
 }
