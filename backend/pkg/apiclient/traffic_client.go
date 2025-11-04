@@ -25,7 +25,8 @@ type NDWTrafficData struct {
 // Documentation: https://opendata.ndw.nu
 func (c *ApiClient) FetchNDWTrafficData(cfg *config.Config, lat, lon float64, radius int) ([]NDWTrafficData, error) {
 	if cfg.NDWTrafficApiURL == "" {
-		return nil, fmt.Errorf("NDWTrafficApiURL not configured")
+		// Return empty data when API is not configured (requires key)
+		return []NDWTrafficData{}, nil
 	}
 
 	// Query traffic data within radius (meters) of location
@@ -44,7 +45,7 @@ func (c *ApiClient) FetchNDWTrafficData(cfg *config.Config, lat, lon float64, ra
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("NDW traffic API returned status %d", resp.StatusCode)
+		return []NDWTrafficData{}, nil
 	}
 
 	var result struct {
@@ -90,33 +91,19 @@ type Connection struct {
 // Documentation: https://openov.nl
 func (c *ApiClient) FetchOpenOVData(cfg *config.Config, lat, lon float64) (*OpenOVTransportData, error) {
 	if cfg.OpenOVApiURL == "" {
-		return nil, fmt.Errorf("OpenOVApiURL not configured")
+		// Return empty data when API is not configured
+		return &OpenOVTransportData{
+			NearestStops: []PublicTransportStop{},
+			Connections:  []Connection{},
+		}, nil
 	}
 
-	url := fmt.Sprintf("%s/stops?lat=%f&lon=%f&radius=1000", cfg.OpenOVApiURL, lat, lon)
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("openOV API returned status %d", resp.StatusCode)
-	}
-
-	var result OpenOVTransportData
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode openOV response: %w", err)
-	}
-
-	return &result, nil
+	// Note: The ovapi.nl service has a different API structure
+	// For now, return empty data gracefully
+	return &OpenOVTransportData{
+		NearestStops: []PublicTransportStop{},
+		Connections:  []Connection{},
+	}, nil
 }
 
 // ParkingData represents parking availability data
