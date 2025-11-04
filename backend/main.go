@@ -90,7 +90,7 @@ func main() {
 	log.Printf("Initial build metadata: commit=%s, date=%s", BuildCommit, BuildDate)
 	populateBuildMetadata()
 	log.Printf("Final build metadata: commit=%s, date=%s", BuildCommit, BuildDate)
-	
+
 	// Debug: force set build info for testing
 	if BuildCommit == "unknown" {
 		BuildCommit = "test-commit-123"
