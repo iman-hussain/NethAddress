@@ -29,18 +29,18 @@ func SetFrontendBuildInfo(commit, date string) {
 
 // Router holds all HTTP handlers
 type Router struct {
-	propertyHandler     *handlers.PropertyHandler
-	legacySearchHandler *handlers.LegacySearchHandler
+	propertyHandler *handlers.PropertyHandler
+	searchHandler   *handlers.SearchHandler
 }
 
 // NewRouter creates a new router with all handlers
 func NewRouter(
 	propertyHandler *handlers.PropertyHandler,
-	legacySearchHandler *handlers.LegacySearchHandler,
+	searchHandler *handlers.SearchHandler,
 ) *Router {
 	return &Router{
-		propertyHandler:     propertyHandler,
-		legacySearchHandler: legacySearchHandler,
+		propertyHandler: propertyHandler,
+		searchHandler:   searchHandler,
 	}
 }
 
@@ -52,7 +52,7 @@ func (router *Router) SetupRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/", handleRoot)
 
 	// Legacy endpoint (backward compatibility)
-	mux.HandleFunc("/search", router.legacySearchHandler.HandleSearch)
+	mux.HandleFunc("/search", router.searchHandler.HandleSearch)
 
 	// New comprehensive API endpoints - longest paths first for proper matching
 	mux.HandleFunc("/api/property/analysis", router.propertyHandler.HandleGetFullAnalysis)

@@ -109,7 +109,7 @@ func main() {
 
 	// Initialize handlers
 	propertyHandler := handlers.NewPropertyHandler(propertyAggregator, scoringEngine, cfg)
-	legacySearchHandler := handlers.NewLegacySearchHandler(apiClient, cfg)
+	searchHandler := handlers.NewSearchHandler(apiClient, cfg)
 
 	// Set build info for routes
 	routes.SetBuildInfo(BuildCommit, BuildDate)
@@ -126,7 +126,7 @@ func main() {
 	routes.SetFrontendBuildInfo(frontendCommit, frontendDate)
 
 	// Initialize router
-	router := routes.NewRouter(propertyHandler, legacySearchHandler)
+	router := routes.NewRouter(propertyHandler, searchHandler)
 
 	// Setup routes
 	mux := http.NewServeMux()

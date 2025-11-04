@@ -13,15 +13,15 @@ import (
 	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
 )
 
-// LegacySearchHandler handles legacy /search endpoint for backward compatibility
-type LegacySearchHandler struct {
+// SearchHandler handles the web search interface
+type SearchHandler struct {
 	apiClient  *apiclient.ApiClient
 	config     *config.Config
 	aggregator *aggregator.PropertyAggregator
 }
 
-// NewLegacySearchHandler creates a new legacy search handler
-func NewLegacySearchHandler(apiClient *apiclient.ApiClient, cfg *config.Config) *LegacySearchHandler {
+// NewSearchHandler creates a new search handler
+func NewSearchHandler(apiClient *apiclient.ApiClient, cfg *config.Config) *SearchHandler {
 	// Try to create cache service, but don't fail if Redis is unavailable
 	var cacheService *cache.CacheService
 	if cfg.RedisURL != "" {
@@ -34,7 +34,7 @@ func NewLegacySearchHandler(apiClient *apiclient.ApiClient, cfg *config.Config) 
 	}
 
 	agg := aggregator.NewPropertyAggregator(apiClient, cacheService, cfg)
-	return &LegacySearchHandler{
+	return &SearchHandler{
 		apiClient:  apiClient,
 		config:     cfg,
 		aggregator: agg,
@@ -59,16 +59,16 @@ type APIResultsGrouped struct {
 
 // ComprehensiveSearchResponse represents complete property data with all API results
 type ComprehensiveSearchResponse struct {
-	Address     string             `json:"address"`
-	Coordinates [2]float64         `json:"coordinates"`
-	GeoJSON     string             `json:"geojson"`
-	APIResults  APIResultsGrouped  `json:"apiResults"`
+	Address     string            `json:"address"`
+	Coordinates [2]float64        `json:"coordinates"`
+	GeoJSON     string            `json:"geojson"`
+	APIResults  APIResultsGrouped `json:"apiResults"`
 }
 
-// HandleSearch handles the legacy /search endpoint
+// HandleSearch handles the /search endpoint
 // GET /search?address=<postcode+houseNumber>
 // POST /search with form fields postcode and houseNumber
-func (h *LegacySearchHandler) HandleSearch(w http.ResponseWriter, r *http.Request) {
+func (h *SearchHandler) HandleSearch(w http.ResponseWriter, r *http.Request) {
 	var postcode, houseNumber string
 
 	// Support both GET with ?address= and POST with form fields
@@ -181,7 +181,7 @@ func (h *LegacySearchHandler) HandleSearch(w http.ResponseWriter, r *http.Reques
 }
 
 // buildAPIResults creates grouped API results with status and error info
-func (h *LegacySearchHandler) buildAPIResults(data *aggregator.ComprehensivePropertyData) APIResultsGrouped {
+func (h *SearchHandler) buildAPIResults(data *aggregator.ComprehensivePropertyData) APIResultsGrouped {
 	results := APIResultsGrouped{
 		Free:     []APIResult{},
 		Freemium: []APIResult{},
