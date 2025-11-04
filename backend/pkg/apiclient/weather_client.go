@@ -48,7 +48,7 @@ func (c *ApiClient) FetchKNMIWeatherData(cfg *config.Config, lat, lon float64) (
 		}, nil
 	}
 
-	url := fmt.Sprintf("%s/forecast?latitude=%f&longitude=%f&current_weather=true&hourly=precipitation,relativehumidity_2m,pressure_msl&timezone=Europe/Amsterdam", cfg.KNMIWeatherApiURL, lat, lon)
+	url := fmt.Sprintf("%s?latitude=%f&longitude=%f&current_weather=true&hourly=precipitation,relativehumidity_2m,pressure_msl&timezone=Europe/Amsterdam", cfg.KNMIWeatherApiURL, lat, lon)
 	log.Printf("[WEATHER] Fetching weather from: %s", url)
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -314,7 +314,7 @@ func (c *ApiClient) FetchKNMISolarData(cfg *config.Config, lat, lon float64) (*K
 		}, nil
 	}
 
-	url := fmt.Sprintf("%s/forecast?latitude=%f&longitude=%f&hourly=shortwave_radiation&daily=sunshine_duration,uv_index_max&timezone=Europe/Amsterdam", cfg.KNMISolarApiURL, lat, lon)
+	url := fmt.Sprintf("%s?latitude=%f&longitude=%f&hourly=shortwave_radiation&daily=sunshine_duration,uv_index_max&timezone=Europe/Amsterdam", cfg.KNMISolarApiURL, lat, lon)
 	log.Printf("[SOLAR] Fetching solar data from: %s", url)
 
 	req, err := http.NewRequest("GET", url, nil)
