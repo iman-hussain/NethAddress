@@ -30,31 +30,67 @@ type GreenSpace struct {
 // FetchGreenSpacesData retrieves parks and green areas for environmental quality
 // Documentation: https://api.store (PDOK Green Spaces)
 func (c *ApiClient) FetchGreenSpacesData(cfg *config.Config, lat, lon float64, radius int) (*GreenSpacesData, error) {
+	// Return empty data if not configured
 	if cfg.GreenSpacesApiURL == "" {
-		return nil, fmt.Errorf("GreenSpacesApiURL not configured")
+		return &GreenSpacesData{
+			TotalGreenArea:  0,
+			GreenPercentage: 0,
+			NearestPark:     "",
+			ParkDistance:    0,
+			TreeCanopyCover: 0,
+			GreenSpaces:     []GreenSpace{},
+		}, nil
 	}
 
 	url := fmt.Sprintf("%s/green-spaces?lat=%f&lon=%f&radius=%d", cfg.GreenSpacesApiURL, lat, lon, radius)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, err
+		return &GreenSpacesData{
+			TotalGreenArea:  0,
+			GreenPercentage: 0,
+			NearestPark:     "",
+			ParkDistance:    0,
+			TreeCanopyCover: 0,
+			GreenSpaces:     []GreenSpace{},
+		}, nil
 	}
 
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
-		return nil, err
+		return &GreenSpacesData{
+			TotalGreenArea:  0,
+			GreenPercentage: 0,
+			NearestPark:     "",
+			ParkDistance:    0,
+			TreeCanopyCover: 0,
+			GreenSpaces:     []GreenSpace{},
+		}, nil
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("green spaces API returned status %d", resp.StatusCode)
+		return &GreenSpacesData{
+			TotalGreenArea:  0,
+			GreenPercentage: 0,
+			NearestPark:     "",
+			ParkDistance:    0,
+			TreeCanopyCover: 0,
+			GreenSpaces:     []GreenSpace{},
+		}, nil
 	}
 
 	var result GreenSpacesData
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode green spaces response: %w", err)
+		return &GreenSpacesData{
+			TotalGreenArea:  0,
+			GreenPercentage: 0,
+			NearestPark:     "",
+			ParkDistance:    0,
+			TreeCanopyCover: 0,
+			GreenSpaces:     []GreenSpace{},
+		}, nil
 	}
 
 	return &result, nil
@@ -82,31 +118,57 @@ type School struct {
 // FetchEducationData retrieves school locations and quality ratings
 // Documentation: https://www.ocwincijfers.nl/open-data (CBS Education)
 func (c *ApiClient) FetchEducationData(cfg *config.Config, lat, lon float64) (*EducationData, error) {
+	// Return empty data if not configured
 	if cfg.EducationApiURL == "" {
-		return nil, fmt.Errorf("EducationApiURL not configured")
+		return &EducationData{
+			NearestPrimarySchool:   nil,
+			NearestSecondarySchool: nil,
+			AllSchools:             []School{},
+			AverageQuality:         0,
+		}, nil
 	}
 
 	url := fmt.Sprintf("%s/schools?lat=%f&lon=%f&radius=2000", cfg.EducationApiURL, lat, lon)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, err
+		return &EducationData{
+			NearestPrimarySchool:   nil,
+			NearestSecondarySchool: nil,
+			AllSchools:             []School{},
+			AverageQuality:         0,
+		}, nil
 	}
 
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
-		return nil, err
+		return &EducationData{
+			NearestPrimarySchool:   nil,
+			NearestSecondarySchool: nil,
+			AllSchools:             []School{},
+			AverageQuality:         0,
+		}, nil
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("education API returned status %d", resp.StatusCode)
+		return &EducationData{
+			NearestPrimarySchool:   nil,
+			NearestSecondarySchool: nil,
+			AllSchools:             []School{},
+			AverageQuality:         0,
+		}, nil
 	}
 
 	var result EducationData
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode education response: %w", err)
+		return &EducationData{
+			NearestPrimarySchool:   nil,
+			NearestSecondarySchool: nil,
+			AllSchools:             []School{},
+			AverageQuality:         0,
+		}, nil
 	}
 
 	return &result, nil
@@ -135,31 +197,62 @@ type BuildingPermit struct {
 // FetchBuildingPermitsData retrieves recent building activity
 // Documentation: https://api.store (CBS Building Permits)
 func (c *ApiClient) FetchBuildingPermitsData(cfg *config.Config, lat, lon float64, radius int) (*BuildingPermitsData, error) {
+	// Return empty data if not configured
 	if cfg.BuildingPermitsApiURL == "" {
-		return nil, fmt.Errorf("BuildingPermitsApiURL not configured")
+		return &BuildingPermitsData{
+			TotalPermits:    0,
+			NewConstruction: 0,
+			Renovations:     0,
+			Permits:         []BuildingPermit{},
+			GrowthTrend:     "Unknown",
+		}, nil
 	}
 
 	url := fmt.Sprintf("%s/permits?lat=%f&lon=%f&radius=%d&years=2", cfg.BuildingPermitsApiURL, lat, lon, radius)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, err
+		return &BuildingPermitsData{
+			TotalPermits:    0,
+			NewConstruction: 0,
+			Renovations:     0,
+			Permits:         []BuildingPermit{},
+			GrowthTrend:     "Unknown",
+		}, nil
 	}
 
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
-		return nil, err
+		return &BuildingPermitsData{
+			TotalPermits:    0,
+			NewConstruction: 0,
+			Renovations:     0,
+			Permits:         []BuildingPermit{},
+			GrowthTrend:     "Unknown",
+		}, nil
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("building permits API returned status %d", resp.StatusCode)
+		return &BuildingPermitsData{
+			TotalPermits:    0,
+			NewConstruction: 0,
+			Renovations:     0,
+			Permits:         []BuildingPermit{},
+			GrowthTrend:     "Unknown",
+		}, nil
 	}
 
 	var result BuildingPermitsData
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode building permits response: %w", err)
+		return &BuildingPermitsData{
+			TotalPermits:    0,
+			NewConstruction: 0,
+			Renovations:     0,
+			Permits:         []BuildingPermit{},
+			GrowthTrend:     "Unknown",
+		}, nil
 	}
 
 	return &result, nil
@@ -187,31 +280,52 @@ type Facility struct {
 // FetchFacilitiesData retrieves nearby retail, healthcare, and amenities
 // Documentation: Municipal API (varies by city)
 func (c *ApiClient) FetchFacilitiesData(cfg *config.Config, lat, lon float64) (*FacilitiesData, error) {
+	// Return empty data if not configured
 	if cfg.FacilitiesApiURL == "" {
-		return nil, fmt.Errorf("FacilitiesApiURL not configured")
+		return &FacilitiesData{
+			TopFacilities:  []Facility{},
+			AmenitiesScore: 0,
+			CategoryCounts: make(map[string]int),
+		}, nil
 	}
 
 	url := fmt.Sprintf("%s/facilities?lat=%f&lon=%f&radius=1500", cfg.FacilitiesApiURL, lat, lon)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, err
+		return &FacilitiesData{
+			TopFacilities:  []Facility{},
+			AmenitiesScore: 0,
+			CategoryCounts: make(map[string]int),
+		}, nil
 	}
 
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
-		return nil, err
+		return &FacilitiesData{
+			TopFacilities:  []Facility{},
+			AmenitiesScore: 0,
+			CategoryCounts: make(map[string]int),
+		}, nil
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("facilities API returned status %d", resp.StatusCode)
+		return &FacilitiesData{
+			TopFacilities:  []Facility{},
+			AmenitiesScore: 0,
+			CategoryCounts: make(map[string]int),
+		}, nil
 	}
 
 	var result FacilitiesData
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode facilities response: %w", err)
+		return &FacilitiesData{
+			TopFacilities:  []Facility{},
+			AmenitiesScore: 0,
+			CategoryCounts: make(map[string]int),
+		}, nil
 	}
 
 	return &result, nil
@@ -229,31 +343,62 @@ type AHNHeightData struct {
 // FetchAHNHeightData retrieves elevation and terrain models
 // Documentation: https://www.ahn.nl (PDOK/Kadaster)
 func (c *ApiClient) FetchAHNHeightData(cfg *config.Config, lat, lon float64) (*AHNHeightData, error) {
+	// Return default data if not configured
 	if cfg.AHNHeightModelApiURL == "" {
-		return nil, fmt.Errorf("AHNHeightModelApiURL not configured")
+		return &AHNHeightData{
+			Elevation:     0,
+			TerrainSlope:  0,
+			FloodRisk:     "Unknown",
+			ViewPotential: "Unknown",
+			Surrounding:   []float64{},
+		}, nil
 	}
 
 	url := fmt.Sprintf("%s/height?lat=%f&lon=%f", cfg.AHNHeightModelApiURL, lat, lon)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, err
+		return &AHNHeightData{
+			Elevation:     0,
+			TerrainSlope:  0,
+			FloodRisk:     "Unknown",
+			ViewPotential: "Unknown",
+			Surrounding:   []float64{},
+		}, nil
 	}
 
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
-		return nil, err
+		return &AHNHeightData{
+			Elevation:     0,
+			TerrainSlope:  0,
+			FloodRisk:     "Unknown",
+			ViewPotential: "Unknown",
+			Surrounding:   []float64{},
+		}, nil
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("AHN height API returned status %d", resp.StatusCode)
+		return &AHNHeightData{
+			Elevation:     0,
+			TerrainSlope:  0,
+			FloodRisk:     "Unknown",
+			ViewPotential: "Unknown",
+			Surrounding:   []float64{},
+		}, nil
 	}
 
 	var result AHNHeightData
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode AHN height response: %w", err)
+		return &AHNHeightData{
+			Elevation:     0,
+			TerrainSlope:  0,
+			FloodRisk:     "Unknown",
+			ViewPotential: "Unknown",
+			Surrounding:   []float64{},
+		}, nil
 	}
 
 	// Assess flood risk based on elevation

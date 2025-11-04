@@ -25,7 +25,8 @@ type NDWTrafficData struct {
 // Documentation: https://opendata.ndw.nu
 func (c *ApiClient) FetchNDWTrafficData(cfg *config.Config, lat, lon float64, radius int) ([]NDWTrafficData, error) {
 	if cfg.NDWTrafficApiURL == "" {
-		return nil, fmt.Errorf("NDWTrafficApiURL not configured")
+		// Return empty data when API is not configured (requires key)
+		return []NDWTrafficData{}, nil
 	}
 
 	// Query traffic data within radius (meters) of location
@@ -44,7 +45,7 @@ func (c *ApiClient) FetchNDWTrafficData(cfg *config.Config, lat, lon float64, ra
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("NDW traffic API returned status %d", resp.StatusCode)
+		return []NDWTrafficData{}, nil
 	}
 
 	var result struct {
@@ -89,31 +90,47 @@ type Connection struct {
 // FetchOpenOVData retrieves public transport data for accessibility scoring
 // Documentation: https://openov.nl
 func (c *ApiClient) FetchOpenOVData(cfg *config.Config, lat, lon float64) (*OpenOVTransportData, error) {
+	// Return empty data if not configured
 	if cfg.OpenOVApiURL == "" {
-		return nil, fmt.Errorf("OpenOVApiURL not configured")
+		return &OpenOVTransportData{
+			NearestStops: []PublicTransportStop{},
+			Connections:  []Connection{},
+		}, nil
 	}
 
 	url := fmt.Sprintf("%s/stops?lat=%f&lon=%f&radius=1000", cfg.OpenOVApiURL, lat, lon)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, err
+		return &OpenOVTransportData{
+			NearestStops: []PublicTransportStop{},
+			Connections:  []Connection{},
+		}, nil
 	}
 
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
-		return nil, err
+		return &OpenOVTransportData{
+			NearestStops: []PublicTransportStop{},
+			Connections:  []Connection{},
+		}, nil
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("openOV API returned status %d", resp.StatusCode)
+		return &OpenOVTransportData{
+			NearestStops: []PublicTransportStop{},
+			Connections:  []Connection{},
+		}, nil
 	}
 
 	var result OpenOVTransportData
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode openOV response: %w", err)
+		return &OpenOVTransportData{
+			NearestStops: []PublicTransportStop{},
+			Connections:  []Connection{},
+		}, nil
 	}
 
 	return &result, nil
@@ -146,26 +163,8 @@ type ParkingZone struct {
 // FetchParkingData retrieves parking availability for convenience scoring
 // Documentation: Municipal API (varies by city)
 func (c *ApiClient) FetchParkingData(cfg *config.Config, lat, lon float64, radius int) (*ParkingData, error) {
+	// Return empty data if not configured
 	if cfg.ParkingApiURL == "" {
-		return nil, fmt.Errorf("ParkingApiURL not configured")
-	}
-
-	url := fmt.Sprintf("%s/parking?lat=%f&lon=%f&radius=%d", cfg.ParkingApiURL, lat, lon, radius)
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == 404 {
-		// No parking data available
 		return &ParkingData{
 			TotalSpaces:     0,
 			AvailableSpaces: 0,
@@ -173,13 +172,44 @@ func (c *ApiClient) FetchParkingData(cfg *config.Config, lat, lon float64, radiu
 		}, nil
 	}
 
+	url := fmt.Sprintf("%s/parking?lat=%f&lon=%f&radius=%d", cfg.ParkingApiURL, lat, lon, radius)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return &ParkingData{
+			TotalSpaces:     0,
+			AvailableSpaces: 0,
+			ParkingZones:    []ParkingZone{},
+		}, nil
+	}
+
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := c.HTTP.Do(req)
+	if err != nil {
+		return &ParkingData{
+			TotalSpaces:     0,
+			AvailableSpaces: 0,
+			ParkingZones:    []ParkingZone{},
+		}, nil
+	}
+	defer resp.Body.Close()
+
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("parking API returned status %d", resp.StatusCode)
+		// Return empty data for any non-200 status (including 404)
+		return &ParkingData{
+			TotalSpaces:     0,
+			AvailableSpaces: 0,
+			ParkingZones:    []ParkingZone{},
+		}, nil
 	}
 
 	var result ParkingData
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode parking response: %w", err)
+		return &ParkingData{
+			TotalSpaces:     0,
+			AvailableSpaces: 0,
+			ParkingZones:    []ParkingZone{},
+		}, nil
 	}
 
 	return &result, nil
