@@ -19,9 +19,7 @@ echo ""
 # Build backend with build args
 echo "Building backend..."
 cd backend
-COMMIT_HASH="$COMMIT_SHA"
-BUILD_TIMESTAMP="$BUILD_DATE"
-go build -ldflags "-X 'main.BuildCommit=$COMMIT_HASH' -X 'main.BuildDate=$BUILD_TIMESTAMP'" -o /tmp/addressiq-test .
+go build -ldflags "-X 'main.BuildCommit=$COMMIT_SHA' -X 'main.BuildDate=$BUILD_DATE'" -o /tmp/addressiq-test .
 cd ..
 
 # Start backend
