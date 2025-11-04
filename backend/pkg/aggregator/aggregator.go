@@ -1,3 +1,126 @@
+	// Luchtmeetnet Air Quality
+	log.Printf("[AGGREGATOR] Calling FetchAirQualityData...")
+	airQuality, airQualityErr := pa.apiClient.FetchAirQualityData(pa.config, lat, lon)
+	if airQualityErr == nil && airQuality != nil {
+		data.AirQuality = airQuality
+		data.DataSources = append(data.DataSources, "Air Quality")
+		log.Printf("[AGGREGATOR] ✓ Air quality data fetched successfully: %+v", airQuality)
+	} else {
+		log.Printf("[AGGREGATOR] ✗ Air quality fetch failed: %v", airQualityErr)
+		if data.Errors != nil && airQualityErr != nil {
+			data.Errors["Luchtmeetnet Air Quality"] = airQualityErr.Error()
+		}
+	}
+
+	// Noise Pollution
+	log.Printf("[AGGREGATOR] Calling FetchNoisePollutionData...")
+	noise, noiseErr := pa.apiClient.FetchNoisePollutionData(pa.config, lat, lon)
+	if noiseErr == nil && noise != nil {
+		data.NoisePollution = noise
+		data.DataSources = append(data.DataSources, "Noise Register")
+		log.Printf("[AGGREGATOR] ✓ Noise pollution data fetched successfully: %+v", noise)
+	} else {
+		log.Printf("[AGGREGATOR] ✗ Noise pollution fetch failed: %v", noiseErr)
+		if data.Errors != nil && noiseErr != nil {
+			data.Errors["Noise Pollution"] = noiseErr.Error()
+		}
+	}
+	// CBS Population Grid
+	log.Printf("[AGGREGATOR] Calling FetchCBSPopulationData...")
+	population, populationErr := pa.apiClient.FetchCBSPopulationData(pa.config, lat, lon)
+	if populationErr == nil && population != nil {
+		data.Population = population
+		data.DataSources = append(data.DataSources, "CBS Population")
+		log.Printf("[AGGREGATOR] ✓ CBS population data fetched successfully: %+v", population)
+	} else {
+		log.Printf("[AGGREGATOR] ✗ CBS population fetch failed: %v", populationErr)
+		if data.Errors != nil && populationErr != nil {
+			data.Errors["CBS Population"] = populationErr.Error()
+		}
+	}
+
+	// CBS Square Stats
+	log.Printf("[AGGREGATOR] Calling FetchCBSSquareStats...")
+	squareStats, squareStatsErr := pa.apiClient.FetchCBSSquareStats(pa.config, lat, lon)
+	if squareStatsErr == nil && squareStats != nil {
+		data.SquareStats = squareStats
+		data.DataSources = append(data.DataSources, "CBS Square Stats")
+		log.Printf("[AGGREGATOR] ✓ CBS square stats data fetched successfully: %+v", squareStats)
+	} else {
+		log.Printf("[AGGREGATOR] ✗ CBS square stats fetch failed: %v", squareStatsErr)
+		if data.Errors != nil && squareStatsErr != nil {
+			data.Errors["CBS Square Statistics"] = squareStatsErr.Error()
+		}
+	}
+
+	// CBS StatLine
+	log.Printf("[AGGREGATOR] Calling FetchCBSStatLineData...")
+	regionCode := "GM0000" // TODO: Extract from PDOK or other source
+	statLine, statLineErr := pa.apiClient.FetchCBSStatLineData(pa.config, regionCode)
+	if statLineErr == nil && statLine != nil {
+		data.StatLineData = statLine
+		data.DataSources = append(data.DataSources, "CBS StatLine")
+		log.Printf("[AGGREGATOR] ✓ CBS StatLine data fetched successfully: %+v", statLine)
+	} else {
+		log.Printf("[AGGREGATOR] ✗ CBS StatLine fetch failed: %v", statLineErr)
+		if data.Errors != nil && statLineErr != nil {
+			data.Errors["CBS StatLine"] = statLineErr.Error()
+		}
+	}
+	// Green Spaces
+	log.Printf("[AGGREGATOR] Calling FetchGreenSpacesData...")
+	greenSpaces, greenSpacesErr := pa.apiClient.FetchGreenSpacesData(pa.config, lat, lon, 1000)
+	if greenSpacesErr == nil && greenSpaces != nil {
+		data.GreenSpaces = greenSpaces
+		data.DataSources = append(data.DataSources, "Green Spaces")
+		log.Printf("[AGGREGATOR] ✓ Green spaces data fetched successfully: %+v", greenSpaces)
+	} else {
+		log.Printf("[AGGREGATOR] ✗ Green spaces fetch failed: %v", greenSpacesErr)
+		if data.Errors != nil && greenSpacesErr != nil {
+			data.Errors["Green Spaces"] = greenSpacesErr.Error()
+		}
+	}
+
+	// Facilities
+	log.Printf("[AGGREGATOR] Calling FetchFacilitiesData...")
+	facilities, facilitiesErr := pa.apiClient.FetchFacilitiesData(pa.config, lat, lon)
+	if facilitiesErr == nil && facilities != nil {
+		data.Facilities = facilities
+		data.DataSources = append(data.DataSources, "Facilities")
+		log.Printf("[AGGREGATOR] ✓ Facilities data fetched successfully: %+v", facilities)
+	} else {
+		log.Printf("[AGGREGATOR] ✗ Facilities fetch failed: %v", facilitiesErr)
+		if data.Errors != nil && facilitiesErr != nil {
+			data.Errors["Facilities & Amenities"] = facilitiesErr.Error()
+		}
+	}
+	// Land Use
+	log.Printf("[AGGREGATOR] Calling FetchLandUseData...")
+	landUse, landUseErr := pa.apiClient.FetchLandUseData(pa.config, lat, lon)
+	if landUseErr == nil && landUse != nil {
+		data.LandUse = landUse
+		data.DataSources = append(data.DataSources, "Land Use")
+		log.Printf("[AGGREGATOR] ✓ Land use data fetched successfully: %+v", landUse)
+	} else {
+		log.Printf("[AGGREGATOR] ✗ Land use fetch failed: %v", landUseErr)
+		if data.Errors != nil && landUseErr != nil {
+			data.Errors["Land Use & Zoning"] = landUseErr.Error()
+		}
+	}
+
+	// PDOK Platform
+	log.Printf("[AGGREGATOR] Calling FetchPDOKPlatformData...")
+	pdok, pdokErr := pa.apiClient.FetchPDOKPlatformData(pa.config, lat, lon)
+	if pdokErr == nil && pdok != nil {
+		data.PDOKData = pdok
+		data.DataSources = append(data.DataSources, "PDOK Platform")
+		log.Printf("[AGGREGATOR] ✓ PDOK platform data fetched successfully: %+v", pdok)
+	} else {
+		log.Printf("[AGGREGATOR] ✗ PDOK platform fetch failed: %v", pdokErr)
+		if data.Errors != nil && pdokErr != nil {
+			data.Errors["PDOK Platform"] = pdokErr.Error()
+		}
+	}
 package aggregator
 
 import (
@@ -194,28 +317,30 @@ func (pa *PropertyAggregator) fetchEnvironmentalData(data *ComprehensiveProperty
 	log.Printf("[AGGREGATOR] fetchEnvironmentalData called with lat=%.6f, lon=%.6f", lat, lon)
 
 	// Weather
+
 	log.Printf("[AGGREGATOR] Calling FetchKNMIWeatherData...")
-	if weather, err := pa.apiClient.FetchKNMIWeatherData(pa.config, lat, lon); err == nil {
+	weather, weatherErr := pa.apiClient.FetchKNMIWeatherData(pa.config, lat, lon)
+	if weatherErr == nil && weather != nil {
 		data.Weather = weather
 		data.DataSources = append(data.DataSources, "KNMI Weather")
-		log.Printf("[AGGREGATOR] ✓ Weather data fetched successfully")
+		log.Printf("[AGGREGATOR] ✓ Weather data fetched successfully: %+v", weather)
 	} else {
-		log.Printf("[AGGREGATOR] ✗ Weather fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["KNMI Weather"] = err.Error()
+		log.Printf("[AGGREGATOR] ✗ Weather fetch failed: %v", weatherErr)
+		if data.Errors != nil && weatherErr != nil {
+			data.Errors["KNMI Weather"] = weatherErr.Error()
 		}
 	}
 
-	// Solar Potential
 	log.Printf("[AGGREGATOR] Calling FetchKNMISolarData...")
-	if solar, err := pa.apiClient.FetchKNMISolarData(pa.config, lat, lon); err == nil {
+	solar, solarErr := pa.apiClient.FetchKNMISolarData(pa.config, lat, lon)
+	if solarErr == nil && solar != nil {
 		data.SolarPotential = solar
 		data.DataSources = append(data.DataSources, "KNMI Solar")
-		log.Printf("[AGGREGATOR] ✓ Solar data fetched successfully")
+		log.Printf("[AGGREGATOR] ✓ Solar data fetched successfully: %+v", solar)
 	} else {
-		log.Printf("[AGGREGATOR] ✗ Solar fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["KNMI Solar"] = err.Error()
+		log.Printf("[AGGREGATOR] ✗ Solar fetch failed: %v", solarErr)
+		if data.Errors != nil && solarErr != nil {
+			data.Errors["KNMI Solar"] = solarErr.Error()
 		}
 	}
 

@@ -1,3 +1,9 @@
+	log.Printf("[APIClient] FetchAirQualityData: url=%s, lat=%.6f, lon=%.6f", cfg.LuchtmeetnetApiURL, lat, lon)
+	log.Printf("[APIClient] FetchAirQualityData: stationURL=%s", stationURL)
+	log.Printf("[APIClient] FetchAirQualityData: response status=%d", resp.StatusCode)
+	log.Printf("[APIClient] FetchAirQualityData: measureURL=%s", measureURL)
+	log.Printf("[APIClient] FetchAirQualityData: response2 status=%d", resp2.StatusCode)
+	log.Printf("[APIClient] FetchAirQualityData: parsed result=%+v", airMeasurements)
 package apiclient
 
 import (

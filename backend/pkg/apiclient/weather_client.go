@@ -1,3 +1,9 @@
+	log.Printf("[APIClient] FetchKNMIWeatherData: url=%s, lat=%.6f, lon=%.6f", cfg.KNMIWeatherApiURL, lat, lon)
+	log.Printf("[APIClient] FetchKNMIWeatherData: response status=%d", resp.StatusCode)
+	log.Printf("[APIClient] FetchKNMIWeatherData: parsed result=%+v", weather)
+	log.Printf("[APIClient] FetchKNMISolarData: url=%s, lat=%.6f, lon=%.6f", cfg.KNMISolarApiURL, lat, lon)
+	log.Printf("[APIClient] FetchKNMISolarData: response status=%d", resp.StatusCode)
+	log.Printf("[APIClient] FetchKNMISolarData: parsed result=%+v", solar)
 package apiclient
 
 import (

@@ -58,6 +58,7 @@ func (c *ApiClient) FetchBAGData(postcode, number string) (*models.BAGData, erro
 		return nil, fmt.Errorf("postcode and house number are required")
 	}
 
+	fmt.Printf("[BAG] FetchBAGData: postcode=%s, number=%s\n", postcode, number)
 	endpoint := strings.TrimSpace(os.Getenv("BAG_API_URL"))
 	if endpoint == "" {
 		endpoint = defaultBAGEndpoint
@@ -71,32 +72,40 @@ func (c *ApiClient) FetchBAGData(postcode, number string) (*models.BAGData, erro
 
 	req, err := http.NewRequest("GET", endpoint+"?"+params.Encode(), nil)
 	if err != nil {
+		fmt.Printf("[BAG] Request error: %v\n", err)
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
+		fmt.Printf("[BAG] HTTP error: %v\n", err)
 		return nil, err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		fmt.Printf("[BAG] Non-200 status: %d\n", resp.StatusCode)
 		b, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("BAG API returned status %d: %s", resp.StatusCode, string(b))
 	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
+		fmt.Printf("[BAG] Read body error: %v\n", err)
 		return nil, err
 	}
 
+	fmt.Printf("[BAG] Raw response: %s\n", string(body))
 	var apiResp bagResponse
 	if err := json.Unmarshal(body, &apiResp); err != nil {
+		fmt.Printf("[BAG] Unmarshal error: %v\n", err)
 		return nil, fmt.Errorf("failed to parse BAG API response: %w", err)
 	}
 
+	fmt.Printf("[BAG] Parsed response: %+v\n", apiResp)
 	if len(apiResp.Response.Docs) == 0 {
+		fmt.Printf("[BAG] No results for %s %s\n", postcode, number)
 		return nil, fmt.Errorf("no results from BAG API for %s %s", postcode, number)
 	}
 
@@ -172,6 +181,7 @@ type WMSFeatureInfo struct {
 }
 
 func (c *ApiClient) FetchPDOKData(coordinates string) (*models.PDOKData, error) {
+	fmt.Printf("[PDOK] FetchPDOKData: coordinates=%s\n", coordinates)
 	// Example: coordinates = "4.8952,52.3702"
 	// Build WMS GetFeatureInfo request (Ruimtelijke Plannen)
 	// For demo, we use a static endpoint and parse a simple XML
@@ -181,26 +191,32 @@ func (c *ApiClient) FetchPDOKData(coordinates string) (*models.PDOKData, error) 
 		"&INFO_FORMAT=application/vnd.ogc.gml" +
 		"&X=1&Y=1&SRS=EPSG:4326&WIDTH=1&HEIGHT=1" +
 		"&BBOX=" + coordinates + "," + coordinates + "&FEATURE_COUNT=1"
+	fmt.Printf("[PDOK] Request URL: %s\n", url)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
+		fmt.Printf("[PDOK] Request error: %v\n", err)
 		return nil, err
 	}
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
+		fmt.Printf("[PDOK] HTTP error: %v\n", err)
 		return nil, err
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		fmt.Printf("[PDOK] Non-200 status: %d\n", resp.StatusCode)
 		b, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("PDOK API returned status %d: %s", resp.StatusCode, string(b))
 	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
+		fmt.Printf("[PDOK] Read body error: %v\n", err)
 		return nil, err
 	}
 	// Parse XML using encoding/xml for robustness
 	var pdokResp PDOKResponse
 	if err := xml.Unmarshal(body, &pdokResp); err != nil {
+		fmt.Printf("[PDOK] XML unmarshal error: %v\n", err)
 		// fallback to string search if unmarshal fails (for demo)
 		xmlStr := string(body)
 		if idx := strings.Index(xmlStr, "<omschrijving>"); idx != -1 {
@@ -217,6 +233,8 @@ func (c *ApiClient) FetchPDOKData(coordinates string) (*models.PDOKData, error) 
 			}
 		}
 	}
+	fmt.Printf("[PDOK] Raw response: %s\n", string(body))
+	fmt.Printf("[PDOK] Parsed: %+v\n", pdokResp)
 	zoning := pdokResp.Omschrijving
 	if zoning == "" {
 		zoning = "Unknown"
@@ -225,6 +243,7 @@ func (c *ApiClient) FetchPDOKData(coordinates string) (*models.PDOKData, error) 
 	if pdokResp.Beperkingen != "" {
 		restrictions = append(restrictions, pdokResp.Beperkingen)
 	}
+	fmt.Printf("[PDOK] Final data: zoning=%s, restrictions=%v\n", zoning, restrictions)
 	return &models.PDOKData{
 		ZoningInfo:   zoning,
 		Restrictions: restrictions,
