@@ -19,7 +19,9 @@ echo ""
 # Build backend with build args
 echo "Building backend..."
 cd backend
-go build -ldflags "-X 'main.BuildCommit=$COMMIT_SHA' -X 'main.BuildDate=$BUILD_DATE'" -o /tmp/addressiq-test .
+# Use a unique temporary file for security
+TEMP_BINARY=$(mktemp /tmp/addressiq-test-XXXXXX)
+go build -ldflags "-X 'main.BuildCommit=$COMMIT_SHA' -X 'main.BuildDate=$BUILD_DATE'" -o "$TEMP_BINARY" .
 cd ..
 
 # Start backend
@@ -27,7 +29,7 @@ echo "Starting backend on port 8085..."
 PORT=8085 \
 FRONTEND_BUILD_COMMIT="$COMMIT_SHA" \
 FRONTEND_BUILD_DATE="$BUILD_DATE" \
-/tmp/addressiq-test &
+"$TEMP_BINARY" &
 BACKEND_PID=$!
 
 # Wait for backend to start
@@ -43,7 +45,7 @@ echo "========================================"
 
 # Cleanup
 kill $BACKEND_PID 2>/dev/null || true
-rm -f /tmp/addressiq-test
+rm -f "$TEMP_BINARY"
 
 echo ""
 echo "✅ Test completed successfully!"
