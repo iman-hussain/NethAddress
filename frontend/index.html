@@ -508,13 +508,16 @@
                 return;
             }
 
-            if (!currentResponse || !Array.isArray(currentResponse.apiResults)) {
+            if (!currentResponse || !currentResponse.apiResults) {
                 desktopResults.innerHTML = '';
                 document.body.classList.remove('has-results');
                 return;
             }
 
-            const filtered = currentResponse.apiResults.filter(result => enabledAPIs.has(result.name));
+            const grouped = currentResponse.apiResults;
+            const allResults = [...grouped.free, ...grouped.freemium, ...grouped.premium];
+            const filtered = allResults.filter(result => enabledAPIs.has(result.name));
+            
             const successCount = filtered.filter(r => r.status === 'success').length;
             const errorCount = filtered.filter(r => r.status === 'error').length;
             const notConfiguredCount = filtered.filter(r => r.status === 'not_configured').length;
@@ -523,33 +526,48 @@
             html += `<strong>Showing ${filtered.length} API data sources:</strong> `;
             html += `✓ ${successCount} success | ✗ ${errorCount} error | ⚠ ${notConfiguredCount} not configured`;
             html += '</div>';
-            html += '<div class="api-results-grid">';
 
-            filtered.forEach(result => {
-                const statusClass = result.status === 'success'
-                    ? 'is-success'
-                    : result.status === 'error'
-                        ? 'is-danger'
-                        : 'is-warning';
-                const statusSymbol = result.status === 'success' ? '✓' : result.status === 'error' ? '✗' : '⚠';
-                const errorMessage = result.error ? `<p class="is-size-7 mt-1">${result.error}</p>` : '';
-                const dataBlock = result.data
-                    ? `<details class="mt-2">
-                            <summary class="button is-small is-light is-size-7">Data</summary>
-                            <pre class="mt-2" style="max-height: 150px; overflow-y: auto; font-size: 0.65rem;">${JSON.stringify(result.data, null, 2)}</pre>
-                        </details>`
-                    : '';
+            // Helper function to render a section
+            const renderSection = (title, results, colorClass) => {
+                if (results.length === 0) return '';
+                const sectionResults = results.filter(result => enabledAPIs.has(result.name));
+                if (sectionResults.length === 0) return '';
+                
+                let sectionHtml = `<div class="mb-4">
+                    <h4 class="title is-5 ${colorClass} mb-3">${title}</h4>
+                    <div class="api-results-grid">`;
+                
+                sectionResults.forEach(result => {
+                    const statusClass = result.status === 'success'
+                        ? 'is-success'
+                        : result.status === 'error'
+                            ? 'is-danger'
+                            : 'is-warning';
+                    const statusSymbol = result.status === 'success' ? '✓' : result.status === 'error' ? '✗' : '⚠';
+                    const errorMessage = result.error ? `<p class="is-size-7 mt-1">${result.error}</p>` : '';
+                    const dataBlock = result.data
+                        ? `<details class="mt-2">
+                                <summary class="button is-small is-light is-size-7">Data</summary>
+                                <pre class="mt-2" style="max-height: 150px; overflow-y: auto; font-size: 0.65rem;">${JSON.stringify(result.data, null, 2)}</pre>
+                            </details>`
+                        : '';
 
-                html += `
-                    <div class="notification ${statusClass} result-card is-size-7 p-3">
-                        <p class="has-text-weight-bold is-size-7">${statusSymbol} ${result.name}</p>
-                        ${errorMessage}
-                        ${dataBlock}
-                    </div>
-                `;
-            });
+                    sectionHtml += `
+                        <div class="notification ${statusClass} result-card is-size-7 p-3">
+                            <p class="has-text-weight-bold is-size-7">${statusSymbol} ${result.name}</p>
+                            ${errorMessage}
+                            ${dataBlock}
+                        </div>
+                    `;
+                });
+                
+                sectionHtml += '</div></div>';
+                return sectionHtml;
+            };
 
-            html += '</div>';
+            html += renderSection('🌐 Free APIs (No API Key Required)', grouped.free, 'has-text-success');
+            html += renderSection('🔑 Freemium APIs (API Key Required)', grouped.freemium, 'has-text-warning');
+            html += renderSection('💰 Premium APIs (Paid Services)', grouped.premium, 'has-text-danger');
 
             desktopResults.innerHTML = html;
             if (filtered.length > 0) {
@@ -571,13 +589,16 @@
             rows.push(['Latitude', currentResponse.coordinates[1]]);
             rows.push(['Longitude', currentResponse.coordinates[0]]);
             rows.push([]);
-            rows.push(['API Name', 'Status', 'Data']);
 
-            currentResponse.apiResults
+            const grouped = currentResponse.apiResults;
+            const allResults = [...grouped.free, ...grouped.freemium, ...grouped.premium];
+            
+            rows.push(['API Name', 'Category', 'Status', 'Data']);
+            allResults
                 .filter(r => enabledAPIs.has(r.name))
                 .forEach(result => {
                     const dataStr = result.data ? JSON.stringify(result.data) : result.error || '';
-                    rows.push([result.name, result.status, dataStr]);
+                    rows.push([result.name, result.category, result.status, dataStr]);
                 });
 
             const csvContent = rows.map(row =>
@@ -602,7 +623,8 @@
                 return;
             }
 
-            const allAPIs = currentResponse.apiResults.map(r => r.name);
+            const grouped = currentResponse.apiResults;
+            const allAPIs = [...grouped.free, ...grouped.freemium, ...grouped.premium].map(r => r.name);
 
             let html = `
                 <div class="modal is-active" id="settings-modal">
@@ -659,7 +681,9 @@
 
         function selectAllAPIs() {
             if (!currentResponse) return;
-            currentResponse.apiResults.forEach(r => enabledAPIs.add(r.name));
+            const grouped = currentResponse.apiResults;
+            const allAPIs = [...grouped.free, ...grouped.freemium, ...grouped.premium];
+            allAPIs.forEach(r => enabledAPIs.add(r.name));
             document.querySelectorAll('#api-checkboxes input[type="checkbox"]').forEach(cb => cb.checked = true);
             renderApiResults();
         }

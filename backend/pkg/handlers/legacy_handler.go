@@ -43,18 +43,26 @@ func NewLegacySearchHandler(apiClient *apiclient.ApiClient, cfg *config.Config) 
 
 // APIResult represents the result of a single API call (success or error)
 type APIResult struct {
-	Name   string      `json:"name"`
-	Status string      `json:"status"` // "success", "error", "not_configured"
-	Data   interface{} `json:"data,omitempty"`
-	Error  string      `json:"error,omitempty"`
+	Name     string      `json:"name"`
+	Status   string      `json:"status"` // "success", "error", "not_configured"
+	Data     interface{} `json:"data,omitempty"`
+	Error    string      `json:"error,omitempty"`
+	Category string      `json:"category"` // "free", "freemium", "premium"
+}
+
+// APIResultsGrouped represents grouped API results by category
+type APIResultsGrouped struct {
+	Free     []APIResult `json:"free"`
+	Freemium []APIResult `json:"freemium"`
+	Premium  []APIResult `json:"premium"`
 }
 
 // ComprehensiveSearchResponse represents complete property data with all API results
 type ComprehensiveSearchResponse struct {
-	Address     string      `json:"address"`
-	Coordinates [2]float64  `json:"coordinates"`
-	GeoJSON     string      `json:"geojson"`
-	APIResults  []APIResult `json:"apiResults"`
+	Address     string             `json:"address"`
+	Coordinates [2]float64         `json:"coordinates"`
+	GeoJSON     string             `json:"geojson"`
+	APIResults  APIResultsGrouped  `json:"apiResults"`
 }
 
 // HandleSearch handles the legacy /search endpoint
@@ -140,15 +148,15 @@ func (h *LegacySearchHandler) HandleSearch(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	log.Printf("Found address: %s with %d API results", bagData.Address, len(apiResults))
+	log.Printf("Found address: %s with %d API results", bagData.Address, len(apiResults.Free)+len(apiResults.Freemium)+len(apiResults.Premium))
 
 	// Return HTML response for HTMX - simple structure without IDs that HTMX might hijack
 	html := fmt.Sprintf(`
 <div data-target="header">
     <div class="box">
         <h5 class="title is-5">%s</h5>
-        <p class="is-size-7"><strong>Coordinates:</strong> %.6f, %.6f</p>
-        <p class="is-size-7"><strong>Postcode:</strong> %s | <strong>House Number:</strong> %s</p>
+        <p class="is-size-6"><strong>Coordinates:</strong> %.6f, %.6f</p>
+        <p class="is-size-6"><strong>Postcode:</strong> %s | <strong>House Number:</strong> %s</p>
 		<div class="buttons mt-3">
 			<button class="button is-success is-small is-fullwidth" onclick="exportCSV()">Export CSV</button>
             <button class="button is-info is-small is-fullwidth" onclick="openSettings()">
@@ -172,213 +180,237 @@ func (h *LegacySearchHandler) HandleSearch(w http.ResponseWriter, r *http.Reques
 	w.Write([]byte(html))
 }
 
-// buildAPIResults creates an array of API results with status and error info
-func (h *LegacySearchHandler) buildAPIResults(data *aggregator.ComprehensivePropertyData) []APIResult {
-	results := []APIResult{
-		{Name: "BAG Address", Status: "success", Data: map[string]interface{}{"address": data.Address, "coordinates": data.Coordinates}},
+// buildAPIResults creates grouped API results with status and error info
+func (h *LegacySearchHandler) buildAPIResults(data *aggregator.ComprehensivePropertyData) APIResultsGrouped {
+	results := APIResultsGrouped{
+		Free:     []APIResult{},
+		Freemium: []APIResult{},
+		Premium:  []APIResult{},
 	}
+
+	// Helper function to add result to appropriate category
+	addResult := func(name, status, error, category string, data interface{}) {
+		result := APIResult{
+			Name:     name,
+			Status:   status,
+			Error:    error,
+			Category: category,
+			Data:     data,
+		}
+		switch category {
+		case "free":
+			results.Free = append(results.Free, result)
+		case "freemium":
+			results.Freemium = append(results.Freemium, result)
+		case "premium":
+			results.Premium = append(results.Premium, result)
+		}
+	}
+
+	// BAG Address - FREE
+	addResult("BAG Address", "success", "", "free", map[string]interface{}{"address": data.Address, "coordinates": data.Coordinates})
 
 	// Property & Land Data
 	if data.KadasterInfo != nil {
-		results = append(results, APIResult{Name: "Kadaster Object Info", Status: "success", Data: data.KadasterInfo})
+		addResult("Kadaster Object Info", "success", "", "freemium", data.KadasterInfo)
 	} else {
-		results = append(results, APIResult{Name: "Kadaster Object Info", Status: "not_configured", Error: "API key not configured"})
+		addResult("Kadaster Object Info", "not_configured", "API key not configured", "freemium", nil)
 	}
 
 	if data.WOZData != nil {
-		results = append(results, APIResult{Name: "Altum WOZ", Status: "success", Data: data.WOZData})
+		addResult("Altum WOZ", "success", "", "freemium", data.WOZData)
 	} else {
-		results = append(results, APIResult{Name: "Altum WOZ", Status: "not_configured", Error: "API key not configured"})
+		addResult("Altum WOZ", "not_configured", "API key not configured", "freemium", nil)
 	}
 
 	if data.MarketValuation != nil {
-		results = append(results, APIResult{Name: "Matrixian Property Value+", Status: "success", Data: data.MarketValuation})
+		addResult("Matrixian Property Value+", "success", "", "freemium", data.MarketValuation)
 	} else {
-		results = append(results, APIResult{Name: "Matrixian Property Value+", Status: "not_configured", Error: "API key not configured"})
+		addResult("Matrixian Property Value+", "not_configured", "API key not configured", "freemium", nil)
 	}
 
 	if data.TransactionHistory != nil {
-		results = append(results, APIResult{Name: "Altum Transactions", Status: "success", Data: data.TransactionHistory})
+		addResult("Altum Transactions", "success", "", "freemium", data.TransactionHistory)
 	} else {
-		results = append(results, APIResult{Name: "Altum Transactions", Status: "not_configured", Error: "API key not configured"})
+		addResult("Altum Transactions", "not_configured", "API key not configured", "freemium", nil)
 	}
 
-	// Weather & Climate
+	// Weather & Climate - FREE
 	if data.Weather != nil {
-		results = append(results, APIResult{Name: "KNMI Weather", Status: "success", Data: data.Weather})
+		addResult("KNMI Weather", "success", "", "free", data.Weather)
 	} else {
-		results = append(results, APIResult{Name: "KNMI Weather", Status: "error", Error: getErrorMessage(data, "KNMI Weather", "Failed to fetch weather data")})
+		addResult("KNMI Weather", "error", getErrorMessage(data, "KNMI Weather", "Failed to fetch weather data"), "free", nil)
 	}
 
 	if data.SolarPotential != nil {
-		results = append(results, APIResult{Name: "KNMI Solar", Status: "success", Data: data.SolarPotential})
+		addResult("KNMI Solar", "success", "", "free", data.SolarPotential)
 	} else {
-		results = append(results, APIResult{Name: "KNMI Solar", Status: "error", Error: getErrorMessage(data, "KNMI Solar", "Failed to fetch solar data")})
+		addResult("KNMI Solar", "error", getErrorMessage(data, "KNMI Solar", "Failed to fetch solar data"), "free", nil)
 	}
 
-	// Environmental Quality
+	// Environmental Quality - FREE
 	if data.AirQuality != nil {
-		results = append(results, APIResult{Name: "Luchtmeetnet Air Quality", Status: "success", Data: data.AirQuality})
+		addResult("Luchtmeetnet Air Quality", "success", "", "free", data.AirQuality)
 	} else {
-		results = append(results, APIResult{Name: "Luchtmeetnet Air Quality", Status: "error", Error: getErrorMessage(data, "Luchtmeetnet Air Quality", "Failed to fetch air quality data")})
+		addResult("Luchtmeetnet Air Quality", "error", getErrorMessage(data, "Luchtmeetnet Air Quality", "Failed to fetch air quality data"), "free", nil)
 	}
 
 	if data.NoisePollution != nil {
-		results = append(results, APIResult{Name: "Noise Pollution", Status: "success", Data: data.NoisePollution})
+		addResult("Noise Pollution", "success", "", "freemium", data.NoisePollution)
 	} else {
-		results = append(results, APIResult{Name: "Noise Pollution", Status: "not_configured", Error: "API not configured"})
+		addResult("Noise Pollution", "not_configured", "API not configured", "freemium", nil)
 	}
 
-	// Demographics
+	// Demographics - FREE
 	if data.Population != nil {
-		results = append(results, APIResult{Name: "CBS Population", Status: "success", Data: data.Population})
+		addResult("CBS Population", "success", "", "free", data.Population)
 	} else {
-		results = append(results, APIResult{Name: "CBS Population", Status: "error", Error: "Failed to fetch population data"})
+		addResult("CBS Population", "error", "Failed to fetch population data", "free", nil)
 	}
 
 	if data.SquareStats != nil {
-		results = append(results, APIResult{Name: "CBS Square Statistics", Status: "success", Data: data.SquareStats})
+		addResult("CBS Square Statistics", "success", "", "free", data.SquareStats)
 	} else {
-		results = append(results, APIResult{Name: "CBS Square Statistics", Status: "error", Error: "Failed to fetch square stats"})
+		addResult("CBS Square Statistics", "error", "Failed to fetch square stats", "free", nil)
 	}
 
 	// Soil & Geology
 	if data.SoilData != nil {
-		results = append(results, APIResult{Name: "WUR Soil Physicals", Status: "success", Data: data.SoilData})
+		addResult("WUR Soil Physicals", "success", "", "freemium", data.SoilData)
 	} else {
-		results = append(results, APIResult{Name: "WUR Soil Physicals", Status: "not_configured", Error: "API agreement required"})
+		addResult("WUR Soil Physicals", "not_configured", "API agreement required", "freemium", nil)
 	}
 
 	if data.Subsidence != nil {
-		results = append(results, APIResult{Name: "SkyGeo Subsidence", Status: "success", Data: data.Subsidence})
+		addResult("SkyGeo Subsidence", "success", "", "freemium", data.Subsidence)
 	} else {
-		results = append(results, APIResult{Name: "SkyGeo Subsidence", Status: "not_configured", Error: "API key not configured"})
+		addResult("SkyGeo Subsidence", "not_configured", "API key not configured", "freemium", nil)
 	}
 
 	if data.SoilQuality != nil {
-		results = append(results, APIResult{Name: "Soil Quality", Status: "success", Data: data.SoilQuality})
+		addResult("Soil Quality", "success", "", "freemium", data.SoilQuality)
 	} else {
-		results = append(results, APIResult{Name: "Soil Quality", Status: "not_configured", Error: "API key required"})
+		addResult("Soil Quality", "not_configured", "API key required", "freemium", nil)
 	}
 
 	if data.BROSoilMap != nil {
-		results = append(results, APIResult{Name: "BRO Soil Map", Status: "success", Data: data.BROSoilMap})
+		addResult("BRO Soil Map", "success", "", "free", data.BROSoilMap)
 	} else {
-		results = append(results, APIResult{Name: "BRO Soil Map", Status: "error", Error: "Failed to fetch BRO data"})
+		addResult("BRO Soil Map", "error", "Failed to fetch BRO data", "free", nil)
 	}
 
 	// Energy & Sustainability
 	if data.EnergyClimate != nil {
-		results = append(results, APIResult{Name: "Altum Energy & Climate", Status: "success", Data: data.EnergyClimate})
+		addResult("Altum Energy & Climate", "success", "", "freemium", data.EnergyClimate)
 	} else {
-		results = append(results, APIResult{Name: "Altum Energy & Climate", Status: "not_configured", Error: "API key not configured"})
+		addResult("Altum Energy & Climate", "not_configured", "API key not configured", "freemium", nil)
 	}
 
 	if data.Sustainability != nil {
-		results = append(results, APIResult{Name: "Altum Sustainability", Status: "success", Data: data.Sustainability})
+		addResult("Altum Sustainability", "success", "", "freemium", data.Sustainability)
 	} else {
-		results = append(results, APIResult{Name: "Altum Sustainability", Status: "not_configured", Error: "API key not configured"})
+		addResult("Altum Sustainability", "not_configured", "API key not configured", "freemium", nil)
 	}
 
 	// Traffic & Mobility
 	if data.TrafficData != nil && len(data.TrafficData) > 0 {
-		results = append(results, APIResult{Name: "NDW Traffic", Status: "success", Data: data.TrafficData})
+		addResult("NDW Traffic", "success", "", "free", data.TrafficData)
 	} else {
-		results = append(results, APIResult{Name: "NDW Traffic", Status: "error", Error: "No traffic data available"})
+		addResult("NDW Traffic", "error", "No traffic data available", "free", nil)
 	}
 
 	if data.PublicTransport != nil {
-		results = append(results, APIResult{Name: "openOV Public Transport", Status: "success", Data: data.PublicTransport})
+		addResult("openOV Public Transport", "success", "", "free", data.PublicTransport)
 	} else {
-		results = append(results, APIResult{Name: "openOV Public Transport", Status: "error", Error: "Failed to fetch transport data"})
+		addResult("openOV Public Transport", "error", "Failed to fetch transport data", "free", nil)
 	}
 
 	if data.ParkingData != nil {
-		results = append(results, APIResult{Name: "Parking Availability", Status: "success", Data: data.ParkingData})
+		addResult("Parking Availability", "success", "", "freemium", data.ParkingData)
 	} else {
-		results = append(results, APIResult{Name: "Parking Availability", Status: "not_configured", Error: "API varies by municipality"})
+		addResult("Parking Availability", "not_configured", "API varies by municipality", "freemium", nil)
 	}
 
 	// Water & Safety
 	if data.FloodRisk != nil {
-		results = append(results, APIResult{Name: "Flood Risk", Status: "success", Data: data.FloodRisk})
+		addResult("Flood Risk", "success", "", "free", data.FloodRisk)
 	} else {
-		results = append(results, APIResult{Name: "Flood Risk", Status: "error", Error: "Failed to fetch flood risk"})
+		addResult("Flood Risk", "error", "Failed to fetch flood risk", "free", nil)
 	}
 
 	if data.WaterQuality != nil {
-		results = append(results, APIResult{Name: "Digital Delta Water Quality", Status: "success", Data: data.WaterQuality})
+		addResult("Digital Delta Water Quality", "success", "", "freemium", data.WaterQuality)
 	} else {
-		results = append(results, APIResult{Name: "Digital Delta Water Quality", Status: "not_configured", Error: "Water authority account required"})
+		addResult("Digital Delta Water Quality", "not_configured", "Water authority account required", "freemium", nil)
 	}
 
 	if data.Safety != nil {
-		results = append(results, APIResult{Name: "CBS Safety Experience", Status: "success", Data: data.Safety})
+		addResult("CBS Safety Experience", "success", "", "freemium", data.Safety)
 	} else {
-		results = append(results, APIResult{Name: "CBS Safety Experience", Status: "not_configured", Error: "API key required"})
+		addResult("CBS Safety Experience", "not_configured", "API key required", "freemium", nil)
 	}
 
 	if data.SchipholFlights != nil {
-		results = append(results, APIResult{Name: "Schiphol Flight Noise", Status: "success", Data: data.SchipholFlights})
+		addResult("Schiphol Flight Noise", "success", "", "freemium", data.SchipholFlights)
 	} else {
-		results = append(results, APIResult{Name: "Schiphol Flight Noise", Status: "not_configured", Error: "API key not configured"})
+		addResult("Schiphol Flight Noise", "not_configured", "API key not configured", "freemium", nil)
 	}
 
-	// Infrastructure & Facilities
+	// Infrastructure & Facilities - FREE
 	if data.GreenSpaces != nil {
-		results = append(results, APIResult{Name: "Green Spaces", Status: "success", Data: data.GreenSpaces})
+		addResult("Green Spaces", "success", "", "free", data.GreenSpaces)
 	} else {
-		results = append(results, APIResult{Name: "Green Spaces", Status: "error", Error: "Failed to fetch green spaces"})
+		addResult("Green Spaces", "error", "Failed to fetch green spaces", "free", nil)
 	}
 
 	if data.Education != nil {
-		results = append(results, APIResult{Name: "Education Facilities", Status: "success", Data: data.Education})
+		addResult("Education Facilities", "success", "", "free", data.Education)
 	} else {
-		results = append(results, APIResult{Name: "Education Facilities", Status: "error", Error: "Failed to fetch education data"})
+		addResult("Education Facilities", "error", "Failed to fetch education data", "free", nil)
 	}
 
 	if data.BuildingPermits != nil {
-		results = append(results, APIResult{Name: "Building Permits", Status: "success", Data: data.BuildingPermits})
+		addResult("Building Permits", "success", "", "freemium", data.BuildingPermits)
 	} else {
-		results = append(results, APIResult{Name: "Building Permits", Status: "not_configured", Error: "API varies by region"})
+		addResult("Building Permits", "not_configured", "API varies by region", "freemium", nil)
 	}
 
 	if data.Facilities != nil {
-		results = append(results, APIResult{Name: "Facilities & Amenities", Status: "success", Data: data.Facilities})
+		addResult("Facilities & Amenities", "success", "", "free", data.Facilities)
 	} else {
-		results = append(results, APIResult{Name: "Facilities & Amenities", Status: "error", Error: "Failed to fetch facilities"})
+		addResult("Facilities & Amenities", "error", "Failed to fetch facilities", "free", nil)
 	}
 
 	if data.Elevation != nil {
-		results = append(results, APIResult{Name: "AHN Height Model", Status: "success", Data: data.Elevation})
+		addResult("AHN Height Model", "success", "", "free", data.Elevation)
 	} else {
-		results = append(results, APIResult{Name: "AHN Height Model", Status: "error", Error: "Failed to fetch elevation data"})
+		addResult("AHN Height Model", "error", "Failed to fetch elevation data", "free", nil)
 	}
 
 	// Heritage
 	if data.MonumentStatus != nil {
-		results = append(results, APIResult{Name: "Monument Status", Status: "success", Data: data.MonumentStatus})
+		addResult("Monument Status", "success", "", "free", data.MonumentStatus)
 	} else {
-		results = append(results, APIResult{Name: "Monument Status", Status: "error", Error: "No monument data (or Amsterdam only)"})
+		addResult("Monument Status", "error", "No monument data (or Amsterdam only)", "free", nil)
 	}
 
-	// Comprehensive Platforms
+	// Comprehensive Platforms - FREE
 	if data.PDOKData != nil {
-		results = append(results, APIResult{Name: "PDOK Platform", Status: "success", Data: data.PDOKData})
+		addResult("PDOK Platform", "success", "", "free", data.PDOKData)
 	} else {
-		results = append(results, APIResult{Name: "PDOK Platform", Status: "error", Error: "Failed to fetch PDOK data"})
+		addResult("PDOK Platform", "error", "Failed to fetch PDOK data", "free", nil)
 	}
 
 	if data.StratopoEnvironment != nil {
-		results = append(results, APIResult{Name: "Stratopo Environment", Status: "success", Data: data.StratopoEnvironment})
+		addResult("Stratopo Environment", "success", "", "freemium", data.StratopoEnvironment)
 	} else {
-		results = append(results, APIResult{Name: "Stratopo Environment", Status: "not_configured", Error: "API key not configured"})
+		addResult("Stratopo Environment", "not_configured", "API key not configured", "freemium", nil)
 	}
 
 	if data.LandUse != nil {
-		results = append(results, APIResult{Name: "Land Use & Zoning", Status: "success", Data: data.LandUse})
+		addResult("Land Use & Zoning", "success", "", "free", data.LandUse)
 	} else {
-		results = append(results, APIResult{Name: "Land Use & Zoning", Status: "error", Error: "Failed to fetch land use data"})
+		addResult("Land Use & Zoning", "error", "Failed to fetch land use data", "free", nil)
 	}
 
 	return results
