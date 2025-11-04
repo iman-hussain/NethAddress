@@ -93,13 +93,17 @@ type ComprehensivePropertyData struct {
 
 // AggregatePropertyData fetches and combines data from all available sources
 func (pa *PropertyAggregator) AggregatePropertyData(postcode, houseNumber string) (*ComprehensivePropertyData, error) {
+	logutil.Debugf("[AGGREGATOR] Starting aggregation for %s %s", postcode, houseNumber)
+
 	// Check cache first (if available)
 	if pa.cache != nil {
 		cacheKey := cache.CacheKey{}.AggregatedKey(postcode, houseNumber)
 		var cached ComprehensivePropertyData
 		if err := pa.cache.Get(cacheKey, &cached); err == nil {
+			logutil.Debugf("[AGGREGATOR] Cache hit for %s %s - returning cached data", postcode, houseNumber)
 			return &cached, nil
 		}
+		logutil.Debugf("[AGGREGATOR] Cache miss for %s %s - fetching fresh data", postcode, houseNumber)
 	}
 
 	// Start with BAG data (essential)
