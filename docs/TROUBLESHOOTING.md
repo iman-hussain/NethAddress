@@ -6,7 +6,7 @@ Testing, diagnostics, and fixes for AddressIQ.
 
 Run free API test:
 
-```
+```bash
 cd backend && go run ./cmd/test-free-apis/main.go
 ```
 
@@ -32,7 +32,7 @@ Not Configured (16): Paid APIs (Kadaster, Altum, etc.).
 
 Run:
 
-```
+```powershell
 test-full-stack.ps1
 ```
 
