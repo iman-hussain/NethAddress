@@ -7,9 +7,17 @@ package models
 // ...rockstar style, keep it simple
 
 type BAGData struct {
-	Address     string     `json:"address"`
-	Coordinates [2]float64 `json:"coordinates"`
-	GeoJSON     string     `json:"geojson"`
+	Address            string     `json:"address"`
+	Coordinates        [2]float64 `json:"coordinates"`
+	GeoJSON            string     `json:"geojson"`
+	ID                 string     `json:"id,omitempty"`
+	NummeraanduidingID string     `json:"nummeraanduiding_id,omitempty"`
+	VerblijfsobjectID  string     `json:"verblijfsobject_id,omitempty"`
+	PandID             string     `json:"pand_id,omitempty"`
+	Municipality       string     `json:"municipality,omitempty"`
+	MunicipalityCode   string     `json:"municipality_code,omitempty"`
+	Province           string     `json:"province,omitempty"`
+	ProvinceCode       string     `json:"province_code,omitempty"`
 }
 
 // PDOKData represents data from PDOK

@@ -17,17 +17,25 @@ func (f roundTripperFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func TestFetchBAGData_RealAPI(t *testing.T) {
-	// Mock BAG API response
+	// Mock BAG API response with BAG IDs
 	mockJSON := `{
 		"response": {
 			"docs": [
 				{
+					"id": "adr-12345678",
+					"nummeraanduiding_id": "0363200000123456",
+					"verblijfsobject_id": "0363010000123456",
+					"pand_id": "0363100000123456",
 					"weergavenaam": "Teststraat 10, 1234AB Testdorp",
 					"straatnaam": "Teststraat",
 					"huisnummer": 10,
 					"huis_nlt": "10",
 					"postcode": "1234AB",
 					"woonplaatsnaam": "Testdorp",
+					"gemeentenaam": "Amsterdam",
+					"gemeentecode": "GM0363",
+					"provincienaam": "Noord-Holland",
+					"provinciecode": "PV27",
 					"centroide_ll": "POINT(4.8952 52.3702)"
 				}
 			]
@@ -59,5 +67,15 @@ func TestFetchBAGData_RealAPI(t *testing.T) {
 	}
 	if len(bagData.Coordinates) < 2 || bagData.Coordinates[0] != 4.8952 || bagData.Coordinates[1] != 52.3702 {
 		t.Errorf("Coordinates not parsed correctly: %v", bagData.Coordinates)
+	}
+	// Verify BAG IDs are extracted
+	if bagData.VerblijfsobjectID != "0363010000123456" {
+		t.Errorf("Expected verblijfsobject_id '0363010000123456', got '%s'", bagData.VerblijfsobjectID)
+	}
+	if bagData.ID != "0363010000123456" {
+		t.Errorf("Expected ID to be verblijfsobject_id '0363010000123456', got '%s'", bagData.ID)
+	}
+	if bagData.MunicipalityCode != "GM0363" {
+		t.Errorf("Expected municipality code 'GM0363', got '%s'", bagData.MunicipalityCode)
 	}
 }

@@ -2,7 +2,6 @@ package apiclient
 
 import (
 	"encoding/json"
-	"encoding/xml"
 	"fmt"
 	"io"
 	"net/http"
@@ -41,16 +40,24 @@ type bagResponse struct {
 
 // bagDocument contains only the fields we actually use downstream.
 type bagDocument struct {
-	Weergavenaam      string  `json:"weergavenaam"`
-	Straatnaam        string  `json:"straatnaam"`
-	Huisnummer        float64 `json:"huisnummer"`
-	HuisNLT           string  `json:"huis_nlt"`
-	Huisletter        string  `json:"huisletter"`
-	Huisnummertoevoeg string  `json:"huisnummertoevoeging"`
-	Postcode          string  `json:"postcode"`
-	WoonplaatsNaam    string  `json:"woonplaatsnaam"`
-	CentroidLL        string  `json:"centroide_ll"`
-	GeometriePolygoon string  `json:"geometrie_polygoon"`
+	ID                      string  `json:"id"`
+	NummeraanduidingID      string  `json:"nummeraanduiding_id"`
+	VerblijfsobjectID       string  `json:"verblijfsobject_id"`
+	PandID                  string  `json:"pand_id"`
+	Weergavenaam            string  `json:"weergavenaam"`
+	Straatnaam              string  `json:"straatnaam"`
+	Huisnummer              float64 `json:"huisnummer"`
+	HuisNLT                 string  `json:"huis_nlt"`
+	Huisletter              string  `json:"huisletter"`
+	Huisnummertoevoeg       string  `json:"huisnummertoevoeging"`
+	Postcode                string  `json:"postcode"`
+	WoonplaatsNaam          string  `json:"woonplaatsnaam"`
+	Gemeentenaam            string  `json:"gemeentenaam"`
+	Gemeentecode            string  `json:"gemeentecode"`
+	Provincienaam           string  `json:"provincienaam"`
+	Provinciecode           string  `json:"provinciecode"`
+	CentroidLL              string  `json:"centroide_ll"`
+	GeometriePolygoon       string  `json:"geometrie_polygoon"`
 }
 
 func (c *ApiClient) FetchBAGData(postcode, number string) (*models.BAGData, error) {
@@ -164,88 +171,139 @@ func (c *ApiClient) FetchBAGData(postcode, number string) (*models.BAGData, erro
 		geoJSON = fmt.Sprintf(`{"type":"Point","coordinates":[%f,%f]}`, coordinates[0], coordinates[1])
 	}
 
+	// Extract BAG IDs - prefer verblijfsobject_id, fallback to nummeraanduiding_id or id
+	bagID := strings.TrimSpace(doc.VerblijfsobjectID)
+	if bagID == "" {
+		bagID = strings.TrimSpace(doc.NummeraanduidingID)
+	}
+	if bagID == "" {
+		bagID = strings.TrimSpace(doc.ID)
+	}
+
+	logutil.Debugf("[BAG] Extracted BAG ID: %s (verblijfsobject: %s, nummeraanduiding: %s, pand: %s)",
+		bagID, doc.VerblijfsobjectID, doc.NummeraanduidingID, doc.PandID)
+
 	return &models.BAGData{
-		Address:     address,
-		Coordinates: coordinates,
-		GeoJSON:     geoJSON,
+		Address:            address,
+		Coordinates:        coordinates,
+		GeoJSON:            geoJSON,
+		ID:                 bagID,
+		NummeraanduidingID: strings.TrimSpace(doc.NummeraanduidingID),
+		VerblijfsobjectID:  strings.TrimSpace(doc.VerblijfsobjectID),
+		PandID:             strings.TrimSpace(doc.PandID),
+		Municipality:       strings.TrimSpace(doc.Gemeentenaam),
+		MunicipalityCode:   strings.TrimSpace(doc.Gemeentecode),
+		Province:           strings.TrimSpace(doc.Provincienaam),
+		ProvinceCode:       strings.TrimSpace(doc.Provinciecode),
 	}, nil
-}
-
-// PDOK Zoning API response structs (simplified for WMS GetFeatureInfo XML)
-type PDOKResponse struct {
-	Omschrijving string `xml:"omschrijving"`
-	Beperkingen  string `xml:"beperkingen"`
-}
-
-type WMSFeatureInfo struct {
-	Zoning       string
-	Restrictions []string
 }
 
 func (c *ApiClient) FetchPDOKData(coordinates string) (*models.PDOKData, error) {
 	logutil.Debugf("[PDOK] FetchPDOKData: coordinates=%s", coordinates)
-	// Example: coordinates = "4.8952,52.3702"
-	// Build WMS GetFeatureInfo request (Ruimtelijke Plannen)
-	// For demo, we use a static endpoint and parse a simple XML
-	// In reality, you would need to build a proper WMS request
-	url := "https://geodata.nationaalgeoregister.nl/plannen/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetFeatureInfo" +
-		"&LAYERS=bestemmingsplannen&QUERY_LAYERS=bestemmingsplannen" +
-		"&INFO_FORMAT=application/vnd.ogc.gml" +
-		"&X=1&Y=1&SRS=EPSG:4326&WIDTH=1&HEIGHT=1" +
-		"&BBOX=" + coordinates + "," + coordinates + "&FEATURE_COUNT=1"
-	logutil.Debugf("[PDOK] Request URL: %s", url)
+	
+	// Parse coordinates (expected format: "lon,lat")
+	parts := strings.Split(coordinates, ",")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("invalid coordinates format, expected 'lon,lat'")
+	}
+	
+	lon := strings.TrimSpace(parts[0])
+	lat := strings.TrimSpace(parts[1])
+	
+	// Use PDOK WFS for bestemmingsplannen (zoning plans)
+	// Documentation: https://www.nationaalgeoregister.nl/geonetwork/srv/dut/catalog.search#/metadata/c10a2c55-972f-4309-a038-0e5286934877
+	baseURL := "https://service.pdok.nl/roo/ruimtelijkeplannen/wfs/v1_0"
+	
+	// Build WFS GetFeature request with proper BBOX
+	// Using a small buffer around the point to ensure we catch the containing polygon
+	lonFloat, err := strconv.ParseFloat(lon, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid longitude '%s': %w", lon, err)
+	}
+	latFloat, err := strconv.ParseFloat(lat, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid latitude '%s': %w", lat, err)
+	}
+	buffer := 0.001 // ~100m buffer
+	
+	bbox := fmt.Sprintf("%.6f,%.6f,%.6f,%.6f", 
+		lonFloat-buffer, latFloat-buffer, lonFloat+buffer, latFloat+buffer)
+	
+	url := fmt.Sprintf("%s?service=WFS&version=2.0.0&request=GetFeature&typeName=plangebied&outputFormat=application/json&srsName=EPSG:4326&bbox=%s,EPSG:4326&count=1",
+		baseURL, bbox)
+	
+	logutil.Debugf("[PDOK] WFS Request URL: %s", url)
+	
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		logutil.Debugf("[PDOK] Request error: %v", err)
 		return nil, err
 	}
+	req.Header.Set("Accept", "application/json")
+	
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
 		logutil.Debugf("[PDOK] HTTP error: %v", err)
 		return nil, err
 	}
 	defer resp.Body.Close()
+	
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		logutil.Debugf("[PDOK] Non-200 status: %d", resp.StatusCode)
 		b, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("PDOK API returned status %d: %s", resp.StatusCode, string(b))
 	}
+	
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logutil.Debugf("[PDOK] Read body error: %v", err)
 		return nil, err
 	}
-	// Parse XML using encoding/xml for robustness
-	var pdokResp PDOKResponse
-	if err := xml.Unmarshal(body, &pdokResp); err != nil {
-		logutil.Debugf("[PDOK] XML unmarshal error: %v", err)
-		// fallback to string search if unmarshal fails (for demo)
-		xmlStr := string(body)
-		if idx := strings.Index(xmlStr, "<omschrijving>"); idx != -1 {
-			endIdx := strings.Index(xmlStr[idx:], "</omschrijving>")
-			if endIdx != -1 {
-				pdokResp.Omschrijving = strings.TrimSpace(xmlStr[idx+13 : idx+endIdx])
-				pdokResp.Omschrijving = strings.TrimPrefix(pdokResp.Omschrijving, ">")
-			}
-		}
-		if idx := strings.Index(xmlStr, "<beperkingen>"); idx != -1 {
-			endIdx := strings.Index(xmlStr[idx:], "</beperkingen>")
-			if endIdx != -1 {
-				pdokResp.Beperkingen = xmlStr[idx+13 : idx+endIdx]
-			}
-		}
+	
+	// Log first 500 chars or less of response
+	bodyPreview := string(body)
+	if len(bodyPreview) > 500 {
+		bodyPreview = bodyPreview[:500]
 	}
-	logutil.Debugf("[PDOK] Raw response: %s", string(body))
-	logutil.Debugf("[PDOK] Parsed: %+v", pdokResp)
-	zoning := pdokResp.Omschrijving
-	if zoning == "" {
-		zoning = "Unknown"
+	logutil.Debugf("[PDOK] Raw response (first 500 chars): %s", bodyPreview)
+	
+	// Parse GeoJSON response
+	var geoJSON struct {
+		Type     string `json:"type"`
+		Features []struct {
+			Type       string `json:"type"`
+			Properties struct {
+				Naam              string `json:"naam"`
+				Plantype          string `json:"plantype"`
+				PlanStatus        string `json:"planstatus"`
+				Beleidsmatigstatus string `json:"beleidsmatigstatus"`
+			} `json:"properties"`
+		} `json:"features"`
 	}
+	
+	if err := json.Unmarshal(body, &geoJSON); err != nil {
+		logutil.Debugf("[PDOK] JSON unmarshal error: %v", err)
+		return nil, fmt.Errorf("failed to parse PDOK response: %w", err)
+	}
+	
+	logutil.Debugf("[PDOK] Found %d features", len(geoJSON.Features))
+	
+	zoning := "Unknown"
 	restrictions := []string{}
-	if pdokResp.Beperkingen != "" {
-		restrictions = append(restrictions, pdokResp.Beperkingen)
+	
+	if len(geoJSON.Features) > 0 {
+		props := geoJSON.Features[0].Properties
+		zoning = props.Naam
+		if props.Plantype != "" {
+			restrictions = append(restrictions, fmt.Sprintf("Type: %s", props.Plantype))
+		}
+		if props.PlanStatus != "" {
+			restrictions = append(restrictions, fmt.Sprintf("Status: %s", props.PlanStatus))
+		}
 	}
+	
 	logutil.Debugf("[PDOK] Final data: zoning=%s, restrictions=%v", zoning, restrictions)
+	
 	return &models.PDOKData{
 		ZoningInfo:   zoning,
 		Restrictions: restrictions,
