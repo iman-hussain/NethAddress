@@ -10,6 +10,7 @@ ARG BUILD_DATE
 # Copy static files to nginx
 COPY index.html /usr/share/nginx/html/
 COPY templates /usr/share/nginx/html/templates/
+COPY static /usr/share/nginx/html/static/
 
 # Expose port 80
 EXPOSE 80
