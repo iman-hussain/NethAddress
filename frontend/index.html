@@ -1073,6 +1073,138 @@
                         </div>
                     </div>`;
 
+                case 'Noise Pollution':
+                    // API returns: totalNoise, roadNoise, railNoise, industryNoise, aircraftNoise, noiseCategory, exceedsLimit
+                    const totalNoise = data.totalNoise || 0;
+                    const noiseCategory = data.noiseCategory || 'Unknown';
+                    const noiseBadge = noiseCategory === 'Quiet' ? 'good' : noiseCategory === 'Moderate' ? 'moderate' : noiseCategory === 'Unknown' ? 'moderate' : 'poor';
+                    const noiseSources = [];
+                    if (data.roadNoise > 0) noiseSources.push(`🚗 Road: ${data.roadNoise}dB`);
+                    if (data.railNoise > 0) noiseSources.push(`🚂 Rail: ${data.railNoise}dB`);
+                    if (data.aircraftNoise > 0) noiseSources.push(`✈️ Air: ${data.aircraftNoise}dB`);
+                    if (data.industryNoise > 0) noiseSources.push(`🏭 Industry: ${data.industryNoise}dB`);
+                    
+                    return `<div class="metric-display">
+                        <div class="metric-value">${totalNoise} <span style="font-size: 1rem; font-weight: 500;">dB(A)</span></div>
+                        <div class="metric-label">Total Noise Level</div>
+                        <div style="margin-top: 0.5rem;">
+                            <span class="status-badge ${noiseBadge}">${noiseCategory}</span>
+                            ${data.exceedsLimit ? '<span class="status-badge poor" style="margin-left: 4px;">⚠️ Exceeds Limit</span>' : ''}
+                        </div>
+                        ${noiseSources.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">${noiseSources.join(' &nbsp;|&nbsp; ')}</div>` : ''}
+                    </div>`;
+
+                case 'Parking Availability':
+                    // API returns: totalSpaces, availableSpaces, occupancyRate, parkingZones[], lastUpdated
+                    const totalSpaces = data.totalSpaces || 0;
+                    const availableSpaces = data.availableSpaces || 0;
+                    const occupancyRate = data.occupancyRate || 0;
+                    const parkingZones = data.parkingZones || [];
+                    const parkingBadge = occupancyRate < 50 ? 'good' : occupancyRate < 80 ? 'moderate' : 'poor';
+                    
+                    return `<div class="metric-display">
+                        <div class="metric-value">${totalSpaces > 0 ? availableSpaces : '--'}</div>
+                        <div class="metric-label">Available Parking Spaces</div>
+                        ${totalSpaces > 0 ? `<div class="metric-secondary">
+                            🅿️ <strong>${totalSpaces}</strong> total &nbsp;|&nbsp;
+                            <span class="status-badge ${parkingBadge}">${occupancyRate.toFixed(0)}% occupied</span>
+                        </div>` : '<div class="metric-secondary">🅿️ No parking data available for this area</div>'}
+                        ${parkingZones.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            📍 <strong>${parkingZones.length}</strong> parking zones nearby
+                        </div>` : ''}
+                    </div>`;
+
+                case 'Building Permits':
+                    // API returns: totalPermits, newConstruction, renovations, permits[], growthTrend
+                    const totalPermits = data.totalPermits || 0;
+                    const newConstruction = data.newConstruction || 0;
+                    const renovations = data.renovations || 0;
+                    const growthTrend = data.growthTrend || 'Unknown';
+                    const permits = data.permits || [];
+                    const trendBadge = growthTrend === 'Increasing' ? 'good' : growthTrend === 'Stable' ? 'moderate' : growthTrend === 'Unknown' ? 'moderate' : 'poor';
+                    
+                    return `<div class="metric-display">
+                        <div class="metric-value">${totalPermits}</div>
+                        <div class="metric-label">Building Permits (2yr)</div>
+                        <div class="metric-secondary">
+                            🏗️ New: <strong>${newConstruction}</strong> &nbsp;|&nbsp;
+                            🔧 Renovations: <strong>${renovations}</strong>
+                        </div>
+                        <div class="metric-secondary" style="margin-top: 0.25rem;">
+                            📈 Trend: <span class="status-badge ${trendBadge}">${growthTrend}</span>
+                        </div>
+                    </div>`;
+
+                case 'CBS StatLine':
+                    // API returns: regionCode, regionName, population, averageIncome, employmentRate, educationLevel, housingStock, averageWOZ, year
+                    const slRegionName = data.regionName || 'Unknown';
+                    const slPopulation = data.population || 0;
+                    const slAvgIncome = data.averageIncome || 0;
+                    const slEmploymentRate = data.employmentRate || 0;
+                    const slEducationLevel = data.educationLevel || 'Unknown';
+                    const slAvgWOZ = data.averageWOZ || 0;
+                    
+                    return `<div class="metric-display">
+                        <div class="metric-value" style="font-size: 1.5rem;">€${slAvgIncome > 0 ? slAvgIncome.toLocaleString() : '--'}</div>
+                        <div class="metric-label">Avg Household Income</div>
+                        <div class="metric-secondary">
+                            👥 Population: <strong>${slPopulation.toLocaleString()}</strong>
+                            ${slEmploymentRate > 0 ? ` &nbsp;|&nbsp; 💼 Employment: <strong>${slEmploymentRate.toFixed(1)}%</strong>` : ''}
+                        </div>
+                        ${slAvgWOZ > 0 || slEducationLevel !== 'Unknown' ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            ${slAvgWOZ > 0 ? `💰 Avg WOZ: <strong>€${slAvgWOZ.toLocaleString()}</strong>` : ''}
+                            ${slEducationLevel !== 'Unknown' ? ` &nbsp;|&nbsp; 🎓 Education: <strong>${slEducationLevel}</strong>` : ''}
+                        </div>` : ''}
+                    </div>`;
+
+                case 'Altum Energy & Climate':
+                    // API returns: energyLabel, climateRisk, efficiencyScore, annualEnergyCost, co2Emissions, heatLoss
+                    const energyLabel = data.energyLabel || 'Unknown';
+                    const climateRisk = data.climateRisk || 'Unknown';
+                    const efficiencyScore = data.efficiencyScore || 0;
+                    const annualEnergyCost = data.annualEnergyCost || 0;
+                    const co2Emissions = data.co2Emissions || 0;
+                    const labelClass = ['A++++', 'A+++', 'A++', 'A+', 'A', 'B'].includes(energyLabel) ? 'good' : ['C', 'D'].includes(energyLabel) ? 'moderate' : 'poor';
+                    const riskClass = climateRisk === 'Low' ? 'good' : climateRisk === 'Medium' ? 'moderate' : climateRisk === 'Unknown' ? 'moderate' : 'poor';
+                    
+                    return `<div class="metric-display">
+                        <div style="margin-bottom: 0.5rem;">
+                            <span class="status-badge ${labelClass}" style="font-size: 1.1rem; padding: 8px 16px;">⚡ ${energyLabel}</span>
+                        </div>
+                        <div class="metric-label">Energy Label</div>
+                        <div class="metric-secondary" style="margin-top: 0.5rem;">
+                            🌡️ Climate Risk: <span class="status-badge ${riskClass}">${climateRisk}</span>
+                        </div>
+                        ${annualEnergyCost > 0 || co2Emissions > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            ${annualEnergyCost > 0 ? `💶 €${annualEnergyCost.toLocaleString()}/yr` : ''}
+                            ${co2Emissions > 0 ? ` &nbsp;|&nbsp; 🌍 ${co2Emissions.toLocaleString()} kg CO₂/yr` : ''}
+                        </div>` : ''}
+                    </div>`;
+
+                case 'Altum Sustainability':
+                    // API returns: currentRating, potentialRating, recommendedMeasures[], totalCO2Savings, totalCostSavings, investmentCost, paybackPeriod
+                    const currentRating = data.currentRating || 'Unknown';
+                    const potentialRating = data.potentialRating || 'Unknown';
+                    const measures = data.recommendedMeasures || [];
+                    const totalCO2Savings = data.totalCO2Savings || 0;
+                    const totalCostSavings = data.totalCostSavings || 0;
+                    const paybackPeriod = data.paybackPeriod || 0;
+                    
+                    return `<div class="metric-display">
+                        <div class="metric-value" style="font-size: 1.25rem;">${currentRating} → ${potentialRating}</div>
+                        <div class="metric-label">Sustainability Potential</div>
+                        ${totalCostSavings > 0 || totalCO2Savings > 0 ? `<div class="metric-secondary">
+                            ${totalCostSavings > 0 ? `💰 Save <strong>€${totalCostSavings.toLocaleString()}</strong>/yr` : ''}
+                            ${totalCO2Savings > 0 ? ` &nbsp;|&nbsp; 🌱 <strong>${totalCO2Savings.toLocaleString()}</strong> kg CO₂` : ''}
+                        </div>` : ''}
+                        ${paybackPeriod > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            ⏱️ Payback: <strong>${paybackPeriod.toFixed(1)}</strong> years
+                        </div>` : ''}
+                        ${measures.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            📋 <strong>${measures.length}</strong> recommended measures
+                        </div>` : ''}
+                    </div>`;
+
                 case 'Flood Risk':
                     const riskLevel = data.riskLevel || 'Unknown';
                     const floodBadgeClass = riskLevel === 'Low' ? 'good' : riskLevel === 'Medium' ? 'moderate' : 'poor';
