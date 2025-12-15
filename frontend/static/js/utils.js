@@ -43,7 +43,9 @@ export function formatUnknownData(apiName, data) {
         const count = data.length;
         const sampleItems = data.slice(0, 3).map(item => {
             if (typeof item === 'string') return item;
-            if (typeof item === 'object') return item.name || item.naam || item.title || item.type || JSON.stringify(item).substring(0, 30);
+            if (typeof item === 'object' && item !== null) {
+                return item.name || item.naam || item.title || item.type || '[Object]';
+            }
             return String(item);
         });
 

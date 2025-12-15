@@ -41,7 +41,7 @@ import {
     renderStratopoEnvironment
 } from './sustainability.js';
 import {
-    renderCBSPopulation,
+    createCBSPopulationRenderer,
     renderCBSStatLine,
     renderSafetyExperience
 } from './demographics.js';
@@ -50,53 +50,64 @@ import {
  * API Name to Renderer Function Mapping
  * Maps API names to their corresponding renderer functions
  */
-export const rendererRegistry = {
-    // Weather & Solar
-    'KNMI Weather': renderKNMIWeather,
-    'KNMI Solar': renderKNMISolar,
+let rendererRegistry = {};
 
-    // Environment & Natural Conditions
-    'Luchtmeetnet Air Quality': renderAirQuality,
-    'Noise Pollution': renderNoisePollution,
-    'Flood Risk': renderFloodRisk,
-    'WUR Soil Physicals': renderSoilPhysicals,
-    'BRO Soil Map': renderBROSoilMap,
-    'Soil Quality': renderSoilQuality,
-    'Digital Delta Water Quality': renderWaterQuality,
-    'AHN Height Model': renderHeightModel,
-    'Schiphol Flight Noise': renderSchipholFlightNoise,
-    'SkyGeo Subsidence': renderSubsidence,
+/**
+ * Initialize the renderer registry
+ * @param {Function} getCurrentResponse - Function to get current response data
+ */
+export function initializeRegistry(getCurrentResponse) {
+    // Create CBS Population renderer with access to current response
+    const renderCBSPopulation = createCBSPopulationRenderer(getCurrentResponse);
+    
+    rendererRegistry = {
+        // Weather & Solar
+        'KNMI Weather': renderKNMIWeather,
+        'KNMI Solar': renderKNMISolar,
 
-    // Property & Real Estate
-    'BAG Address': renderBAGAddress,
-    'Altum WOZ': renderWOZ,
-    'Kadaster Object Info': renderKadasterObject,
-    'Matrixian Property Value+': renderMatrixianValue,
-    'Altum Transactions': renderTransactions,
-    'Land Use & Zoning': renderLandUseZoning,
-    'PDOK Platform': renderPDOKPlatform,
-    'Monument Status': renderMonumentStatus,
-    'Building Permits': renderBuildingPermits,
+        // Environment & Natural Conditions
+        'Luchtmeetnet Air Quality': renderAirQuality,
+        'Noise Pollution': renderNoisePollution,
+        'Flood Risk': renderFloodRisk,
+        'WUR Soil Physicals': renderSoilPhysicals,
+        'BRO Soil Map': renderBROSoilMap,
+        'Soil Quality': renderSoilQuality,
+        'Digital Delta Water Quality': renderWaterQuality,
+        'AHN Height Model': renderHeightModel,
+        'Schiphol Flight Noise': renderSchipholFlightNoise,
+        'SkyGeo Subsidence': renderSubsidence,
 
-    // Infrastructure & Amenities
-    'openOV Public Transport': renderPublicTransport,
-    'Parking Availability': renderParkingAvailability,
-    'NDW Traffic': renderTraffic,
-    'Facilities & Amenities': renderFacilitiesAmenities,
-    'Education Facilities': renderEducationFacilities,
-    'Green Spaces': renderGreenSpaces,
+        // Property & Real Estate
+        'BAG Address': renderBAGAddress,
+        'Altum WOZ': renderWOZ,
+        'Kadaster Object Info': renderKadasterObject,
+        'Matrixian Property Value+': renderMatrixianValue,
+        'Altum Transactions': renderTransactions,
+        'Land Use & Zoning': renderLandUseZoning,
+        'PDOK Platform': renderPDOKPlatform,
+        'Monument Status': renderMonumentStatus,
+        'Building Permits': renderBuildingPermits,
 
-    // Sustainability & Energy
-    'Altum Energy & Climate': renderEnergyClimate,
-    'Altum Sustainability': renderSustainability,
-    'Stratopo Environment': renderStratopoEnvironment,
+        // Infrastructure & Amenities
+        'openOV Public Transport': renderPublicTransport,
+        'Parking Availability': renderParkingAvailability,
+        'NDW Traffic': renderTraffic,
+        'Facilities & Amenities': renderFacilitiesAmenities,
+        'Education Facilities': renderEducationFacilities,
+        'Green Spaces': renderGreenSpaces,
 
-    // Demographics & Society
-    'CBS Population': renderCBSPopulation,
-    'CBS Square Statistics': renderCBSPopulation, // Uses same renderer
-    'CBS StatLine': renderCBSStatLine,
-    'CBS Safety Experience': renderSafetyExperience
-};
+        // Sustainability & Energy
+        'Altum Energy & Climate': renderEnergyClimate,
+        'Altum Sustainability': renderSustainability,
+        'Stratopo Environment': renderStratopoEnvironment,
+
+        // Demographics & Society
+        'CBS Population': renderCBSPopulation,
+        'CBS Square Statistics': renderCBSPopulation, // Uses same renderer
+        'CBS StatLine': renderCBSStatLine,
+        'CBS Safety Experience': renderSafetyExperience
+    };
+}
 
 /**
  * Get renderer function for a given API name

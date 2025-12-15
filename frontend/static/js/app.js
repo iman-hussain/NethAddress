@@ -3,7 +3,7 @@
  * Handles MapLibre initialization, HTMX integration, and API result rendering
  */
 
-import { getRenderer } from './renderers/index.js';
+import { getRenderer, initializeRegistry } from './renderers/index.js';
 import { formatUnknownData } from './utils.js';
 
 // Application state
@@ -71,6 +71,9 @@ async function fetchBuildInfo() {
 
 // Initialize application on DOM load
 document.addEventListener('DOMContentLoaded', function () {
+    // Initialize the renderer registry with access to currentResponse
+    initializeRegistry(() => currentResponse);
+    
     // Define apiHost based on hostname
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         apiHost = 'http://localhost:8080';
@@ -315,11 +318,8 @@ function formatApiData(apiName, data) {
     const renderer = getRenderer(apiName);
     
     if (renderer) {
-        // Special handling for CBS Population which needs currentResponse
-        if (apiName === 'CBS Population' || apiName === 'CBS Square Statistics') {
-            return renderer(data, apiName, currentResponse);
-        }
-        return renderer(data);
+        // All renderers now have consistent signatures
+        return renderer(data, apiName);
     }
 
     // Fallback to smart extraction for unknown APIs
