@@ -213,27 +213,27 @@ func (h *SearchHandler) buildAPIResults(data *aggregator.ComprehensivePropertyDa
 
 	// Property & Land Data
 	if data.KadasterInfo != nil {
-		addResult("Kadaster Object Info", "success", "", "freemium", data.KadasterInfo)
+		addResult("Kadaster Object Info", "success", "", "premium", data.KadasterInfo)
 	} else {
-		addResult("Kadaster Object Info", "not_configured", "API key not configured", "freemium", nil)
+		addResult("Kadaster Object Info", "not_configured", "API key not configured", "premium", nil)
 	}
 
 	if data.WOZData != nil {
-		addResult("Altum WOZ", "success", "", "freemium", data.WOZData)
+		addResult("Altum WOZ", "success", "", "premium", data.WOZData)
 	} else {
-		addResult("Altum WOZ", "not_configured", "API key not configured", "freemium", nil)
+		addResult("Altum WOZ", "not_configured", "API key not configured", "premium", nil)
 	}
 
 	if data.MarketValuation != nil {
-		addResult("Matrixian Property Value+", "success", "", "freemium", data.MarketValuation)
+		addResult("Matrixian Property Value+", "success", "", "premium", data.MarketValuation)
 	} else {
-		addResult("Matrixian Property Value+", "not_configured", "API key not configured", "freemium", nil)
+		addResult("Matrixian Property Value+", "not_configured", "API key not configured", "premium", nil)
 	}
 
 	if data.TransactionHistory != nil {
-		addResult("Altum Transactions", "success", "", "freemium", data.TransactionHistory)
+		addResult("Altum Transactions", "success", "", "premium", data.TransactionHistory)
 	} else {
-		addResult("Altum Transactions", "not_configured", "API key not configured", "freemium", nil)
+		addResult("Altum Transactions", "not_configured", "API key not configured", "premium", nil)
 	}
 
 	// Weather & Climate - FREE
@@ -283,9 +283,9 @@ func (h *SearchHandler) buildAPIResults(data *aggregator.ComprehensivePropertyDa
 	}
 
 	if data.Subsidence != nil {
-		addResult("SkyGeo Subsidence", "success", "", "freemium", data.Subsidence)
+		addResult("SkyGeo Subsidence", "success", "", "premium", data.Subsidence)
 	} else {
-		addResult("SkyGeo Subsidence", "not_configured", "API key not configured", "freemium", nil)
+		addResult("SkyGeo Subsidence", "not_configured", "API key not configured", "premium", nil)
 	}
 
 	if data.SoilQuality != nil {
@@ -302,15 +302,15 @@ func (h *SearchHandler) buildAPIResults(data *aggregator.ComprehensivePropertyDa
 
 	// Energy & Sustainability
 	if data.EnergyClimate != nil {
-		addResult("Altum Energy & Climate", "success", "", "freemium", data.EnergyClimate)
+		addResult("Altum Energy & Climate", "success", "", "premium", data.EnergyClimate)
 	} else {
-		addResult("Altum Energy & Climate", "not_configured", "API key not configured", "freemium", nil)
+		addResult("Altum Energy & Climate", "not_configured", "API key not configured", "premium", nil)
 	}
 
 	if data.Sustainability != nil {
-		addResult("Altum Sustainability", "success", "", "freemium", data.Sustainability)
+		addResult("Altum Sustainability", "success", "", "premium", data.Sustainability)
 	} else {
-		addResult("Altum Sustainability", "not_configured", "API key not configured", "freemium", nil)
+		addResult("Altum Sustainability", "not_configured", "API key not configured", "premium", nil)
 	}
 
 	// Traffic & Mobility
@@ -352,9 +352,9 @@ func (h *SearchHandler) buildAPIResults(data *aggregator.ComprehensivePropertyDa
 	}
 
 	if data.SchipholFlights != nil {
-		addResult("Schiphol Flight Noise", "success", "", "freemium", data.SchipholFlights)
+		addResult("Schiphol Flight Noise", "success", "", "premium", data.SchipholFlights)
 	} else {
-		addResult("Schiphol Flight Noise", "not_configured", "API key not configured", "freemium", nil)
+		addResult("Schiphol Flight Noise", "not_configured", "API key not configured", "premium", nil)
 	}
 
 	// Infrastructure & Facilities - FREE
@@ -403,9 +403,9 @@ func (h *SearchHandler) buildAPIResults(data *aggregator.ComprehensivePropertyDa
 	}
 
 	if data.StratopoEnvironment != nil {
-		addResult("Stratopo Environment", "success", "", "freemium", data.StratopoEnvironment)
+		addResult("Stratopo Environment", "success", "", "premium", data.StratopoEnvironment)
 	} else {
-		addResult("Stratopo Environment", "not_configured", "API key not configured", "freemium", nil)
+		addResult("Stratopo Environment", "not_configured", "API key not configured", "premium", nil)
 	}
 
 	if data.LandUse != nil {
