@@ -871,7 +871,7 @@
                 const diffMins = Math.floor(diffMs / 60000);
                 const diffHours = Math.floor(diffMs / 3600000);
                 const diffDays = Math.floor(diffMs / 86400000);
-                
+
                 if (diffMins < 1) return 'just now';
                 if (diffMins < 60) return `${diffMins}m ago`;
                 if (diffHours < 24) return `${diffHours}h ago`;
@@ -930,13 +930,13 @@
                     const aqiTs = formatTimestamp(data.lastUpdated);
                     const stationName = data.stationName || '';
                     const measurements = data.measurements || [];
-                    
+
                     // Get key pollutants
                     const pm25 = measurements.find(m => m.parameter === 'PM25' || m.parameter === 'pm25');
                     const pm10 = measurements.find(m => m.parameter === 'PM10' || m.parameter === 'pm10');
                     const no2 = measurements.find(m => m.parameter === 'NO2' || m.parameter === 'no2');
                     const o3 = measurements.find(m => m.parameter === 'O3' || m.parameter === 'o3');
-                    
+
                     return `<div class="metric-display">
                         <div class="metric-value">${aqi}</div>
                         <div class="metric-label">Air Quality Index${aqiTs ? ` <span class="timestamp">(${aqiTs})</span>` : ''}</div>
@@ -959,14 +959,22 @@
                     const avgHouseholdSize = data.averageHouseholdSize || 0;
                     const ageDist = data.ageDistribution || data.demographics || {};
                     const demog = data.demographics || {};
-                    
-                    // Calculate density per km² if we have area info (assume ~1km² neighbourhood)
-                    const density = pop > 0 ? Math.round(pop) : 0;
+                    const popNeighbourhood = data.neighbourhoodName || '';
+                    const popMunicipality = data.municipalityName || '';
+                    const popDensity = data.populationDensity || 0;
+
+                    // Build location string
+                    const popLocationStr = popNeighbourhood && popMunicipality
+                        ? `${popNeighbourhood}, ${popMunicipality}`
+                        : popNeighbourhood || popMunicipality || '';
 
                     return `<div class="metric-display">
                         <div class="metric-value">${pop.toLocaleString()}</div>
-                        <div class="metric-label">Residents in Neighbourhood</div>
-                        <div class="metric-secondary">
+                        <div class="metric-label">Residents ${popNeighbourhood ? `in ${popNeighbourhood}` : 'in Neighbourhood'}</div>
+                        ${popLocationStr ? `<div class="metric-secondary">
+                            📍 <strong>${popLocationStr}</strong> (CBS Buurt)
+                        </div>` : ''}
+                        <div class="metric-secondary"${popLocationStr ? ' style="margin-top: 0.25rem;"' : ''}>
                             🏠 <strong>${households.toLocaleString()}</strong> households
                             ${avgHouseholdSize ? ` &nbsp;|&nbsp; 👥 <strong>${avgHouseholdSize.toFixed(1)}</strong> avg/hh` : ''}
                         </div>
@@ -976,31 +984,47 @@
                             👴 65+: <strong>${ageDist['65+'] || demog.age65plus || 0}</strong>
                         </div>` : ''}
                         <div class="metric-secondary" style="margin-top: 0.25rem;">
-                            📊 Density: <strong>~${density.toLocaleString()}</strong>/km²
+                            📊 Density: <strong>${popDensity > 0 ? popDensity.toLocaleString() : '~' + pop.toLocaleString()}</strong> per km²
+                        </div>
+                        <div class="metric-secondary timestamp" style="margin-top: 0.25rem; font-size: 0.7rem;">
+                            ℹ️ CBS 'Buurt' = neighbourhood statistical area (variable size, not fixed grid)
                         </div>
                     </div>`;
 
                 case 'CBS Square Statistics':
-                    // API returns: gridId, population, households, averageWOZ, averageIncome, housingDensity
+                    // API returns: gridId, population, households, averageWOZ, averageIncome, housingDensity, neighbourhoodName, municipalityName
                     const sqPop = data.population || 0;
                     const sqHouseholds = data.households || 0;
                     const sqDensity = data.housingDensity || 0;
                     const sqWOZ = data.averageWOZ || 0;
                     const sqIncome = data.averageIncome || 0;
                     const sqGridId = data.gridId || '';
+                    const sqNeighbourhood = data.neighbourhoodName || '';
+                    const sqMunicipality = data.municipalityName || '';
+
+                    // Build location string
+                    const sqLocationStr = sqNeighbourhood && sqMunicipality
+                        ? `${sqNeighbourhood}, ${sqMunicipality}`
+                        : sqNeighbourhood || sqMunicipality || '';
 
                     return `<div class="metric-display">
                         <div class="metric-value">${sqPop.toLocaleString()}</div>
-                        <div class="metric-label">Population (100m Grid)</div>
-                        <div class="metric-secondary">
+                        <div class="metric-label">Population ${sqNeighbourhood ? `in ${sqNeighbourhood}` : 'in Area'}</div>
+                        ${sqLocationStr ? `<div class="metric-secondary">
+                            📍 <strong>${sqLocationStr}</strong> (CBS Buurt)
+                        </div>` : ''}
+                        <div class="metric-secondary"${sqLocationStr ? ' style="margin-top: 0.25rem;"' : ''}>
                             🏠 <strong>${sqHouseholds.toLocaleString()}</strong> households &nbsp;|&nbsp;
-                            📊 <strong>${sqDensity.toLocaleString()}</strong>/km²
+                            📊 <strong>${sqDensity.toLocaleString()}</strong> per km²
                         </div>
                         ${sqWOZ > 0 || sqIncome > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
                             ${sqWOZ > 0 ? `💰 WOZ: <strong>€${sqWOZ.toLocaleString()}</strong>` : ''}
                             ${sqIncome > 0 ? ` &nbsp;|&nbsp; 💵 Income: <strong>€${sqIncome.toLocaleString()}</strong>` : ''}
                         </div>` : ''}
-                        ${sqGridId ? `<div class="metric-secondary" style="margin-top: 0.25rem; font-size: 0.75rem; opacity: 0.7;">Grid: ${sqGridId}</div>` : ''}
+                        <div class="metric-secondary timestamp" style="margin-top: 0.25rem; font-size: 0.7rem;">
+                            ℹ️ CBS 'Buurt' = neighbourhood statistical area (variable size, not fixed grid)
+                        </div>
+                        ${sqGridId ? `<div class="metric-secondary" style="font-size: 0.7rem; opacity: 0.6;">Grid ref: ${sqGridId}</div>` : ''}
                     </div>`;
 
                 case 'Green Spaces':
@@ -1013,7 +1037,7 @@
                     const greenTypes = [...new Set(greenSpacesArr.map(s => s.type).filter(t => t))];
                     const nearestPark = data.nearestPark || '';
                     const parkDist = data.parkDistance || 0;
-                    
+
                     // Calculate green score
                     const greenScore = Math.min(100, Math.round(greenPct * 10 + treeCanopy * 10));
 
@@ -1098,7 +1122,7 @@
                     const tramStops = nearestStops.filter(s => s.type === 'Tram' || s.type === 'tram');
                     const metroStops = nearestStops.filter(s => s.type === 'Metro' || s.type === 'metro');
                     const busStops = nearestStops.filter(s => s.type === 'Bus' || s.type === 'bus');
-                    
+
                     // Calculate transit score
                     const transitScore = Math.min(100, trainStops.length * 20 + metroStops.length * 15 + tramStops.length * 10 + busStops.length * 5);
                     const transitClass = transitScore >= 60 ? 'good' : transitScore >= 30 ? 'moderate' : 'poor';
@@ -1151,7 +1175,7 @@
                     if (data.railNoise > 0) noiseSources.push({ type: '🚂 Rail', value: data.railNoise });
                     if (data.aircraftNoise > 0) noiseSources.push({ type: '✈️ Air', value: data.aircraftNoise });
                     if (data.industryNoise > 0) noiseSources.push({ type: '🏭 Industry', value: data.industryNoise });
-                    
+
                     // Calculate health impact indicator
                     const healthImpact = totalNoise > 65 ? 'High risk' : totalNoise > 55 ? 'Moderate risk' : 'Low risk';
                     const healthClass = totalNoise > 65 ? 'poor' : totalNoise > 55 ? 'moderate' : 'good';
@@ -1179,7 +1203,7 @@
                     const parkingZones = data.parkingZones || [];
                     const parkingBadge = occupancyRate < 50 ? 'good' : occupancyRate < 80 ? 'moderate' : 'poor';
                     const parkingTs = formatTimestamp(data.lastUpdated);
-                    
+
                     // Get zone types
                     const zoneTypes = [...new Set(parkingZones.map(z => z.type).filter(t => t))];
 
@@ -1207,11 +1231,11 @@
                     const growthTrend = data.growthTrend || 'Unknown';
                     const permits = data.permits || [];
                     const trendBadge = growthTrend === 'Increasing' ? 'good' : growthTrend === 'Stable' ? 'moderate' : growthTrend === 'Unknown' ? 'moderate' : 'poor';
-                    
+
                     // Recent permit details
                     const recentPermit = permits[0];
                     const permitTypes = [...new Set(permits.map(p => p.type).filter(t => t))];
-                    
+
                     // Development activity indicator
                     const activityLevel = totalPermits > 10 ? 'High' : totalPermits > 3 ? 'Moderate' : 'Low';
 
@@ -1245,7 +1269,7 @@
                     const slAvgWOZ = data.averageWOZ || 0;
                     const slHousingStock = data.housingStock || 0;
                     const slYear = data.year || 2024;
-                    
+
                     // Employment indicator
                     const empClass = slEmploymentRate >= 70 ? 'good' : slEmploymentRate >= 50 ? 'moderate' : 'poor';
 
@@ -1277,7 +1301,7 @@
                     const heatLoss = data.heatLoss || 0;
                     const labelClass = ['A++++', 'A+++', 'A++', 'A+', 'A', 'B'].includes(energyLabel) ? 'good' : ['C', 'D'].includes(energyLabel) ? 'moderate' : 'poor';
                     const riskClass = climateRisk === 'Low' ? 'good' : climateRisk === 'Medium' ? 'moderate' : climateRisk === 'Unknown' ? 'moderate' : 'poor';
-                    
+
                     // Monthly cost estimate
                     const monthlyCost = annualEnergyCost > 0 ? Math.round(annualEnergyCost / 12) : 0;
 
@@ -1308,10 +1332,10 @@
                     const totalCostSavings = data.totalCostSavings || 0;
                     const investmentCost = data.investmentCost || 0;
                     const paybackPeriod = data.paybackPeriod || 0;
-                    
+
                     // Rating improvement class
                     const improvable = currentRating !== potentialRating && potentialRating !== 'Unknown';
-                    
+
                     // ROI calculation
                     const roi = investmentCost > 0 && totalCostSavings > 0 ? ((totalCostSavings / investmentCost) * 100).toFixed(0) : 0;
 
@@ -1339,7 +1363,7 @@
                     const returnPeriod = data.returnPeriod || 0;
                     const maxDepth = data.maxDepth || 0;
                     const protectionLevel = data.protectionLevel || '';
-                    
+
                     return `<div class="metric-display">
                         <div style="margin-bottom: 0.5rem;">
                             <span class="status-badge ${floodBadgeClass}" style="font-size: 0.9rem; padding: 6px 14px;">🌊 ${riskLevel} Risk</span>
@@ -1365,7 +1389,7 @@
                     const measurementPoints = trafficData.length;
                     const congestionLevel = avgSpeed < 30 ? 'High' : avgSpeed < 50 ? 'Moderate' : 'Low';
                     const congestionClass = avgSpeed < 30 ? 'poor' : avgSpeed < 50 ? 'moderate' : 'good';
-                    
+
                     return `<div class="metric-display">
                         <div class="metric-value">${avgSpeed > 0 ? avgSpeed.toFixed(0) : '--'} <span style="font-size: 1rem; font-weight: 500;">km/h</span></div>
                         <div class="metric-label">Average Traffic Speed</div>
@@ -1384,11 +1408,11 @@
                     const organicMatter = data.organicMatter || 0;
                     const waterRetention = data.waterRetention || 0;
                     const drainage = data.drainage || 'Unknown';
-                    
+
                     // Soil quality indicator
                     const soilQualityScore = organicMatter > 5 ? 'Good' : organicMatter > 2 ? 'Moderate' : 'Poor';
                     const soilQualityClass = organicMatter > 5 ? 'good' : organicMatter > 2 ? 'moderate' : 'poor';
-                    
+
                     return `<div class="metric-display">
                         <div class="metric-value" style="font-size: 1.25rem;">${soilType}</div>
                         <div class="metric-label">Soil Type Classification</div>
@@ -1410,7 +1434,7 @@
                     const broCode = data.soilCode || '';
                     const broDepth = data.depth || 0;
                     const broGroundwater = data.groundwaterClass || '';
-                    
+
                     return `<div class="metric-display">
                         <div class="metric-value" style="font-size: 1.1rem;">${broSoilType}</div>
                         <div class="metric-label">BRO Soil Classification</div>
@@ -1430,10 +1454,10 @@
                     const measurementPeriod = data.measurementPeriod || '';
                     const confidence = data.confidence || 0;
                     const totalSubsidence = data.totalSubsidence || 0;
-                    
+
                     // Calculate impact
                     const structuralRisk = subsidenceRate > 5 ? 'Foundation monitoring recommended' : subsidenceRate > 2 ? 'Monitor periodically' : 'No action needed';
-                    
+
                     return `<div class="metric-display">
                         <div class="metric-value">${subsidenceRate.toFixed(1)} <span style="font-size: 1rem; font-weight: 500;">mm/yr</span></div>
                         <div class="metric-label">Ground Subsidence Rate</div>
@@ -1457,7 +1481,7 @@
                     const monumentDescription = data.description || '';
                     const registrationDate = data.registrationDate || '';
                     const monumentNumber = data.monumentNumber || '';
-                    
+
                     return `<div class="metric-display">
                         <div style="margin-bottom: 0.5rem;">
                             <span class="status-badge ${hasStatus ? 'moderate' : 'good'}">${data.status || 'Not Protected'}</span>
@@ -1483,7 +1507,7 @@
                     const bagProvince = data.province || '';
                     const bagId = data.id || data.verblijfsobjectId || '';
                     const pandId = data.pandId || '';
-                    
+
                     return `<div class="metric-display">
                         <div class="metric-value" style="font-size: 1rem; font-weight: 600;">${bagAddress}</div>
                         <div class="metric-label">Official BAG Registration</div>
@@ -1503,7 +1527,7 @@
                     const pdokRestrictions = data.restrictions || [];
                     const pdokPlanType = data.planType || '';
                     const pdokPlanStatus = data.planStatus || '';
-                    
+
                     return `<div class="metric-display">
                         <div class="metric-value" style="font-size: 1rem;">${pdokZoning}</div>
                         <div class="metric-label">Zoning Information</div>
@@ -1523,7 +1547,7 @@
                     const allowedUses = data.allowedUses || [];
                     const maxHeight = data.maxBuildingHeight || 0;
                     const maxCoverage = data.maxCoverage || 0;
-                    
+
                     return `<div class="metric-display">
                         <div class="metric-value" style="font-size: 1.1rem;">${primaryUse}</div>
                         <div class="metric-label">Land Use Classification</div>
@@ -1567,7 +1591,7 @@
                     const txCount = data.totalCount || transactions.length;
                     const latestTx = transactions[0];
                     const oldestTx = transactions[transactions.length - 1];
-                    
+
                     // Price appreciation calculation
                     let appreciation = 0;
                     if (transactions.length >= 2 && latestTx?.purchasePrice > 0 && oldestTx?.purchasePrice > 0) {
@@ -1638,7 +1662,7 @@
                     const valuationDate = data.valuationDate || '';
                     const confidenceClass = marketConfidence >= 80 ? 'good' : marketConfidence >= 60 ? 'moderate' : 'poor';
                     const features = data.features || {};
-                    
+
                     // Value range based on confidence
                     const valueLow = marketValue > 0 ? Math.round(marketValue * (1 - (100 - marketConfidence) / 200)) : 0;
                     const valueHigh = marketValue > 0 ? Math.round(marketValue * (1 + (100 - marketConfidence) / 200)) : 0;
