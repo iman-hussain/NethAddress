@@ -1644,9 +1644,9 @@
                 return sectionHtml;
             };
 
-            html += renderSection('Free APIs', '🌐', grouped.free);
-            html += renderSection('Freemium APIs', '🔑', grouped.freemium);
-            html += renderSection('Premium APIs', '💰', grouped.premium);
+            html += renderSection('Free', '🌐', grouped.free);
+            html += renderSection('Freemium', '🔑', grouped.freemium);
+            html += renderSection('Premium', '💰', grouped.premium);
 
             targetContainer.innerHTML = html;
             if (filtered.length > 0) {
