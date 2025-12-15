@@ -782,14 +782,9 @@ type openElevationResponse struct {
 // FetchAHNHeightData retrieves elevation data using Open-Elevation API
 // Documentation: https://open-elevation.com
 func (c *ApiClient) FetchAHNHeightData(cfg *config.Config, lat, lon float64) (*AHNHeightData, error) {
-	// Use Open-Elevation API (free, no auth required)
-	// Note: For production, consider self-hosting or using PDOK AHN WCS
+	// Always use Open-Elevation API (free, no auth required)
+	// Ignore config override which may have wrong WFS URLs
 	openElevationURL := "https://api.open-elevation.com/api/v1/lookup"
-
-	// Allow config override for testing
-	if cfg != nil && cfg.AHNHeightModelApiURL != "" {
-		openElevationURL = cfg.AHNHeightModelApiURL
-	}
 
 	// Query elevation for the point and surrounding points
 	url := fmt.Sprintf("%s?locations=%.6f,%.6f", openElevationURL, lat, lon)

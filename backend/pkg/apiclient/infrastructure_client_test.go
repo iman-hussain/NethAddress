@@ -144,22 +144,22 @@ func TestFetchFacilitiesData(t *testing.T) {
 }
 
 func TestFetchAHNHeightData(t *testing.T) {
-	// Test with open-elevation.com API response format
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		// open-elevation returns results array with elevation
-		w.Write([]byte(`{
+	// Use transport mocking since the code now uses hardcoded URLs
+	mockTransport := roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		responseBody := `{
 			"results": [
 				{"latitude": 52.0907, "longitude": 5.1214, "elevation": 3.5}
 			]
-		}`))
-	}))
-	defer server.Close()
+		}`
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     make(http.Header),
+			Body:       io.NopCloser(strings.NewReader(responseBody)),
+		}, nil
+	})
 
-	cfg := &config.Config{
-		AHNHeightModelApiURL: server.URL,
-	}
-	client := NewApiClient(server.Client())
+	cfg := &config.Config{}
+	client := NewApiClient(&http.Client{Transport: mockTransport})
 
 	data, err := client.FetchAHNHeightData(cfg, 52.0907, 5.1214)
 	if err != nil {
