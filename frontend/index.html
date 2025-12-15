@@ -17,9 +17,8 @@
     <script src="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
     <style>
         /*
-         * AddressIQ Design System v2
-         * Mature, minimalist, data-dense
-         * Professional slate palette with warm accents
+         * AddressIQ Design System v3
+         * Mature, minimalist, data-dense with larger typography
          */
         :root {
             /* Primary - sophisticated teal accent */
@@ -28,16 +27,16 @@
             --primary-light: #14b8a6;
 
             /* Neutral palette - warm slate tones */
-            --bg-page: #fafafa;
+            --bg-page: #f8f9fa;
             --bg-card: #ffffff;
-            --bg-card-alt: #f5f5f5;
-            --bg-dark: #18181b;
+            --bg-card-alt: #f3f4f6;
+            --bg-dark: #1f2937;
             --bg-section: #f9fafb;
 
             /* Text - crisp, high contrast */
-            --text-primary: #18181b;
-            --text-secondary: #3f3f46;
-            --text-muted: #71717a;
+            --text-primary: #111827;
+            --text-secondary: #374151;
+            --text-muted: #6b7280;
             --text-on-primary: #ffffff;
 
             /* Status - muted but clear */
@@ -51,16 +50,16 @@
             --info-bg: #ecfeff;
 
             /* Borders - subtle */
-            --border: #e4e4e7;
-            --border-strong: #d4d4d8;
+            --border: #e5e7eb;
+            --border-strong: #d1d5db;
             --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
             --shadow-md: 0 2px 8px rgba(0,0,0,0.06);
             --shadow-lg: 0 4px 16px rgba(0,0,0,0.08);
 
             /* Spacing */
             --radius-sm: 6px;
-            --radius-md: 8px;
-            --radius-lg: 12px;
+            --radius-md: 10px;
+            --radius-lg: 14px;
         }
 
         /* Base */
@@ -72,7 +71,7 @@
             padding: 0;
             overflow: hidden;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-            font-size: 15px;
+            font-size: 16px;
             line-height: 1.5;
             color: var(--text-primary);
             background: var(--bg-page);
@@ -97,11 +96,11 @@
             background: var(--bg-dark);
             box-shadow: none;
             padding: 0;
-            min-height: 48px;
+            min-height: 52px;
         }
         .navbar-brand .navbar-item {
             font-weight: 700;
-            font-size: 1.125rem;
+            font-size: 1.25rem;
             letter-spacing: -0.3px;
             color: white !important;
             gap: 0.5rem;
@@ -111,7 +110,7 @@
             background: transparent !important;
         }
         .logo-icon {
-            font-size: 1.25rem;
+            font-size: 1.375rem;
         }
         .navbar-end .tag {
             background: rgba(255,255,255,0.08);
@@ -137,7 +136,7 @@
             position: absolute;
             top: 0;
             left: 0;
-            width: 54%;
+            width: 56%;
             height: 100%;
             pointer-events: none;
             z-index: 20;
@@ -145,12 +144,12 @@
         .sidebar-content {
             height: 100%;
             overflow-y: auto;
-            padding: 1rem 1.25rem 1.5rem;
+            padding: 1rem 1.5rem 1.5rem;
             pointer-events: auto;
             direction: rtl;
             display: flex;
             flex-direction: column;
-            gap: 0.875rem;
+            gap: 1rem;
         }
         .sidebar-content > * {
             direction: ltr;
@@ -162,7 +161,7 @@
         .panel-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 0.875rem;
+            gap: 1rem;
         }
         .search-panel,
         .results-header-panel,
@@ -195,17 +194,15 @@
         }
         .search-panel .label {
             color: var(--text-secondary);
-            font-weight: 500;
-            font-size: 0.8125rem;
+            font-weight: 600;
+            font-size: 0.875rem;
             margin-bottom: 0.375rem;
-            text-transform: uppercase;
-            letter-spacing: 0.025em;
         }
         .search-panel .input {
             border-radius: var(--radius-sm);
             border: 1px solid var(--border);
-            font-size: 1rem;
-            padding: 0.625rem 0.875rem;
+            font-size: 1.0625rem;
+            padding: 0.75rem 1rem;
             height: auto;
             transition: border-color 0.15s ease, box-shadow 0.15s ease;
             background: var(--bg-card);
@@ -223,8 +220,8 @@
             border: none;
             border-radius: var(--radius-sm);
             font-weight: 600;
-            font-size: 0.9375rem;
-            padding: 0.625rem 1.25rem;
+            font-size: 1rem;
+            padding: 0.75rem 1.25rem;
             height: auto;
             transition: background 0.15s ease;
         }
@@ -232,13 +229,13 @@
             background: var(--primary-hover);
         }
         .search-panel .field {
-            margin-bottom: 0.875rem;
+            margin-bottom: 1rem;
         }
         .search-panel .field:last-child {
             margin-bottom: 0;
         }
 
-        /* Results Header */
+        /* Results Header (hidden when address-header is shown) */
         .results-header-panel .box {
             background: var(--bg-card);
             border-radius: var(--radius-md);
@@ -249,20 +246,101 @@
         .results-header-panel .title {
             color: var(--text-primary);
             font-weight: 600;
-            font-size: 1.125rem;
+            font-size: 1.25rem;
             margin-bottom: 0.25rem;
             letter-spacing: -0.01em;
         }
         .results-header-panel .is-size-6 {
             color: var(--text-muted);
-            font-size: 0.875rem !important;
+            font-size: 0.9375rem !important;
         }
 
-        /* API Results Grid - tighter */
+        /* Address Header Card - prominent top card */
+        .address-header-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border);
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+        }
+        .address-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .address-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+            margin: 0 0 0.25rem;
+            line-height: 1.2;
+        }
+        .address-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: center;
+            margin-top: 0.375rem;
+        }
+        .address-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.625rem;
+            border-radius: 4px;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            background: var(--bg-card-alt);
+            color: var(--text-secondary);
+        }
+        .address-tag strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+        .address-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+        .address-actions .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.5rem 0.875rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.875rem;
+            font-weight: 600;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .address-actions .btn:hover {
+            background: var(--bg-card-alt);
+            border-color: var(--border-strong);
+            color: var(--text-primary);
+        }
+        .address-actions .btn-primary {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+        .address-actions .btn-primary:hover {
+            background: var(--primary-hover);
+            border-color: var(--primary-hover);
+            color: white;
+        }
+
+        /* API Results Grid */
         .api-results-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 0.75rem;
+            gap: 0.875rem;
             margin-top: 0.75rem;
         }
 
@@ -272,7 +350,7 @@
             border-radius: var(--radius-md) !important;
             box-shadow: var(--shadow-sm);
             border: 1px solid var(--border) !important;
-            padding: 1rem !important;
+            padding: 1.125rem !important;
             transition: box-shadow 0.15s ease, border-color 0.15s ease;
             margin: 0 !important;
         }
@@ -285,19 +363,17 @@
         .card-header-title {
             color: var(--text-secondary);
             font-weight: 600;
-            font-size: 0.8125rem;
+            font-size: 0.875rem;
             display: flex;
             align-items: center;
             gap: 0.375rem;
             margin-bottom: 0.125rem;
-            text-transform: uppercase;
-            letter-spacing: 0.02em;
         }
 
-        /* Status dot - smaller */
+        /* Status dot */
         .status-dot {
-            width: 7px;
-            height: 7px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
             flex-shrink: 0;
         }
@@ -307,10 +383,10 @@
 
         /* Metric Display - larger values, clear hierarchy */
         .metric-display {
-            margin: 0.5rem 0 0.25rem;
+            margin: 0.625rem 0 0.25rem;
         }
         .metric-value {
-            font-size: 2.25rem;
+            font-size: 2.5rem;
             font-weight: 700;
             color: var(--text-primary);
             line-height: 1;
@@ -318,24 +394,24 @@
             font-feature-settings: 'tnum';
         }
         .metric-value span {
-            font-size: 1rem;
+            font-size: 1.125rem;
             font-weight: 500;
             color: var(--text-muted);
             margin-left: 0.125rem;
         }
         .metric-label {
-            font-size: 0.75rem;
-            font-weight: 500;
+            font-size: 0.8125rem;
+            font-weight: 600;
             color: var(--text-muted);
             text-transform: uppercase;
-            letter-spacing: 0.04em;
-            margin-top: 0.25rem;
+            letter-spacing: 0.03em;
+            margin-top: 0.375rem;
         }
         .metric-secondary {
-            font-size: 0.9375rem;
+            font-size: 1rem;
             color: var(--text-secondary);
             margin-top: 0.5rem;
-            line-height: 1.4;
+            line-height: 1.45;
         }
         .metric-secondary strong {
             color: var(--text-primary);
@@ -346,9 +422,9 @@
         .status-badge {
             display: inline-flex;
             align-items: center;
-            padding: 0.25rem 0.625rem;
-            border-radius: 4px;
-            font-size: 0.75rem;
+            padding: 0.3rem 0.75rem;
+            border-radius: 5px;
+            font-size: 0.8125rem;
             font-weight: 600;
             letter-spacing: 0.01em;
         }
@@ -367,21 +443,19 @@
 
         /* Raw Data Toggle - subtle */
         .raw-data-toggle {
-            margin-top: 0.75rem;
-            padding-top: 0.625rem;
+            margin-top: 0.875rem;
+            padding-top: 0.75rem;
             border-top: 1px solid var(--border);
         }
         .raw-data-toggle summary {
             cursor: pointer;
-            font-size: 0.75rem;
+            font-size: 0.8125rem;
             color: var(--text-muted);
             font-weight: 500;
             transition: color 0.15s;
             display: inline-flex;
             align-items: center;
             gap: 0.25rem;
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
         }
         .raw-data-toggle summary:hover {
             color: var(--text-secondary);
@@ -389,7 +463,7 @@
         .raw-data-toggle summary::before {
             content: '{ }';
             font-family: monospace;
-            font-size: 0.6875rem;
+            font-size: 0.75rem;
         }
         .raw-data-toggle pre {
             margin-top: 0.5rem;
@@ -397,7 +471,7 @@
             background: var(--bg-dark);
             color: #a1a1aa;
             border-radius: var(--radius-sm);
-            font-size: 0.6875rem;
+            font-size: 0.75rem;
             max-height: 200px;
             overflow-y: auto;
             font-family: 'SF Mono', 'Fira Code', 'Monaco', monospace;
@@ -409,49 +483,40 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            margin-bottom: 0.75rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 1px solid var(--border);
+            margin-bottom: 0.875rem;
+            padding-bottom: 0.625rem;
+            border-bottom: 2px solid var(--border);
         }
         .section-header h4 {
             margin: 0;
-            font-size: 0.8125rem;
-            font-weight: 600;
-            color: var(--text-muted);
+            font-size: 0.9375rem;
+            font-weight: 700;
+            color: var(--text-primary);
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.04em;
         }
         .section-icon {
-            font-size: 1rem;
-            opacity: 0.7;
+            font-size: 1.125rem;
         }
 
-        /* Summary Bar - compact, informative */
-        .summary-notification {
-            background: var(--bg-dark) !important;
-            color: white !important;
-            border-radius: var(--radius-md);
-            padding: 0.875rem 1.125rem;
-            margin-bottom: 1rem;
-        }
-        .summary-notification strong {
-            color: white;
-            font-size: 0.9375rem;
-            font-weight: 600;
-        }
-        .summary-stats {
+        /* Summary Stats - inline in header */
+        .summary-stats-inline {
             display: flex;
-            flex-wrap: wrap;
             gap: 1rem;
-            margin-top: 0.5rem;
+            margin-left: auto;
         }
-        .summary-stat {
-            display: flex;
-            align-items: center;
-            gap: 0.375rem;
+        .summary-stat-inline {
             font-size: 0.8125rem;
             font-weight: 500;
-            color: rgba(255,255,255,0.8);
+            color: var(--text-muted);
+        }
+        .summary-stat-inline .count {
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .summary-stat-inline.success .count { color: var(--success); }
+        .summary-stat-inline.error .count { color: var(--danger); }
+        .summary-stat-inline.warning .count { color: var(--warning); }
         }
         /* Misc */
         .result-card pre {
@@ -473,13 +538,19 @@
         .mobile-results {
             display: none;
         }
+        .tier-section {
+            margin-bottom: 1.5rem;
+        }
+        .tier-section:last-child {
+            margin-bottom: 0;
+        }
 
         /* Mobile Layout */
         @media screen and (max-width: 768px) {
             html, body {
                 height: 100%;
                 overflow: hidden;
-                font-size: 14px;
+                font-size: 15px;
             }
             .navbar {
                 position: fixed;
@@ -487,10 +558,10 @@
                 left: 0;
                 right: 0;
                 z-index: 40;
-                min-height: 44px;
+                min-height: 48px;
             }
             .navbar-brand .navbar-item {
-                font-size: 1rem;
+                font-size: 1.125rem;
             }
             .full-height-columns {
                 height: 100%;
@@ -535,24 +606,23 @@
             .search-panel {
                 order: 1;
                 pointer-events: auto;
-                margin-left: 0.75rem;
-                margin-right: 0.75rem;
+                margin-left: 0.875rem;
+                margin-right: 0.875rem;
             }
             body:not(.has-results) .search-panel {
                 margin-top: auto;
-                margin-bottom: 1rem;
+                margin-bottom: 1.25rem;
             }
             body.has-results .search-panel {
-                margin-top: calc(44px + 0.75rem);
+                margin-top: calc(48px + 0.875rem);
                 margin-bottom: 0.5rem;
             }
             .desktop-results {
                 display: none !important;
             }
-            /* Mobile results - show below search form */
             .mobile-results {
                 order: 4;
-                margin: 0 0.75rem 1.5rem;
+                margin: 0 0.875rem 1.5rem;
                 pointer-events: auto;
                 max-height: calc(100vh - 180px);
                 overflow-y: auto;
@@ -560,7 +630,6 @@
             body:not(.has-results) .mobile-results {
                 display: none;
             }
-            /* Mobile-specific grid - single column for better readability */
             .mobile-results .api-results-grid {
                 grid-template-columns: 1fr !important;
             }
@@ -569,7 +638,7 @@
             }
             #results-header {
                 order: 3;
-                margin: 0 0.75rem 0.75rem;
+                margin: 0 0.875rem 0.875rem;
                 pointer-events: auto;
             }
             body:not(.has-results) #results-header {
@@ -582,10 +651,26 @@
                 padding: 1rem;
             }
             .results-header-panel .box {
-                padding: 0.75rem 1rem;
+                padding: 0.875rem 1rem;
             }
             .metric-value {
-                font-size: 1.75rem;
+                font-size: 2rem;
+            }
+            .address-header-card {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 1rem;
+            }
+            .address-title {
+                font-size: 1.25rem;
+            }
+            .address-actions {
+                margin-top: 0.75rem;
+                width: 100%;
+            }
+            .address-actions .btn {
+                flex: 1;
+                justify-content: center;
             }
         }
     </style>
@@ -1600,13 +1685,37 @@
             const errorCount = filtered.filter(r => r.status === 'error').length;
             const notConfiguredCount = filtered.filter(r => r.status === 'not_configured').length;
 
-            let html = '<div class="summary-notification">';
-            html += `<strong>Property Intelligence Report</strong>`;
-            html += `<div class="summary-stats">`;
-            html += `<span class="summary-stat">✓ ${successCount} successful</span>`;
-            html += `<span class="summary-stat">✗ ${errorCount} errors</span>`;
-            html += `<span class="summary-stat">⚠ ${notConfiguredCount} not configured</span>`;
-            html += `</div></div>`;
+            // Extract postcode and house number from address
+            const address = currentResponse.address || 'Unknown Address';
+            const coords = currentResponse.coordinates || [];
+            const addressParts = address.match(/^(.+?)\s+(\d+[A-Za-z]?),\s*(\d{4}\s?[A-Z]{2})\s+(.+)$/);
+            let street = address;
+            let houseNum = '';
+            let postcode = '';
+            let city = '';
+            if (addressParts) {
+                street = addressParts[1];
+                houseNum = addressParts[2];
+                postcode = addressParts[3];
+                city = addressParts[4];
+            }
+
+            // Address Header Card
+            let html = `<div class="address-header-card">
+                <div class="address-info">
+                    <h2 class="address-title">${street}${houseNum ? ' ' + houseNum : ''}</h2>
+                    <div class="address-meta">
+                        ${postcode ? `<span class="address-tag">📍 <strong>${postcode}</strong></span>` : ''}
+                        ${city ? `<span class="address-tag">🏙️ <strong>${city}</strong></span>` : ''}
+                        <span class="address-tag">✓ <strong>${successCount}</strong> APIs</span>
+                        ${errorCount > 0 ? `<span class="address-tag" style="color: var(--danger);">✗ <strong>${errorCount}</strong> errors</span>` : ''}
+                    </div>
+                </div>
+                <div class="address-actions">
+                    <button class="btn" onclick="openSettings()">⚙️ Settings</button>
+                    <button class="btn btn-primary" onclick="exportCSV()">📥 Export CSV</button>
+                </div>
+            </div>`;
 
             // Helper function to render a section
             const renderSection = (title, icon, results) => {
@@ -1622,10 +1731,15 @@
                     return priorityA - priorityB;
                 });
 
-                let sectionHtml = `<div class="mb-5">
+                const sectionSuccess = sectionResults.filter(r => r.status === 'success').length;
+
+                let sectionHtml = `<div class="tier-section">
                     <div class="section-header">
                         <span class="section-icon">${icon}</span>
                         <h4>${title}</h4>
+                        <div class="summary-stats-inline">
+                            <span class="summary-stat-inline success"><span class="count">${sectionSuccess}</span>/${sectionResults.length}</span>
+                        </div>
                     </div>
                     <div class="api-results-grid">`;
 
@@ -1659,7 +1773,7 @@
 
             html += renderSection('Free', '🌐', grouped.free);
             html += renderSection('Freemium', '🔑', grouped.freemium);
-            html += renderSection('Premium', '💰', grouped.premium);
+            html += renderSection('Premium', '💎', grouped.premium);
 
             targetContainer.innerHTML = html;
             if (filtered.length > 0) {
