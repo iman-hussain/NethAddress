@@ -1761,6 +1761,8 @@
                     // API returns: contaminationLevel, contaminants[], qualityZone, restrictedUse, lastTested
                     const contamLevel = data.contaminationLevel || 'Unknown';
                     const contaminants = data.contaminants || [];
+                    const qualityZone = data.qualityZone || '';
+                    const soilLastTested = formatTimestamp(data.lastTested);
                     const restrictedUse = data.restrictedUse || false;
                     const contamClass = contamLevel === 'Clean' ? 'good' : contamLevel === 'Light' ? 'moderate' : contamLevel === 'Unknown' ? 'moderate' : 'poor';
 
@@ -1769,8 +1771,9 @@
                             <span class="status-badge ${contamClass}" style="font-size: 0.9rem; padding: 6px 14px;">🧪 ${contamLevel}</span>
                             ${restrictedUse ? '<span class="status-badge poor" style="margin-left: 4px;">⚠️ Restricted Use</span>' : ''}
                         </div>
-                        <div class="metric-label">Soil Contamination</div>
-                        ${contaminants.length > 0 ? `<div class="metric-secondary">
+                        <div class="metric-label">Soil Contamination${soilLastTested ? ` <span class="timestamp">(${soilLastTested})</span>` : ''}</div>
+                        ${qualityZone ? `<div class="metric-secondary">📍 Zone: <strong>${qualityZone}</strong></div>` : ''}
+                        ${contaminants.length > 0 ? `<div class="metric-secondary"${qualityZone ? ' style="margin-top: 0.25rem;"' : ''}>
                             Detected: ${contaminants.slice(0, 3).map(c => `<strong>${c}</strong>`).join(', ')}
                             ${contaminants.length > 3 ? ` +${contaminants.length - 3} more` : ''}
                         </div>` : '<div class="metric-secondary">No contaminants detected</div>'}
