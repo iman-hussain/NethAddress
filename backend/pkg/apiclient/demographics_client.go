@@ -37,21 +37,21 @@ type cbsBuurtenResponse struct {
 		Type       string `json:"type"`
 		ID         string `json:"id"`
 		Properties struct {
-			Buurtcode                   string  `json:"buurtcode"`
-			Buurtnaam                   string  `json:"buurtnaam"`
-			Wijkcode                    string  `json:"wijkcode"`
-			Gemeentecode                string  `json:"gemeentecode"`
-			Gemeentenaam                string  `json:"gemeentenaam"`
-			AantalInwoners              *int    `json:"aantalInwoners"`
-			AantalHuishoudens           *int    `json:"aantalHuishoudens"`
-			GemiddeldeHuishoudensgrootte *float64 `json:"gemiddeldeHuishoudensgrootte"`
-			Bevolkingsdichtheid         *int    `json:"bevolkingsdichtheid"`
-			// Age distribution fields (percentage * 10)
-			K0Tot15Jaar   *int `json:"k0Tot15Jaar"`
-			K15Tot25Jaar  *int `json:"k15Tot25Jaar"`
-			K25Tot45Jaar  *int `json:"k25Tot45Jaar"`
-			K45Tot65Jaar  *int `json:"k45Tot65Jaar"`
-			K65JaarOfOuder *int `json:"k65JaarOfOuder"`
+			Buurtcode                    string   `json:"buurtcode"`
+			Buurtnaam                    string   `json:"buurtnaam"`
+			Wijkcode                     string   `json:"wijkcode"`
+			Gemeentecode                 string   `json:"gemeentecode"`
+			Gemeentenaam                 string   `json:"gemeentenaam"`
+			AantalInwoners               *int     `json:"aantal_inwoners"`
+			AantalHuishoudens            *int     `json:"aantal_huishoudens"`
+			GemiddeldeHuishoudensgrootte *float64 `json:"gemiddelde_huishoudsgrootte"`
+			Bevolkingsdichtheid          *int     `json:"bevolkingsdichtheid_inwoners_per_km2"`
+			// Age distribution fields (percentage)
+			Perc0Tot15Jaar  *int `json:"percentage_personen_0_tot_15_jaar"`
+			Perc15Tot25Jaar *int `json:"percentage_personen_15_tot_25_jaar"`
+			Perc25Tot45Jaar *int `json:"percentage_personen_25_tot_45_jaar"`
+			Perc45Tot65Jaar *int `json:"percentage_personen_45_tot_65_jaar"`
+			Perc65Plus      *int `json:"percentage_personen_65_jaar_en_ouder"`
 		} `json:"properties"`
 	} `json:"features"`
 	NumberReturned int `json:"numberReturned"`
@@ -60,11 +60,8 @@ type cbsBuurtenResponse struct {
 // FetchCBSPopulationData retrieves population data using the free PDOK CBS OGC API
 // Documentation: https://api.pdok.nl/cbs/wijken-en-buurten-2024/ogc/v1
 func (c *ApiClient) FetchCBSPopulationData(cfg *config.Config, lat, lon float64) (*CBSPopulationData, error) {
-	// Use PDOK CBS API (free, no auth required)
+	// Always use PDOK CBS API default (free, no auth) - ignore config overrides which may have bad URLs
 	baseURL := defaultCBSBuurtenApiURL
-	if cfg.CBSPopulationApiURL != "" {
-		baseURL = cfg.CBSPopulationApiURL
-	}
 
 	// Create a small bounding box around the point (approximately 200m)
 	delta := 0.001 // ~100m in latitude
@@ -106,24 +103,24 @@ func (c *ApiClient) FetchCBSPopulationData(cfg *config.Config, lat, lon float64)
 	props := apiResp.Features[0].Properties
 	logutil.Debugf("[CBS Population] Found buurt: %s (%s)", props.Buurtnaam, props.Buurtcode)
 
-	// Extract population data, handling nil pointers
+	// Extract population data, handling nil pointers and negative CBS sentinel values
 	population := 0
-	if props.AantalInwoners != nil {
+	if props.AantalInwoners != nil && *props.AantalInwoners >= 0 {
 		population = *props.AantalInwoners
 	}
 
 	households := 0
-	if props.AantalHuishoudens != nil {
+	if props.AantalHuishoudens != nil && *props.AantalHuishoudens >= 0 {
 		households = *props.AantalHuishoudens
 	}
 
 	avgHHSize := 0.0
-	if props.GemiddeldeHuishoudensgrootte != nil {
+	if props.GemiddeldeHuishoudensgrootte != nil && *props.GemiddeldeHuishoudensgrootte >= 0 {
 		avgHHSize = *props.GemiddeldeHuishoudensgrootte
 	}
 
 	// Calculate age distribution from percentages
-	// CBS stores values as percentage * 10 (e.g., 150 = 15%)
+	// CBS stores values as percentage (e.g., 15 = 15%)
 	age0to14 := 0
 	age15to24 := 0
 	age25to44 := 0
@@ -131,20 +128,20 @@ func (c *ApiClient) FetchCBSPopulationData(cfg *config.Config, lat, lon float64)
 	age65plus := 0
 
 	if population > 0 {
-		if props.K0Tot15Jaar != nil {
-			age0to14 = (population * (*props.K0Tot15Jaar)) / 1000
+		if props.Perc0Tot15Jaar != nil {
+			age0to14 = (population * (*props.Perc0Tot15Jaar)) / 100
 		}
-		if props.K15Tot25Jaar != nil {
-			age15to24 = (population * (*props.K15Tot25Jaar)) / 1000
+		if props.Perc15Tot25Jaar != nil {
+			age15to24 = (population * (*props.Perc15Tot25Jaar)) / 100
 		}
-		if props.K25Tot45Jaar != nil {
-			age25to44 = (population * (*props.K25Tot45Jaar)) / 1000
+		if props.Perc25Tot45Jaar != nil {
+			age25to44 = (population * (*props.Perc25Tot45Jaar)) / 100
 		}
-		if props.K45Tot65Jaar != nil {
-			age45to64 = (population * (*props.K45Tot65Jaar)) / 1000
+		if props.Perc45Tot65Jaar != nil {
+			age45to64 = (population * (*props.Perc45Tot65Jaar)) / 100
 		}
-		if props.K65JaarOfOuder != nil {
-			age65plus = (population * (*props.K65JaarOfOuder)) / 1000
+		if props.Perc65Plus != nil {
+			age65plus = (population * (*props.Perc65Plus)) / 100
 		}
 	}
 
@@ -312,13 +309,13 @@ type cbsSquareResponse struct {
 		Type       string `json:"type"`
 		ID         string `json:"id"`
 		Properties struct {
-			Buurtcode                   string   `json:"buurtcode"`
-			AantalInwoners              *int     `json:"aantalInwoners"`
-			AantalHuishoudens           *int     `json:"aantalHuishoudens"`
-			GemiddeldeWozWaardeWoning   *int     `json:"gemiddeldeWozWaardeWoning"`
-			Omgevingsadressendichtheid  *int     `json:"omgevingsadressendichtheid"`
-			// Income data (stored as x100)
-			GemHuishoudinkomen          *int     `json:"gemHuishoudinkomen"`
+			Buurtcode                  string `json:"buurtcode"`
+			AantalInwoners             *int   `json:"aantal_inwoners"`
+			AantalHuishoudens          *int   `json:"aantal_huishoudens"`
+			GemiddeldeWozWaardeWoning  *int   `json:"gemiddelde_woningwaarde"`
+			Omgevingsadressendichtheid *int   `json:"omgevingsadressendichtheid"`
+			// Income data
+			GemHuishoudinkomen *int `json:"gemiddeld_gestandaardiseerd_inkomen_van_huishoudens"`
 		} `json:"properties"`
 	} `json:"features"`
 }
@@ -326,7 +323,7 @@ type cbsSquareResponse struct {
 // FetchCBSSquareStats retrieves neighbourhood-level statistics using PDOK CBS API
 // Documentation: https://api.pdok.nl/cbs/wijken-en-buurten-2024/ogc/v1
 func (c *ApiClient) FetchCBSSquareStats(cfg *config.Config, lat, lon float64) (*CBSSquareStatsData, error) {
-	// Use PDOK CBS API (free, no auth required)
+	// Use config URL if provided (for testing), otherwise use PDOK CBS API default
 	baseURL := defaultCBSBuurtenApiURL
 	if cfg.CBSSquareStatsApiURL != "" {
 		baseURL = cfg.CBSSquareStatsApiURL
@@ -370,29 +367,29 @@ func (c *ApiClient) FetchCBSSquareStats(cfg *config.Config, lat, lon float64) (*
 	}
 
 	props := apiResp.Features[0].Properties
-	
+
 	population := 0
-	if props.AantalInwoners != nil {
+	if props.AantalInwoners != nil && *props.AantalInwoners >= 0 {
 		population = *props.AantalInwoners
 	}
 
 	households := 0
-	if props.AantalHuishoudens != nil {
+	if props.AantalHuishoudens != nil && *props.AantalHuishoudens >= 0 {
 		households = *props.AantalHuishoudens
 	}
 
 	avgWOZ := 0.0
-	if props.GemiddeldeWozWaardeWoning != nil {
-		avgWOZ = float64(*props.GemiddeldeWozWaardeWoning) * 1000 // Convert from k EUR
+	if props.GemiddeldeWozWaardeWoning != nil && *props.GemiddeldeWozWaardeWoning >= 0 {
+		avgWOZ = float64(*props.GemiddeldeWozWaardeWoning) // Already in EUR
 	}
 
 	density := 0
-	if props.Omgevingsadressendichtheid != nil {
+	if props.Omgevingsadressendichtheid != nil && *props.Omgevingsadressendichtheid >= 0 {
 		density = *props.Omgevingsadressendichtheid
 	}
 
 	avgIncome := 0.0
-	if props.GemHuishoudinkomen != nil {
+	if props.GemHuishoudinkomen != nil && *props.GemHuishoudinkomen >= 0 {
 		avgIncome = float64(*props.GemHuishoudinkomen) * 100 // Convert from x100
 	}
 

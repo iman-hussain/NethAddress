@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"net/http"
+	"strings"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/logutil"
@@ -98,13 +99,13 @@ type overpassTransportResponse struct {
 		Lat  float64 `json:"lat"`
 		Lon  float64 `json:"lon"`
 		Tags struct {
-			Name        string `json:"name"`
-			Highway     string `json:"highway"`     // bus_stop
-			Railway     string `json:"railway"`     // station, tram_stop, halt
+			Name            string `json:"name"`
+			Highway         string `json:"highway"`          // bus_stop
+			Railway         string `json:"railway"`          // station, tram_stop, halt
 			PublicTransport string `json:"public_transport"` // stop_position, platform
-			Network     string `json:"network"`
-			Operator    string `json:"operator"`
-			Ref         string `json:"ref"`
+			Network         string `json:"network"`
+			Operator        string `json:"operator"`
+			Ref             string `json:"ref"`
 		} `json:"tags"`
 	} `json:"elements"`
 }
@@ -129,15 +130,14 @@ out body qt 30;`, radius, lat, lon, radius, lat, lon, radius, lat, lon, radius, 
 
 	logutil.Debugf("[OpenOV] Querying Overpass API for PT stops near %.6f, %.6f", lat, lon)
 
-	req, err := http.NewRequest("POST", overpassURL, nil)
+	// Send query as POST body (not query string)
+	reqBody := strings.NewReader("data=" + query)
+	req, err := http.NewRequest("POST", overpassURL, reqBody)
 	if err != nil {
 		logutil.Debugf("[OpenOV] Request error: %v", err)
 		return emptyTransportData(), nil
 	}
-	
-	q := req.URL.Query()
-	q.Add("data", query)
-	req.URL.RawQuery = q.Encode()
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.HTTP.Do(req)
@@ -163,7 +163,7 @@ out body qt 30;`, radius, lat, lon, radius, lat, lon, radius, lat, lon, radius, 
 	stops := make([]PublicTransportStop, 0, len(apiResp.Elements))
 	for _, elem := range apiResp.Elements {
 		distance := haversineDistanceTraffic(lat, lon, elem.Lat, elem.Lon)
-		
+
 		stopType := determineStopType(elem.Tags.Highway, elem.Tags.Railway, elem.Tags.PublicTransport)
 		name := elem.Tags.Name
 		if name == "" {
@@ -231,7 +231,7 @@ func sortStopsByDistance(stops []PublicTransportStop) {
 // haversineDistanceTraffic calculates distance in meters
 func haversineDistanceTraffic(lat1, lon1, lat2, lon2 float64) float64 {
 	const earthRadius = 6371000
-	
+
 	lat1Rad := lat1 * math.Pi / 180
 	lat2Rad := lat2 * math.Pi / 180
 	deltaLat := (lat2 - lat1) * math.Pi / 180

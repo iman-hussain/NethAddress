@@ -1,18 +1,19 @@
 package apiclient
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
 )
 
 func TestFetchGreenSpacesData(t *testing.T) {
-	// Test with PDOK BGT OGC API response format
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{
+	// Use transport mocking since the code now uses hardcoded PDOK URLs
+	mockTransport := roundTripFunc(func(req *http.Request) (*http.Response, error) {
+		responseBody := `{
 			"type": "FeatureCollection",
 			"features": [{
 				"type": "Feature",
@@ -28,14 +29,16 @@ func TestFetchGreenSpacesData(t *testing.T) {
 				}
 			}],
 			"numberReturned": 1
-		}`))
-	}))
-	defer server.Close()
+		}`
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     make(http.Header),
+			Body:       io.NopCloser(strings.NewReader(responseBody)),
+		}, nil
+	})
 
-	cfg := &config.Config{
-		GreenSpacesApiURL: server.URL,
-	}
-	client := NewApiClient(server.Client())
+	cfg := &config.Config{}
+	client := NewApiClient(&http.Client{Transport: mockTransport})
 
 	data, err := client.FetchGreenSpacesData(cfg, 52.0907, 5.1214, 1000)
 	if err != nil {

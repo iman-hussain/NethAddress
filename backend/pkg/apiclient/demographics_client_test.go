@@ -12,15 +12,14 @@ import (
 )
 
 func TestFetchCBSPopulationData(t *testing.T) {
-	// Test with PDOK CBS OGC API response format
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	// Use transport mocking since the code now uses hardcoded PDOK URLs
+	mockTransport := roundTripFunc(func(req *http.Request) (*http.Response, error) {
 		// Check that the request is formatted correctly for PDOK OGC API
-		if !strings.Contains(r.URL.Path, "/collections/buurten/items") {
-			t.Errorf("Expected path to contain /collections/buurten/items, got %s", r.URL.Path)
+		if !strings.Contains(req.URL.Path, "/collections/buurten/items") {
+			t.Errorf("Expected path to contain /collections/buurten/items, got %s", req.URL.Path)
 		}
-		
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{
+
+		responseBody := `{
 			"type": "FeatureCollection",
 			"features": [{
 				"type": "Feature",
@@ -31,26 +30,28 @@ func TestFetchCBSPopulationData(t *testing.T) {
 					"wijkcode": "WK036300",
 					"gemeentecode": "GM0363",
 					"gemeentenaam": "Amsterdam",
-					"aantalInwoners": 350000,
-					"aantalHuishoudens": 150000,
-					"gemiddeldeHuishoudensgrootte": 2.3,
-					"bevolkingsdichtheid": 12500,
-					"k0Tot15Jaar": 150,
-					"k15Tot25Jaar": 180,
-					"k25Tot45Jaar": 300,
-					"k45Tot65Jaar": 200,
-					"k65JaarOfOuder": 170
+					"aantal_inwoners": 350000,
+					"aantal_huishoudens": 150000,
+					"gemiddelde_huishoudsgrootte": 2.3,
+					"bevolkingsdichtheid_inwoners_per_km2": 12500,
+					"percentage_personen_0_tot_15_jaar": 15,
+					"percentage_personen_15_tot_25_jaar": 18,
+					"percentage_personen_25_tot_45_jaar": 30,
+					"percentage_personen_45_tot_65_jaar": 20,
+					"percentage_personen_65_jaar_en_ouder": 17
 				}
 			}],
 			"numberReturned": 1
-		}`))
-	}))
-	defer server.Close()
+		}`
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     make(http.Header),
+			Body:       io.NopCloser(strings.NewReader(responseBody)),
+		}, nil
+	})
 
-	cfg := &config.Config{
-		CBSPopulationApiURL: server.URL,
-	}
-	client := NewApiClient(&http.Client{})
+	cfg := &config.Config{}
+	client := NewApiClient(&http.Client{Transport: mockTransport})
 
 	data, err := client.FetchCBSPopulationData(cfg, 52.0907, 5.1214)
 	if err != nil {
@@ -128,7 +129,7 @@ func TestFetchCBSSquareStats(t *testing.T) {
 		if !strings.Contains(r.URL.Path, "/collections/buurten/items") {
 			t.Errorf("Expected path to contain /collections/buurten/items, got %s", r.URL.Path)
 		}
-		
+
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{
 			"type": "FeatureCollection",
@@ -137,11 +138,11 @@ func TestFetchCBSSquareStats(t *testing.T) {
 				"id": "buurt.1234",
 				"properties": {
 					"buurtcode": "BU03630001",
-					"aantalInwoners": 245,
-					"aantalHuishoudens": 106,
-					"gemiddeldeWozWaardeWoning": 325,
+					"aantal_inwoners": 245,
+					"aantal_huishoudens": 106,
+					"gemiddelde_woningwaarde": 325000,
 					"omgevingsadressendichtheid": 85,
-					"gemHuishoudinkomen": 420
+					"gemiddeld_gestandaardiseerd_inkomen_van_huishoudens": 420
 				}
 			}],
 			"numberReturned": 1

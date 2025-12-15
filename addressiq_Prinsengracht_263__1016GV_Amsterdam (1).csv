@@ -17,7 +17,7 @@
 "Education Facilities","free","success","{""nearestPrimarySchool"":null,""nearestSecondarySchool"":null,""allSchools"":[],""averageQuality"":0}"
 "Facilities & Amenities","free","success","{""topFacilities"":[],""amenitiesScore"":0,""categoryCounts"":{}}"
 "AHN Height Model","free","success","{""elevation"":0,""terrainSlope"":0,""floodRisk"":""Unknown"",""viewPotential"":""Unknown"",""surrounding"":[]}"
-"Monument Status","free","success","{""IsMonument"":false,""Type"":"""",""Date"":""""}"
+"Monument Status","free","success","{""isMonument"":false,""type"":"""",""date"":""""}"
 "PDOK Platform","free","error","Failed to fetch PDOK data"
 "Land Use & Zoning","free","error","Failed to fetch land use data"
 "Kadaster Object Info","freemium","not_configured","API key not configured"

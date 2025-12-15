@@ -41,7 +41,7 @@ type monumentResponse struct {
 func (c *ApiClient) FetchMonumentData(cfg *config.Config, bagPandID string) (*MonumentData, error) {
 	// This method uses BAG Pand ID - we'll also provide a coordinate-based fallback
 	logutil.Debugf("[Monument] FetchMonumentData called with bagPandID: %s", bagPandID)
-	
+
 	// For now, return not a monument - the coordinate-based method is more reliable
 	// The BAG Pand ID lookup requires Amsterdam's specific API
 	return &MonumentData{
@@ -54,8 +54,9 @@ func (c *ApiClient) FetchMonumentData(cfg *config.Config, bagPandID string) (*Mo
 // FetchMonumentDataByCoords queries PDOK RCE monuments API using coordinates
 // Documentation: https://api.pdok.nl/rce/beschermde-gebieden-cultuurhistorie/ogc/v1
 func (c *ApiClient) FetchMonumentDataByCoords(cfg *config.Config, lat, lon float64) (*MonumentData, error) {
+	// Use config URL if provided (for testing), otherwise use PDOK RCE API default
 	baseURL := defaultMonumentenApiURL
-	if cfg.MonumentenApiURL != "" && cfg.MonumentenApiURL != "https://api.data.amsterdam.nl/monumenten/monumenten" {
+	if cfg.MonumentenApiURL != "" {
 		baseURL = cfg.MonumentenApiURL
 	}
 

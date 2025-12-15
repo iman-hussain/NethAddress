@@ -13,8 +13,8 @@ import (
 
 // Default PDOK API endpoints for infrastructure data (free, no auth required)
 const (
-	defaultBGTApiURL      = "https://api.pdok.nl/lv/bgt/ogc/v1"
-	defaultNatura2000URL  = "https://api.pdok.nl/rvo/natura2000/ogc/v1"
+	defaultBGTApiURL     = "https://api.pdok.nl/lv/bgt/ogc/v1"
+	defaultNatura2000URL = "https://api.pdok.nl/rvo/natura2000/ogc/v1"
 )
 
 // GreenSpacesData represents parks and green areas
@@ -43,9 +43,9 @@ type bgtGreenResponse struct {
 		Type       string `json:"type"`
 		ID         string `json:"id"`
 		Properties struct {
-			FysiekVoorkomen string  `json:"fysiekVoorkomen"` // e.g., "groenvoorziening", "bos"
-			Naam            string  `json:"naam"`
-			OpenbareRuimte  string  `json:"openbareRuimte"`
+			FysiekVoorkomen string `json:"fysiekVoorkomen"` // e.g., "groenvoorziening", "bos"
+			Naam            string `json:"naam"`
+			OpenbareRuimte  string `json:"openbareRuimte"`
 		} `json:"properties"`
 		Geometry struct {
 			Type        string          `json:"type"`
@@ -73,10 +73,8 @@ type natura2000Response struct {
 // FetchGreenSpacesData retrieves parks and green areas using PDOK BGT API
 // Documentation: https://api.pdok.nl/lv/bgt/ogc/v1
 func (c *ApiClient) FetchGreenSpacesData(cfg *config.Config, lat, lon float64, radius int) (*GreenSpacesData, error) {
+	// Always use PDOK BGT API default (free, no auth) - ignore config overrides which may have bad URLs
 	baseURL := defaultBGTApiURL
-	if cfg.GreenSpacesApiURL != "" {
-		baseURL = cfg.GreenSpacesApiURL
-	}
 
 	// Create bounding box based on radius (convert meters to degrees approximately)
 	delta := float64(radius) / 111000.0 // ~111km per degree
@@ -308,16 +306,14 @@ out center body qt 20;`, radius, lat, lon, radius, lat, lon)
 
 	logutil.Debugf("[Education] Querying Overpass API for schools near %.6f, %.6f", lat, lon)
 
-	req, err := http.NewRequest("POST", overpassURL, nil)
+	// Send query as POST body (not query string)
+	reqBody := strings.NewReader("data=" + query)
+	req, err := http.NewRequest("POST", overpassURL, reqBody)
 	if err != nil {
 		logutil.Debugf("[Education] Request error: %v", err)
 		return emptyEducationData(), nil
 	}
-	
-	// Use query string parameter
-	q := req.URL.Query()
-	q.Add("data", query)
-	req.URL.RawQuery = q.Encode()
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.HTTP.Do(req)
@@ -421,19 +417,19 @@ func determineSchoolType(iscedLevel, name string) string {
 	if strings.Contains(nameLower, "basisschool") || strings.Contains(nameLower, "primary") {
 		return "Primary"
 	}
-	if strings.Contains(nameLower, "vmbo") || strings.Contains(nameLower, "havo") || 
-	   strings.Contains(nameLower, "vwo") || strings.Contains(nameLower, "college") ||
-	   strings.Contains(nameLower, "lyceum") || strings.Contains(nameLower, "secondary") {
+	if strings.Contains(nameLower, "vmbo") || strings.Contains(nameLower, "havo") ||
+		strings.Contains(nameLower, "vwo") || strings.Contains(nameLower, "college") ||
+		strings.Contains(nameLower, "lyceum") || strings.Contains(nameLower, "secondary") {
 		return "Secondary"
 	}
-	
+
 	return "Primary" // Default assumption
 }
 
 // haversineDistance calculates the distance in meters between two lat/lon points
 func haversineDistance(lat1, lon1, lat2, lon2 float64) float64 {
 	const earthRadius = 6371000 // meters
-	
+
 	lat1Rad := lat1 * math.Pi / 180
 	lat2Rad := lat2 * math.Pi / 180
 	deltaLat := (lat2 - lat1) * math.Pi / 180
@@ -567,10 +563,10 @@ type overpassFacilitiesResponse struct {
 		Lat  float64 `json:"lat"`
 		Lon  float64 `json:"lon"`
 		Tags struct {
-			Name    string `json:"name"`
-			Amenity string `json:"amenity"`
-			Shop    string `json:"shop"`
-			Leisure string `json:"leisure"`
+			Name       string `json:"name"`
+			Amenity    string `json:"amenity"`
+			Shop       string `json:"shop"`
+			Leisure    string `json:"leisure"`
 			Healthcare string `json:"healthcare"`
 		} `json:"tags"`
 	} `json:"elements"`
@@ -600,15 +596,14 @@ out body qt 50;`, radius, lat, lon, radius, lat, lon, radius, lat, lon, radius, 
 
 	logutil.Debugf("[Facilities] Querying Overpass API for amenities near %.6f, %.6f", lat, lon)
 
-	req, err := http.NewRequest("POST", overpassURL, nil)
+	// Send query as POST body (not query string)
+	reqBody := strings.NewReader("data=" + query)
+	req, err := http.NewRequest("POST", overpassURL, reqBody)
 	if err != nil {
 		logutil.Debugf("[Facilities] Request error: %v", err)
 		return emptyFacilitiesData(), nil
 	}
-	
-	q := req.URL.Query()
-	q.Add("data", query)
-	req.URL.RawQuery = q.Encode()
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.HTTP.Do(req)
@@ -636,7 +631,7 @@ out body qt 50;`, radius, lat, lon, radius, lat, lon, radius, lat, lon, radius, 
 
 	for _, elem := range apiResp.Elements {
 		distance := haversineDistance(lat, lon, elem.Lat, elem.Lon)
-		
+
 		category, facilityType := categorizeFacility(elem.Tags.Amenity, elem.Tags.Shop, elem.Tags.Leisure, elem.Tags.Healthcare)
 		name := elem.Tags.Name
 		if name == "" {
@@ -724,7 +719,7 @@ func sortFacilitiesByDistance(facilities []Facility) {
 func calculateAmenitiesScore(counts map[string]int, facilities []Facility) float64 {
 	// Score based on variety and proximity
 	score := 0.0
-	
+
 	// Points for category diversity (max 40 points)
 	categoryScore := float64(len(counts)) * 8
 	if categoryScore > 40 {
@@ -746,7 +741,7 @@ func calculateAmenitiesScore(counts map[string]int, facilities []Facility) float
 			avgDistance += f.Distance
 		}
 		avgDistance /= float64(len(facilities))
-		
+
 		// Closer is better: 0m = 30 points, 1500m = 0 points
 		proximityScore := 30 * (1 - avgDistance/1500)
 		if proximityScore < 0 {
@@ -868,14 +863,14 @@ func (c *ApiClient) FetchAHNHeightData(cfg *config.Config, lat, lon float64) (*A
 func estimateElevationForAmsterdam(lat, lon float64) *AHNHeightData {
 	// Amsterdam center is approximately 52.37N, 4.89E
 	// Elevation varies from about -5m (polders) to +2m (city center)
-	
+
 	// Simple estimation based on distance from city center
 	centerLat := 52.37
 	centerLon := 4.89
-	
+
 	// Central Amsterdam is around sea level, outskirts are lower
 	distance := math.Sqrt(math.Pow(lat-centerLat, 2) + math.Pow(lon-centerLon, 2))
-	
+
 	// Estimate elevation: central = 0m, further out = -2m typical
 	elevation := -1.0 - (distance * 10)
 	if elevation < -5 {

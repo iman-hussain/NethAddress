@@ -42,10 +42,8 @@ type floodRiskResponse struct {
 // FetchFloodRiskData retrieves flood risk assessment using PDOK Rijkswaterstaat API
 // Documentation: https://api.pdok.nl/rws/overstromingen-risicogebied/ogc/v1
 func (c *ApiClient) FetchFloodRiskData(cfg *config.Config, lat, lon float64) (*FloodRiskData, error) {
+	// Always use PDOK API default (free, no auth) - ignore config overrides which may have bad URLs
 	baseURL := defaultFloodRiskApiURL
-	if cfg.FloodRiskApiURL != "" {
-		baseURL = cfg.FloodRiskApiURL
-	}
 
 	// Create bounding box around the point
 	delta := 0.005 // ~500m
@@ -97,11 +95,11 @@ func (c *ApiClient) FetchFloodRiskData(cfg *config.Config, lat, lon float64) (*F
 	feature := apiResp.Features[0]
 	riskLevel := "Medium"
 	probability := 0.1
-	
+
 	// Parse risk level from qualitative_value field (INSPIRE format)
 	qualValue := strings.ToLower(feature.Properties.QualitativeValue)
 	description := strings.ToLower(feature.Properties.Description)
-	
+
 	switch {
 	case strings.Contains(qualValue, "potential significant"):
 		// "Area of Potential Significant Flood Risk"
