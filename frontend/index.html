@@ -1044,7 +1044,7 @@
                     // Try to get data from both sources
                     let cbsPopData = data;
                     let cbsSqData = {};
-                    
+
                     // If this is CBS Population, try to find CBS Square Statistics data
                     if (apiName === 'CBS Population' && currentResponse?.apiResults?.Demographics) {
                         const sqStats = currentResponse.apiResults.Demographics.find(r => r.name === 'CBS Square Statistics');
@@ -1107,8 +1107,9 @@
                             ${cbsIncome > 0 ? `${cbsWOZ > 0 ? ' &nbsp;|&nbsp; ' : ''}💵 Avg Income: <strong>€${cbsIncome.toLocaleString()}</strong>` : ''}
                         </div>` : ''}
                         <div class="metric-secondary timestamp" style="margin-top: 0.25rem; font-size: 0.7rem;">
-                            ℹ️ CBS 'Buurt' = neighbourhood statistical area (variable size)
+                            ℹ️ CBS 'Buurt' = neighbourhood statistical area (variable size, not fixed grid)
                         </div>
+                        ${cbsGridId ? `<div class="metric-secondary" style="font-size: 0.7rem; opacity: 0.6;">Grid ref: ${cbsGridId}</div>` : ''}
                     </div>`;
 
                 case 'Green Spaces':
