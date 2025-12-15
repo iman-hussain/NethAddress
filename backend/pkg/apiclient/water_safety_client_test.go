@@ -9,15 +9,25 @@ import (
 )
 
 func TestFetchFloodRiskData(t *testing.T) {
+	// Test with PDOK RWS overstromingen-risicogebied OGC API response format (INSPIRE)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
+		// PDOK returns GeoJSON FeatureCollection with INSPIRE format
 		w.Write([]byte(`{
-			"riskLevel": "Medium",
-			"floodProbability": 0.4,
-			"waterDepth": 0.8,
-			"nearestDike": 850,
-			"dikeQuality": "Good",
-			"floodZone": "Zone 3"
+			"type": "FeatureCollection",
+			"features": [{
+				"type": "Feature",
+				"properties": {
+					"qualitative_value": "Area of Potential Significant Flood Risk",
+					"description": "Rijn type B - beschermd langs hoofdwatersysteem",
+					"local_id": "NLRN_B.9b2df9fd"
+				},
+				"geometry": {
+					"type": "MultiPolygon",
+					"coordinates": [[[[4.88, 52.37], [4.89, 52.37], [4.89, 52.38], [4.88, 52.38], [4.88, 52.37]]]]
+				}
+			}],
+			"numberReturned": 1
 		}`))
 	}))
 	defer server.Close()
@@ -32,11 +42,13 @@ func TestFetchFloodRiskData(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 
+	// Based on mock: "Area of Potential Significant Flood Risk" + "beschermd" = Medium risk
 	if data.RiskLevel != "Medium" {
 		t.Errorf("Expected risk level 'Medium', got '%s'", data.RiskLevel)
 	}
-	if data.WaterDepth != 0.8 {
-		t.Errorf("Expected water depth 0.8, got %f", data.WaterDepth)
+	// Water depth not provided in INSPIRE format
+	if data.WaterDepth != 0 {
+		t.Errorf("Expected water depth 0 (not available in API), got %f", data.WaterDepth)
 	}
 }
 

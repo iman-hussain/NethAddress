@@ -12,26 +12,37 @@ import (
 )
 
 func TestFetchCBSPopulationData(t *testing.T) {
+	// Test with PDOK CBS OGC API response format
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Check that the request is formatted correctly for PDOK OGC API
+		if !strings.Contains(r.URL.Path, "/collections/buurten/items") {
+			t.Errorf("Expected path to contain /collections/buurten/items, got %s", r.URL.Path)
+		}
+		
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{
-			"totalPopulation": 350000,
-			"households": 150000,
-			"averageHouseholdSize": 2.3,
-			"ageDistribution": {
-				"0-14": 22,
-				"15-24": 18,
-				"25-44": 30,
-				"45-64": 20,
-				"65+": 10
-			},
-			"demographics": {
-				"age0to14": 22000,
-				"age15to24": 18000,
-				"age25to44": 30000,
-				"age45to64": 20000,
-				"age65plus": 10000
-			}
+			"type": "FeatureCollection",
+			"features": [{
+				"type": "Feature",
+				"id": "buurt.1234",
+				"properties": {
+					"buurtcode": "BU03630001",
+					"buurtnaam": "Centrum",
+					"wijkcode": "WK036300",
+					"gemeentecode": "GM0363",
+					"gemeentenaam": "Amsterdam",
+					"aantalInwoners": 350000,
+					"aantalHuishoudens": 150000,
+					"gemiddeldeHuishoudensgrootte": 2.3,
+					"bevolkingsdichtheid": 12500,
+					"k0Tot15Jaar": 150,
+					"k15Tot25Jaar": 180,
+					"k25Tot45Jaar": 300,
+					"k45Tot65Jaar": 200,
+					"k65JaarOfOuder": 170
+				}
+			}],
+			"numberReturned": 1
 		}`))
 	}))
 	defer server.Close()
@@ -112,15 +123,28 @@ func TestFetchCBSStatLineData(t *testing.T) {
 }
 
 func TestFetchCBSSquareStats(t *testing.T) {
+	// Test with PDOK CBS OGC API response format
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !strings.Contains(r.URL.Path, "/collections/buurten/items") {
+			t.Errorf("Expected path to contain /collections/buurten/items, got %s", r.URL.Path)
+		}
+		
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{
-			"gridId": "100m_35821",
-			"population": 245,
-			"households": 106,
-			"averageWOZ": 325000,
-			"averageIncome": 42000,
-			"housingDensity": 85
+			"type": "FeatureCollection",
+			"features": [{
+				"type": "Feature",
+				"id": "buurt.1234",
+				"properties": {
+					"buurtcode": "BU03630001",
+					"aantalInwoners": 245,
+					"aantalHuishoudens": 106,
+					"gemiddeldeWozWaardeWoning": 325,
+					"omgevingsadressendichtheid": 85,
+					"gemHuishoudinkomen": 420
+				}
+			}],
+			"numberReturned": 1
 		}`))
 	}))
 	defer server.Close()
@@ -135,8 +159,8 @@ func TestFetchCBSSquareStats(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 
-	if data.GridID != "100m_35821" {
-		t.Errorf("Expected grid ID 100m_35821, got %s", data.GridID)
+	if data.GridID != "BU03630001" {
+		t.Errorf("Expected grid ID BU03630001, got %s", data.GridID)
 	}
 	if data.Population != 245 {
 		t.Errorf("Expected population 245, got %d", data.Population)

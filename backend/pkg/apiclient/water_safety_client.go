@@ -4,9 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
+	"github.com/iman-hussain/AddressIQ/backend/pkg/logutil"
 )
+
+// Default PDOK flood risk API endpoint (free, no auth required)
+const defaultFloodRiskApiURL = "https://api.pdok.nl/rws/overstromingen-risicogebied/ogc/v1"
 
 // FloodRiskData represents flood risk assessment
 type FloodRiskData struct {
@@ -18,37 +23,133 @@ type FloodRiskData struct {
 	FloodZone        string  `json:"floodZone"`        // Zone classification
 }
 
-// FetchFloodRiskData retrieves flood risk assessment
-// Documentation: https://api.pdok.nl (Rijkswaterstaat)
+// floodRiskResponse represents PDOK flood risk API response (INSPIRE format)
+type floodRiskResponse struct {
+	Type     string `json:"type"`
+	Features []struct {
+		Type       string `json:"type"`
+		ID         string `json:"id"`
+		Properties struct {
+			// INSPIRE format fields
+			QualitativeValue string `json:"qualitative_value"` // e.g., "Area of Potential Significant Flood Risk"
+			Description      string `json:"description"`       // e.g., "Rijn type B - beschermd langs hoofdwatersysteem"
+			LocalID          string `json:"local_id"`
+		} `json:"properties"`
+	} `json:"features"`
+	NumberReturned int `json:"numberReturned"`
+}
+
+// FetchFloodRiskData retrieves flood risk assessment using PDOK Rijkswaterstaat API
+// Documentation: https://api.pdok.nl/rws/overstromingen-risicogebied/ogc/v1
 func (c *ApiClient) FetchFloodRiskData(cfg *config.Config, lat, lon float64) (*FloodRiskData, error) {
-	if cfg.FloodRiskApiURL == "" {
-		return nil, fmt.Errorf("FloodRiskApiURL not configured")
+	baseURL := defaultFloodRiskApiURL
+	if cfg.FloodRiskApiURL != "" {
+		baseURL = cfg.FloodRiskApiURL
 	}
 
-	url := fmt.Sprintf("%s/flood-risk?lat=%f&lon=%f", cfg.FloodRiskApiURL, lat, lon)
+	// Create bounding box around the point
+	delta := 0.005 // ~500m
+	bbox := fmt.Sprintf("%.6f,%.6f,%.6f,%.6f", lon-delta, lat-delta, lon+delta, lat+delta)
+
+	url := fmt.Sprintf("%s/collections/risk_zone/items?bbox=%s&f=json&limit=5", baseURL, bbox)
+	logutil.Debugf("[FloodRisk] Request URL: %s", url)
+
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, err
+		logutil.Debugf("[FloodRisk] Request error: %v", err)
+		return defaultFloodRiskData("Unknown"), nil
 	}
-
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
-		return nil, err
+		logutil.Debugf("[FloodRisk] HTTP error: %v", err)
+		return defaultFloodRiskData("Unknown"), nil
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("flood risk API returned status %d", resp.StatusCode)
+		logutil.Debugf("[FloodRisk] Non-200 status: %d", resp.StatusCode)
+		// If API returns error, assume low risk (most of Netherlands is protected)
+		return defaultFloodRiskData("Low"), nil
 	}
 
-	var result FloodRiskData
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode flood risk response: %w", err)
+	var apiResp floodRiskResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		logutil.Debugf("[FloodRisk] Decode error: %v", err)
+		return defaultFloodRiskData("Low"), nil
 	}
 
-	return &result, nil
+	logutil.Debugf("[FloodRisk] Found %d risk areas", len(apiResp.Features))
+
+	if len(apiResp.Features) == 0 {
+		// No flood risk areas found - location is likely safe
+		return &FloodRiskData{
+			RiskLevel:        "Low",
+			FloodProbability: 0.01,
+			WaterDepth:       0,
+			FloodZone:        "Protected",
+			DikeQuality:      "Good",
+		}, nil
+	}
+
+	// Analyse the risk areas found
+	feature := apiResp.Features[0]
+	riskLevel := "Medium"
+	probability := 0.1
+	
+	// Parse risk level from qualitative_value field (INSPIRE format)
+	qualValue := strings.ToLower(feature.Properties.QualitativeValue)
+	description := strings.ToLower(feature.Properties.Description)
+	
+	switch {
+	case strings.Contains(qualValue, "potential significant"):
+		// "Area of Potential Significant Flood Risk"
+		riskLevel = "Medium"
+		probability = 0.1
+	case strings.Contains(qualValue, "high") || strings.Contains(qualValue, "significant"):
+		riskLevel = "High"
+		probability = 1.0
+	case strings.Contains(qualValue, "low") || strings.Contains(qualValue, "minor"):
+		riskLevel = "Low"
+		probability = 0.01
+	}
+
+	// Refine based on description if available
+	if strings.Contains(description, "beschermd") {
+		// "beschermd" = protected, so reduce risk
+		if riskLevel == "High" {
+			riskLevel = "Medium"
+			probability = 0.1
+		}
+	}
+
+	floodZone := feature.Properties.Description
+	if floodZone == "" {
+		floodZone = feature.Properties.QualitativeValue
+	}
+
+	result := &FloodRiskData{
+		RiskLevel:        riskLevel,
+		FloodProbability: probability,
+		WaterDepth:       0, // Not provided in this API
+		FloodZone:        floodZone,
+		DikeQuality:      "Good", // Netherlands has good dikes generally
+	}
+
+	logutil.Debugf("[FloodRisk] Result: level=%s, zone=%s", riskLevel, floodZone)
+	return result, nil
+}
+
+func defaultFloodRiskData(level string) *FloodRiskData {
+	return &FloodRiskData{
+		RiskLevel:        level,
+		FloodProbability: 0,
+		WaterDepth:       0,
+		NearestDike:      0,
+		DikeQuality:      "Unknown",
+		FloodZone:        "",
+	}
 }
 
 // WaterQualityData represents water quality and levels

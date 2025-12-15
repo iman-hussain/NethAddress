@@ -226,8 +226,8 @@ func (pa *PropertyAggregator) fetchPropertyData(data *ComprehensivePropertyData,
 		}
 	}
 
-	// Monument Status
-	if monument, err := pa.apiClient.FetchMonumentData(pa.config, bagID); err == nil {
+	// Monument Status - use coordinate-based lookup for national coverage
+	if monument, err := pa.apiClient.FetchMonumentDataByCoords(pa.config, lat, lon); err == nil {
 		data.MonumentStatus = monument
 		data.DataSources = append(data.DataSources, "Monument Register")
 	} else {

@@ -6,7 +6,11 @@ import (
 	"net/http"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
+	"github.com/iman-hussain/AddressIQ/backend/pkg/logutil"
 )
+
+// Default PDOK CBS API endpoint (free, no auth required)
+const defaultCBSBuurtenApiURL = "https://api.pdok.nl/cbs/wijken-en-buurten-2024/ogc/v1"
 
 // CBSPopulationData represents grid-based population data
 type CBSPopulationData struct {
@@ -26,102 +30,162 @@ type PopulationDemographics struct {
 	Age65Plus int `json:"age65plus"`
 }
 
-// FetchCBSPopulationData retrieves grid population data for target market analysis
-// Documentation: https://api.pdok.nl/cbs/population-distribution
+// cbsBuurtenResponse represents the PDOK CBS wijken-en-buurten OGC API response
+type cbsBuurtenResponse struct {
+	Type     string `json:"type"`
+	Features []struct {
+		Type       string `json:"type"`
+		ID         string `json:"id"`
+		Properties struct {
+			Buurtcode                   string  `json:"buurtcode"`
+			Buurtnaam                   string  `json:"buurtnaam"`
+			Wijkcode                    string  `json:"wijkcode"`
+			Gemeentecode                string  `json:"gemeentecode"`
+			Gemeentenaam                string  `json:"gemeentenaam"`
+			AantalInwoners              *int    `json:"aantalInwoners"`
+			AantalHuishoudens           *int    `json:"aantalHuishoudens"`
+			GemiddeldeHuishoudensgrootte *float64 `json:"gemiddeldeHuishoudensgrootte"`
+			Bevolkingsdichtheid         *int    `json:"bevolkingsdichtheid"`
+			// Age distribution fields (percentage * 10)
+			K0Tot15Jaar   *int `json:"k0Tot15Jaar"`
+			K15Tot25Jaar  *int `json:"k15Tot25Jaar"`
+			K25Tot45Jaar  *int `json:"k25Tot45Jaar"`
+			K45Tot65Jaar  *int `json:"k45Tot65Jaar"`
+			K65JaarOfOuder *int `json:"k65JaarOfOuder"`
+		} `json:"properties"`
+	} `json:"features"`
+	NumberReturned int `json:"numberReturned"`
+}
+
+// FetchCBSPopulationData retrieves population data using the free PDOK CBS OGC API
+// Documentation: https://api.pdok.nl/cbs/wijken-en-buurten-2024/ogc/v1
 func (c *ApiClient) FetchCBSPopulationData(cfg *config.Config, lat, lon float64) (*CBSPopulationData, error) {
-	// Return empty data if not configured
-	if cfg.CBSPopulationApiURL == "" {
-		return &CBSPopulationData{
-			TotalPopulation: 0,
-			AgeDistribution: make(map[string]int),
-			Households:      0,
-			AverageHHSize:   0,
-			Demographics: PopulationDemographics{
-				Age0to14:  0,
-				Age15to24: 0,
-				Age25to44: 0,
-				Age45to64: 0,
-				Age65Plus: 0,
-			},
-		}, nil
+	// Use PDOK CBS API (free, no auth required)
+	baseURL := defaultCBSBuurtenApiURL
+	if cfg.CBSPopulationApiURL != "" {
+		baseURL = cfg.CBSPopulationApiURL
 	}
 
-	url := fmt.Sprintf("%s/population?lat=%f&lon=%f", cfg.CBSPopulationApiURL, lat, lon)
+	// Create a small bounding box around the point (approximately 200m)
+	delta := 0.001 // ~100m in latitude
+	bbox := fmt.Sprintf("%.6f,%.6f,%.6f,%.6f", lon-delta, lat-delta, lon+delta, lat+delta)
+
+	url := fmt.Sprintf("%s/collections/buurten/items?bbox=%s&f=json&limit=1", baseURL, bbox)
+	logutil.Debugf("[CBS Population] Request URL: %s", url)
+
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		// Return empty data on error
-		return &CBSPopulationData{
-			TotalPopulation: 0,
-			AgeDistribution: make(map[string]int),
-			Households:      0,
-			AverageHHSize:   0,
-			Demographics: PopulationDemographics{
-				Age0to14:  0,
-				Age15to24: 0,
-				Age25to44: 0,
-				Age45to64: 0,
-				Age65Plus: 0,
-			},
-		}, nil
+		logutil.Debugf("[CBS Population] Request error: %v", err)
+		return emptyPopulationData(), nil
 	}
-
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
-		// Return empty data on error
-		return &CBSPopulationData{
-			TotalPopulation: 0,
-			AgeDistribution: make(map[string]int),
-			Households:      0,
-			AverageHHSize:   0,
-			Demographics: PopulationDemographics{
-				Age0to14:  0,
-				Age15to24: 0,
-				Age25to44: 0,
-				Age45to64: 0,
-				Age65Plus: 0,
-			},
-		}, nil
+		logutil.Debugf("[CBS Population] HTTP error: %v", err)
+		return emptyPopulationData(), nil
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		// Return empty data on non-200 status
-		return &CBSPopulationData{
-			TotalPopulation: 0,
-			AgeDistribution: make(map[string]int),
-			Households:      0,
-			AverageHHSize:   0,
-			Demographics: PopulationDemographics{
-				Age0to14:  0,
-				Age15to24: 0,
-				Age25to44: 0,
-				Age45to64: 0,
-				Age65Plus: 0,
-			},
-		}, nil
+		logutil.Debugf("[CBS Population] Non-200 status: %d", resp.StatusCode)
+		return emptyPopulationData(), nil
 	}
 
-	var result CBSPopulationData
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		// Return empty data on parse error
-		return &CBSPopulationData{
-			TotalPopulation: 0,
-			AgeDistribution: make(map[string]int),
-			Households:      0,
-			AverageHHSize:   0,
-			Demographics: PopulationDemographics{
-				Age0to14:  0,
-				Age15to24: 0,
-				Age25to44: 0,
-				Age45to64: 0,
-				Age65Plus: 0,
-			},
-		}, nil
+	var apiResp cbsBuurtenResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		logutil.Debugf("[CBS Population] Decode error: %v", err)
+		return emptyPopulationData(), nil
 	}
 
-	return &result, nil
+	if len(apiResp.Features) == 0 {
+		logutil.Debugf("[CBS Population] No features found for coordinates")
+		return emptyPopulationData(), nil
+	}
+
+	props := apiResp.Features[0].Properties
+	logutil.Debugf("[CBS Population] Found buurt: %s (%s)", props.Buurtnaam, props.Buurtcode)
+
+	// Extract population data, handling nil pointers
+	population := 0
+	if props.AantalInwoners != nil {
+		population = *props.AantalInwoners
+	}
+
+	households := 0
+	if props.AantalHuishoudens != nil {
+		households = *props.AantalHuishoudens
+	}
+
+	avgHHSize := 0.0
+	if props.GemiddeldeHuishoudensgrootte != nil {
+		avgHHSize = *props.GemiddeldeHuishoudensgrootte
+	}
+
+	// Calculate age distribution from percentages
+	// CBS stores values as percentage * 10 (e.g., 150 = 15%)
+	age0to14 := 0
+	age15to24 := 0
+	age25to44 := 0
+	age45to64 := 0
+	age65plus := 0
+
+	if population > 0 {
+		if props.K0Tot15Jaar != nil {
+			age0to14 = (population * (*props.K0Tot15Jaar)) / 1000
+		}
+		if props.K15Tot25Jaar != nil {
+			age15to24 = (population * (*props.K15Tot25Jaar)) / 1000
+		}
+		if props.K25Tot45Jaar != nil {
+			age25to44 = (population * (*props.K25Tot45Jaar)) / 1000
+		}
+		if props.K45Tot65Jaar != nil {
+			age45to64 = (population * (*props.K45Tot65Jaar)) / 1000
+		}
+		if props.K65JaarOfOuder != nil {
+			age65plus = (population * (*props.K65JaarOfOuder)) / 1000
+		}
+	}
+
+	result := &CBSPopulationData{
+		TotalPopulation: population,
+		AgeDistribution: map[string]int{
+			"0-14":  age0to14,
+			"15-24": age15to24,
+			"25-44": age25to44,
+			"45-64": age45to64,
+			"65+":   age65plus,
+		},
+		Households:    households,
+		AverageHHSize: avgHHSize,
+		Demographics: PopulationDemographics{
+			Age0to14:  age0to14,
+			Age15to24: age15to24,
+			Age25to44: age25to44,
+			Age45to64: age45to64,
+			Age65Plus: age65plus,
+		},
+	}
+
+	logutil.Debugf("[CBS Population] Result: pop=%d, households=%d", population, households)
+	return result, nil
+}
+
+func emptyPopulationData() *CBSPopulationData {
+	return &CBSPopulationData{
+		TotalPopulation: 0,
+		AgeDistribution: make(map[string]int),
+		Households:      0,
+		AverageHHSize:   0,
+		Demographics: PopulationDemographics{
+			Age0to14:  0,
+			Age15to24: 0,
+			Age25to44: 0,
+			Age45to64: 0,
+			Age65Plus: 0,
+		},
+	}
 }
 
 // CBSStatLineData represents comprehensive socioeconomic data
@@ -231,7 +295,7 @@ func (c *ApiClient) FetchCBSStatLineData(cfg *config.Config, regionCode string) 
 	}, nil
 }
 
-// CBSSquareStatsData represents hyperlocal 100x100m grid statistics
+// CBSSquareStatsData represents hyperlocal neighbourhood statistics
 type CBSSquareStatsData struct {
 	GridID         string  `json:"gridId"`
 	Population     int     `json:"population"`
@@ -241,71 +305,117 @@ type CBSSquareStatsData struct {
 	HousingDensity int     `json:"housingDensity"` // units per hectare
 }
 
-// FetchCBSSquareStats retrieves 100x100m microgrid statistics
-// Documentation: https://api.store (CBS Square Statistics)
+// cbsSquareResponse for parsing CBS grid statistics
+type cbsSquareResponse struct {
+	Type     string `json:"type"`
+	Features []struct {
+		Type       string `json:"type"`
+		ID         string `json:"id"`
+		Properties struct {
+			Buurtcode                   string   `json:"buurtcode"`
+			AantalInwoners              *int     `json:"aantalInwoners"`
+			AantalHuishoudens           *int     `json:"aantalHuishoudens"`
+			GemiddeldeWozWaardeWoning   *int     `json:"gemiddeldeWozWaardeWoning"`
+			Omgevingsadressendichtheid  *int     `json:"omgevingsadressendichtheid"`
+			// Income data (stored as x100)
+			GemHuishoudinkomen          *int     `json:"gemHuishoudinkomen"`
+		} `json:"properties"`
+	} `json:"features"`
+}
+
+// FetchCBSSquareStats retrieves neighbourhood-level statistics using PDOK CBS API
+// Documentation: https://api.pdok.nl/cbs/wijken-en-buurten-2024/ogc/v1
 func (c *ApiClient) FetchCBSSquareStats(cfg *config.Config, lat, lon float64) (*CBSSquareStatsData, error) {
-	// Return empty data if not configured
-	if cfg.CBSSquareStatsApiURL == "" {
-		return &CBSSquareStatsData{
-			GridID:         "",
-			Population:     0,
-			Households:     0,
-			AverageWOZ:     0,
-			AverageIncome:  0,
-			HousingDensity: 0,
-		}, nil
+	// Use PDOK CBS API (free, no auth required)
+	baseURL := defaultCBSBuurtenApiURL
+	if cfg.CBSSquareStatsApiURL != "" {
+		baseURL = cfg.CBSSquareStatsApiURL
 	}
 
-	url := fmt.Sprintf("%s/square-stats?lat=%f&lon=%f", cfg.CBSSquareStatsApiURL, lat, lon)
+	// Create a small bounding box around the point
+	delta := 0.001
+	bbox := fmt.Sprintf("%.6f,%.6f,%.6f,%.6f", lon-delta, lat-delta, lon+delta, lat+delta)
+
+	url := fmt.Sprintf("%s/collections/buurten/items?bbox=%s&f=json&limit=1", baseURL, bbox)
+	logutil.Debugf("[CBS Square] Request URL: %s", url)
+
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return &CBSSquareStatsData{
-			GridID:         "",
-			Population:     0,
-			Households:     0,
-			AverageWOZ:     0,
-			AverageIncome:  0,
-			HousingDensity: 0,
-		}, nil
+		logutil.Debugf("[CBS Square] Request error: %v", err)
+		return emptySquareStats(), nil
 	}
-
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
-		return &CBSSquareStatsData{
-			GridID:         "",
-			Population:     0,
-			Households:     0,
-			AverageWOZ:     0,
-			AverageIncome:  0,
-			HousingDensity: 0,
-		}, nil
+		logutil.Debugf("[CBS Square] HTTP error: %v", err)
+		return emptySquareStats(), nil
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return &CBSSquareStatsData{
-			GridID:         "",
-			Population:     0,
-			Households:     0,
-			AverageWOZ:     0,
-			AverageIncome:  0,
-			HousingDensity: 0,
-		}, nil
+		logutil.Debugf("[CBS Square] Non-200 status: %d", resp.StatusCode)
+		return emptySquareStats(), nil
 	}
 
-	var result CBSSquareStatsData
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return &CBSSquareStatsData{
-			GridID:         "",
-			Population:     0,
-			Households:     0,
-			AverageWOZ:     0,
-			AverageIncome:  0,
-			HousingDensity: 0,
-		}, nil
+	var apiResp cbsSquareResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		logutil.Debugf("[CBS Square] Decode error: %v", err)
+		return emptySquareStats(), nil
 	}
 
-	return &result, nil
+	if len(apiResp.Features) == 0 {
+		logutil.Debugf("[CBS Square] No features found")
+		return emptySquareStats(), nil
+	}
+
+	props := apiResp.Features[0].Properties
+	
+	population := 0
+	if props.AantalInwoners != nil {
+		population = *props.AantalInwoners
+	}
+
+	households := 0
+	if props.AantalHuishoudens != nil {
+		households = *props.AantalHuishoudens
+	}
+
+	avgWOZ := 0.0
+	if props.GemiddeldeWozWaardeWoning != nil {
+		avgWOZ = float64(*props.GemiddeldeWozWaardeWoning) * 1000 // Convert from k EUR
+	}
+
+	density := 0
+	if props.Omgevingsadressendichtheid != nil {
+		density = *props.Omgevingsadressendichtheid
+	}
+
+	avgIncome := 0.0
+	if props.GemHuishoudinkomen != nil {
+		avgIncome = float64(*props.GemHuishoudinkomen) * 100 // Convert from x100
+	}
+
+	result := &CBSSquareStatsData{
+		GridID:         props.Buurtcode,
+		Population:     population,
+		Households:     households,
+		AverageWOZ:     avgWOZ,
+		AverageIncome:  avgIncome,
+		HousingDensity: density,
+	}
+
+	logutil.Debugf("[CBS Square] Result: grid=%s, pop=%d, woz=%.0f", props.Buurtcode, population, avgWOZ)
+	return result, nil
+}
+
+func emptySquareStats() *CBSSquareStatsData {
+	return &CBSSquareStatsData{
+		GridID:         "",
+		Population:     0,
+		Households:     0,
+		AverageWOZ:     0,
+		AverageIncome:  0,
+		HousingDensity: 0,
+	}
 }
