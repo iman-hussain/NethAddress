@@ -316,7 +316,7 @@
         .card-header-title {
             color: var(--text-secondary);
             font-weight: 600;
-            font-size: 0.9375rem;
+            font-size: 1.0625rem;
             display: flex;
             align-items: center;
             gap: 0.5rem;
@@ -367,6 +367,12 @@
         .metric-secondary strong {
             color: var(--text-primary);
             font-weight: 600;
+        }
+        .timestamp {
+            font-size: 0.75rem;
+            font-weight: 400;
+            color: var(--text-muted);
+            opacity: 0.8;
         }
 
         /* Status Badges */
@@ -854,28 +860,66 @@
             }
         });
 
+        // Format timestamp for display
+        function formatTimestamp(ts) {
+            if (!ts) return '';
+            try {
+                const date = new Date(ts);
+                if (isNaN(date.getTime())) return '';
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMs / 3600000);
+                const diffDays = Math.floor(diffMs / 86400000);
+
+                if (diffMins < 1) return 'just now';
+                if (diffMins < 60) return `${diffMins}m ago`;
+                if (diffHours < 24) return `${diffHours}h ago`;
+                if (diffDays < 7) return `${diffDays}d ago`;
+                return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+            } catch (e) {
+                return '';
+            }
+        }
+
         function formatApiData(apiName, data) {
             if (!data) return '';
 
             switch (apiName) {
                 case 'KNMI Weather':
+                    const windDir = data.windDirection || 0;
+                    const windDirName = ['N','NE','E','SE','S','SW','W','NW'][Math.round(windDir / 45) % 8] || '';
+                    const weatherTs = formatTimestamp(data.lastUpdated);
+                    const forecast = data.rainfallForecast || [];
+                    const forecastSum = forecast.reduce((a, b) => a + b, 0);
                     return `<div class="metric-display">
                         <div class="metric-value">${data.temperature || 0}°C</div>
-                        <div class="metric-label">Current Temperature</div>
+                        <div class="metric-label">Temperature${weatherTs ? ` <span class="timestamp">(${weatherTs})</span>` : ''}</div>
                         <div class="metric-secondary">
-                            💨 <strong>${data.windSpeed || 0}</strong> km/h &nbsp;|&nbsp;
-                            💧 <strong>${data.humidity || 0}</strong>% &nbsp;|&nbsp;
-                            🌧️ <strong>${data.precipitation || 0}</strong> mm
+                            💨 <strong>${data.windSpeed || 0}</strong> km/h ${windDirName} &nbsp;|&nbsp;
+                            💧 <strong>${data.humidity || 0}</strong>%
                         </div>
+                        <div class="metric-secondary">
+                            🌧️ Now: <strong>${data.precipitation || 0}</strong> mm &nbsp;|&nbsp;
+                            ⏳ 6h: <strong>${forecastSum.toFixed(1)}</strong> mm
+                        </div>
+                        ${data.pressure ? `<div class="metric-secondary">📊 Pressure: <strong>${data.pressure.toFixed(0)}</strong> hPa</div>` : ''}
                     </div>`;
 
                 case 'KNMI Solar':
+                    const peakHours = data.sunshineHours || 0;
+                    const radiation = data.solarRadiation || 0;
+                    const uv = data.uvIndex || 0;
+                    const uvClass = uv <= 2 ? 'good' : uv <= 5 ? 'moderate' : 'poor';
                     return `<div class="metric-display">
-                        <div class="metric-value">${(data.solarRadiation || 0).toFixed(0)} <span style="font-size: 1rem; font-weight: 500;">W/m²</span></div>
+                        <div class="metric-value">${radiation.toFixed(0)} <span style="font-size: 1rem; font-weight: 500;">W/m²</span></div>
                         <div class="metric-label">Solar Radiation</div>
                         <div class="metric-secondary">
-                            ☀️ <strong>${(data.sunshineHours || 0).toFixed(1)}</strong>h sunshine &nbsp;|&nbsp;
-                            🕶️ UV Index: <strong>${(data.uvIndex || 0).toFixed(1)}</strong>
+                            ☀️ Sunshine: <strong>${peakHours.toFixed(1)}</strong>h today &nbsp;|&nbsp;
+                            🕶️ UV: <span class="status-badge ${uvClass}">${uv.toFixed(1)}</span>
+                        </div>
+                        <div class="metric-secondary">
+                            ⚡ Est. yield: <strong>${(radiation * 0.15 * peakHours / 1000).toFixed(2)}</strong> kWh/m²/day
                         </div>
                     </div>`;
 
@@ -883,14 +927,38 @@
                     const aqi = data.aqi || 0;
                     const category = data.category || 'Unknown';
                     const aqiBadgeClass = category === 'Good' ? 'good' : category === 'Moderate' ? 'moderate' : 'poor';
+                    const aqiEmoji = category === 'Good' ? '😊' : category === 'Moderate' ? '😐' : category === 'Poor' ? '😷' : '❓';
+                    const aqiTs = formatTimestamp(data.lastUpdated);
+                    const stationName = data.stationName || '';
+                    const stationDistance = data.stationDistance || data.distance || 0;
+                    const measurements = data.measurements || [];
+
+                    // Get key pollutants
+                    const pm25 = measurements.find(m => m.parameter === 'PM25' || m.parameter === 'pm25');
+                    const pm10 = measurements.find(m => m.parameter === 'PM10' || m.parameter === 'pm10');
+                    const no2 = measurements.find(m => m.parameter === 'NO2' || m.parameter === 'no2');
+                    const o3 = measurements.find(m => m.parameter === 'O3' || m.parameter === 'o3');
+
+                    // Pollutant quality indicators
+                    const pm25Class = pm25 ? (pm25.value <= 10 ? 'good' : pm25.value <= 25 ? 'moderate' : 'poor') : '';
+                    const pm10Class = pm10 ? (pm10.value <= 20 ? 'good' : pm10.value <= 50 ? 'moderate' : 'poor') : '';
+                    const no2Class = no2 ? (no2.value <= 40 ? 'good' : no2.value <= 100 ? 'moderate' : 'poor') : '';
+
                     return `<div class="metric-display">
                         <div class="metric-value">${aqi}</div>
-                        <div class="metric-label">Air Quality Index</div>
+                        <div class="metric-label">🌬️ Air Quality Index${aqiTs ? ` <span class="timestamp">(${aqiTs})</span>` : ''}</div>
                         <div style="margin-top: 0.5rem;">
-                            <span class="status-badge ${aqiBadgeClass}">${category}</span>
+                            <span class="status-badge ${aqiBadgeClass}">${aqiEmoji} ${category}</span>
                         </div>
-                        ${data.measurements && data.measurements.length > 0 ?
-                            `<div class="metric-secondary">${data.measurements.slice(0, 3).map(m => `${m.parameter}: <strong>${m.value}</strong>${m.unit}`).join(' &nbsp;|&nbsp; ')}</div>` : ''}
+                        <div class="metric-secondary" style="margin-top: 0.25rem;">
+                            ${pm25 ? `🔴 PM2.5: <span class="status-badge ${pm25Class}" style="font-size: 0.75rem; padding: 2px 6px;"><strong>${pm25.value.toFixed(1)}</strong></span>` : ''}
+                            ${pm10 ? ` &nbsp;|&nbsp; 🟠 PM10: <span class="status-badge ${pm10Class}" style="font-size: 0.75rem; padding: 2px 6px;"><strong>${pm10.value.toFixed(1)}</strong></span>` : ''}
+                        </div>
+                        <div class="metric-secondary" style="margin-top: 0.25rem;">
+                            ${no2 ? `🟡 NO₂: <span class="status-badge ${no2Class}" style="font-size: 0.75rem; padding: 2px 6px;"><strong>${no2.value.toFixed(1)}</strong></span>` : ''}
+                            ${o3 ? ` &nbsp;|&nbsp; 🟢 O₃: <strong>${o3.value.toFixed(1)}</strong> ${o3.unit || 'µg/m³'}` : ''}
+                        </div>
+                        ${stationName ? `<div class="metric-secondary" style="margin-top: 0.25rem;">📍 Station: <strong>${stationName}</strong>${stationDistance > 0 ? ` (${Math.round(stationDistance)}m)` : ''}</div>` : ''}
                     </div>`;
 
                 case 'CBS Population':
@@ -899,40 +967,73 @@
                     const households = data.households || 0;
                     const avgHouseholdSize = data.averageHouseholdSize || 0;
                     const ageDist = data.ageDistribution || data.demographics || {};
+                    const demog = data.demographics || {};
+                    const popNeighbourhood = data.neighbourhoodName || '';
+                    const popMunicipality = data.municipalityName || '';
+                    const popDensity = data.populationDensity || 0;
 
-                    let ageBreakdown = '';
-                    if (Object.keys(ageDist).length > 0) {
-                        const ageLabels = Object.keys(ageDist).slice(0, 3);
-                        ageBreakdown = ageLabels.map(k => `${k}: <strong>${ageDist[k]}</strong>`).join(' &nbsp;|&nbsp; ');
-                    }
+                    // Build location string
+                    const popLocationStr = popNeighbourhood && popMunicipality
+                        ? `${popNeighbourhood}, ${popMunicipality}`
+                        : popNeighbourhood || popMunicipality || '';
 
                     return `<div class="metric-display">
                         <div class="metric-value">${pop.toLocaleString()}</div>
-                        <div class="metric-label">Residents in Area</div>
-                        <div class="metric-secondary">
+                        <div class="metric-label">👥 Residents ${popNeighbourhood ? `in ${popNeighbourhood}` : 'in Neighbourhood'}</div>
+                        ${popLocationStr ? `<div class="metric-secondary">
+                            📍 <strong>${popLocationStr}</strong> (CBS Buurt)
+                        </div>` : ''}
+                        <div class="metric-secondary"${popLocationStr ? ' style="margin-top: 0.25rem;"' : ''}>
                             🏠 <strong>${households.toLocaleString()}</strong> households
-                            ${avgHouseholdSize ? ` &nbsp;|&nbsp; 👥 Avg size: <strong>${avgHouseholdSize}</strong>` : ''}
+                            ${avgHouseholdSize ? ` &nbsp;|&nbsp; 👥 <strong>${avgHouseholdSize.toFixed(1)}</strong> avg/hh` : ''}
                         </div>
-                        ${ageBreakdown ? `<div class="metric-secondary" style="margin-top: 0.25rem;">${ageBreakdown}</div>` : ''}
+                        ${Object.keys(ageDist).length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            👶 0-14: <strong>${ageDist['0-14'] || demog.age0to14 || 0}</strong> &nbsp;|&nbsp;
+                            👨 25-44: <strong>${ageDist['25-44'] || demog.age25to44 || 0}</strong> &nbsp;|&nbsp;
+                            👴 65+: <strong>${ageDist['65+'] || demog.age65plus || 0}</strong>
+                        </div>` : ''}
+                        <div class="metric-secondary" style="margin-top: 0.25rem;">
+                            📊 Density: <strong>${popDensity > 0 ? popDensity.toLocaleString() : '~' + pop.toLocaleString()}</strong> per km²
+                        </div>
+                        <div class="metric-secondary timestamp" style="margin-top: 0.25rem; font-size: 0.7rem;">
+                            ℹ️ CBS 'Buurt' = neighbourhood statistical area (variable size, not fixed grid)
+                        </div>
                     </div>`;
 
                 case 'CBS Square Statistics':
-                    // API returns: gridId, population, households, averageWOZ, averageIncome, housingDensity
+                    // API returns: gridId, population, households, averageWOZ, averageIncome, housingDensity, neighbourhoodName, municipalityName
                     const sqPop = data.population || 0;
                     const sqHouseholds = data.households || 0;
                     const sqDensity = data.housingDensity || 0;
                     const sqWOZ = data.averageWOZ || 0;
+                    const sqIncome = data.averageIncome || 0;
+                    const sqGridId = data.gridId || '';
+                    const sqNeighbourhood = data.neighbourhoodName || '';
+                    const sqMunicipality = data.municipalityName || '';
+
+                    // Build location string
+                    const sqLocationStr = sqNeighbourhood && sqMunicipality
+                        ? `${sqNeighbourhood}, ${sqMunicipality}`
+                        : sqNeighbourhood || sqMunicipality || '';
 
                     return `<div class="metric-display">
                         <div class="metric-value">${sqPop.toLocaleString()}</div>
-                        <div class="metric-label">Population (Grid Area)</div>
-                        <div class="metric-secondary">
-                            🏠 <strong>${sqHouseholds.toLocaleString()}</strong> households &nbsp;|&nbsp;
-                            📊 Density: <strong>${sqDensity.toLocaleString()}</strong>/km²
-                        </div>
-                        ${sqWOZ > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
-                            💰 Avg WOZ: <strong>€${sqWOZ.toLocaleString()}</strong>
+                        <div class="metric-label">Population ${sqNeighbourhood ? `in ${sqNeighbourhood}` : 'in Area'}</div>
+                        ${sqLocationStr ? `<div class="metric-secondary">
+                            📍 <strong>${sqLocationStr}</strong> (CBS Buurt)
                         </div>` : ''}
+                        <div class="metric-secondary"${sqLocationStr ? ' style="margin-top: 0.25rem;"' : ''}>
+                            🏠 <strong>${sqHouseholds.toLocaleString()}</strong> households &nbsp;|&nbsp;
+                            📊 <strong>${sqDensity.toLocaleString()}</strong> per km²
+                        </div>
+                        ${sqWOZ > 0 || sqIncome > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            ${sqWOZ > 0 ? `💰 WOZ: <strong>€${sqWOZ.toLocaleString()}</strong>` : ''}
+                            ${sqIncome > 0 ? ` &nbsp;|&nbsp; 💵 Income: <strong>€${sqIncome.toLocaleString()}</strong>` : ''}
+                        </div>` : ''}
+                        <div class="metric-secondary timestamp" style="margin-top: 0.25rem; font-size: 0.7rem;">
+                            ℹ️ CBS 'Buurt' = neighbourhood statistical area (variable size, not fixed grid)
+                        </div>
+                        ${sqGridId ? `<div class="metric-secondary" style="font-size: 0.7rem; opacity: 0.6;">Grid ref: ${sqGridId}</div>` : ''}
                     </div>`;
 
                 case 'Green Spaces':
@@ -942,20 +1043,28 @@
                     const greenPct = data.greenPercentage || 0;
                     const treeCanopy = data.treeCanopyCover || 0;
                     const greenSpaceCount = greenSpacesArr.length;
-                    const greenTypes = [...new Set(greenSpacesArr.map(s => s.type).filter(t => t))].slice(0, 3);
+                    const greenTypes = [...new Set(greenSpacesArr.map(s => s.type).filter(t => t))];
+                    const nearestPark = data.nearestPark || '';
+                    const parkDist = data.parkDistance || 0;
+
+                    // Calculate green score
+                    const greenScore = Math.min(100, Math.round(greenPct * 10 + treeCanopy * 10));
 
                     return `<div class="metric-display">
                         <div class="metric-value">${totalGreenArea.toLocaleString()} <span style="font-size: 1rem; font-weight: 500;">m²</span></div>
-                        <div class="metric-label">Green Space Nearby</div>
+                        <div class="metric-label">🌿 Green Space (500m radius)</div>
                         <div class="metric-secondary">
                             🌳 <strong>${greenSpaceCount}</strong> areas &nbsp;|&nbsp;
-                            📊 <strong>${(greenPct * 100).toFixed(1)}%</strong> green coverage
+                            📊 <strong>${(greenPct * 100).toFixed(1)}%</strong> coverage &nbsp;|&nbsp;
+                            🏆 Score: <strong>${greenScore}</strong>/100
                         </div>
                         <div class="metric-secondary" style="margin-top: 0.25rem;">
                             🌲 Tree canopy: <strong>${(treeCanopy * 100).toFixed(1)}%</strong>
+                            ${nearestPark && parkDist > 0 ? ` &nbsp;|&nbsp; 🏞️ ${nearestPark}: <strong>${Math.round(parkDist)}m</strong>` : ''}
                         </div>
                         ${greenTypes.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
-                            ${greenTypes.map(t => `<span class="status-badge good" style="margin-right: 4px;">${t}</span>`).join('')}
+                            ${greenTypes.slice(0, 4).map(t => `<span class="status-badge good" style="margin-right: 4px; font-size: 0.7rem;">${t}</span>`).join('')}
+                            ${greenTypes.length > 4 ? `<span style="opacity: 0.7;">+${greenTypes.length - 4}</span>` : ''}
                         </div>` : ''}
                     </div>`;
 
@@ -966,18 +1075,37 @@
                     const nearestSecondary = data.nearestSecondarySchool;
                     const avgQuality = data.averageQuality || 0;
                     const schoolCount = allSchools.length;
-                    const schoolTypeSet = [...new Set(allSchools.map(s => s.type).filter(t => t))];
+                    const primaryCount = allSchools.filter(s => s.type === 'Primary' || s.type === 'primary').length;
+                    const secondaryCount = allSchools.filter(s => s.type === 'Secondary' || s.type === 'secondary').length;
+                    const otherCount = schoolCount - primaryCount - secondaryCount;
+                    const publicSchools = allSchools.filter(s => s.sector === 'Public' || s.sector === 'public' || s.isPublic).length;
+                    const privateSchools = allSchools.filter(s => s.sector === 'Private' || s.sector === 'private' || s.isPrivate).length;
+
+                    // Quality indicators
+                    const primaryQualityClass = nearestPrimary?.quality >= 7 ? 'good' : nearestPrimary?.quality >= 5 ? 'moderate' : 'poor';
+                    const secondaryQualityClass = nearestSecondary?.quality >= 7 ? 'good' : nearestSecondary?.quality >= 5 ? 'moderate' : 'poor';
 
                     return `<div class="metric-display">
                         <div class="metric-value">${schoolCount}</div>
-                        <div class="metric-label">Schools Nearby</div>
-                        ${nearestPrimary ? `<div class="metric-secondary">
-                            🏫 Nearest: <strong>${nearestPrimary.name}</strong> (${Math.round(nearestPrimary.distance)}m)
-                        </div>` : ''}
-                        <div class="metric-secondary" style="margin-top: 0.25rem;">
-                            ⭐ Avg quality: <strong>${avgQuality}/10</strong>
-                            ${schoolTypeSet.length > 0 ? ` &nbsp;|&nbsp; ${schoolTypeSet.map(t => `<span class="status-badge good" style="margin-right: 4px;">${t}</span>`).join('')}` : ''}
+                        <div class="metric-label">🎒 Schools (1km radius)</div>
+                        <div class="metric-secondary">
+                            🏫 Primary: <strong>${primaryCount}</strong> &nbsp;|&nbsp;
+                            🎓 Secondary: <strong>${secondaryCount}</strong>
+                            ${otherCount > 0 ? ` &nbsp;|&nbsp; 📚 Other: <strong>${otherCount}</strong>` : ''}
                         </div>
+                        ${publicSchools > 0 || privateSchools > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🏛️ Public: <strong>${publicSchools}</strong> &nbsp;|&nbsp;
+                            🏢 Private: <strong>${privateSchools}</strong> &nbsp;|&nbsp;
+                            ⭐ Avg quality: <strong>${avgQuality.toFixed(1)}</strong>/10
+                        </div>` : `<div class="metric-secondary" style="margin-top: 0.25rem;">⭐ Avg quality: <strong>${avgQuality.toFixed(1)}</strong>/10</div>`}
+                        ${nearestPrimary ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🏫 Nearest primary: <strong>${nearestPrimary.name}</strong> (${Math.round(nearestPrimary.distance)}m)
+                            ${nearestPrimary.quality ? ` <span class="status-badge ${primaryQualityClass}" style="font-size: 0.7rem; padding: 2px 6px;">⭐ ${nearestPrimary.quality.toFixed(1)}</span>` : ''}
+                        </div>` : ''}
+                        ${nearestSecondary ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🎓 Nearest secondary: <strong>${nearestSecondary.name}</strong> (${Math.round(nearestSecondary.distance)}m)
+                            ${nearestSecondary.quality ? ` <span class="status-badge ${secondaryQualityClass}" style="font-size: 0.7rem; padding: 2px 6px;">⭐ ${nearestSecondary.quality.toFixed(1)}</span>` : ''}
+                        </div>` : ''}
                     </div>`;
 
                 case 'Facilities & Amenities':
@@ -986,50 +1114,132 @@
                     const amenitiesScore = data.amenitiesScore || 0;
                     const catCounts = data.categoryCounts || {};
                     const totalFacilities = Object.values(catCounts).reduce((a, b) => a + b, 0) || topFacilities.length;
-                    const categoryNames = Object.keys(catCounts).slice(0, 4);
-                    const nearestFacility = topFacilities[0];
+                    const categoryNames = Object.keys(catCounts);
+                    const scoreClass = amenitiesScore >= 70 ? 'good' : amenitiesScore >= 40 ? 'moderate' : 'poor';
+
+                    // Category emoji mapping
+                    const catEmojis = {
+                        'Dining': '🍽️', 'Restaurant': '🍽️', 'Food': '🍽️',
+                        'Healthcare': '🏥', 'Medical': '🏥', 'Health': '🏥',
+                        'Leisure': '🎭', 'Entertainment': '🎭', 'Recreation': '🎭',
+                        'Retail': '🛒', 'Shopping': '🛒', 'Shop': '🛒',
+                        'Sport': '⚽', 'Sports': '⚽', 'Fitness': '💪',
+                        'Culture': '🎨', 'Museum': '🏛️', 'Library': '📚',
+                        'Education': '🎓', 'Supermarket': '🛒', 'Cafe': '☕'
+                    };
+                    const getCatEmoji = (cat) => catEmojis[cat] || '📍';
+
+                    // Find nearest facility of each category type
+                    const nearestByCategory = {};
+                    topFacilities.forEach(f => {
+                        const cat = f.category || f.type;
+                        if (cat && (!nearestByCategory[cat] || f.distance < nearestByCategory[cat].distance)) {
+                            nearestByCategory[cat] = f;
+                        }
+                    });
 
                     return `<div class="metric-display">
                         <div class="metric-value">${totalFacilities}</div>
-                        <div class="metric-label">Amenities Nearby</div>
+                        <div class="metric-label">🏪 Amenities (500m radius)</div>
                         <div class="metric-secondary">
-                            ⭐ Score: <strong>${amenitiesScore.toFixed(1)}</strong>/100
+                            🏆 Score: <span class="status-badge ${scoreClass}">${amenitiesScore.toFixed(0)}/100</span>
                         </div>
                         ${categoryNames.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
-                            ${categoryNames.map(c => `<span class="status-badge good" style="margin-right: 4px; margin-bottom: 4px;">${c} (${catCounts[c]})</span>`).join('')}
+                            ${categoryNames.slice(0, 6).map(c => `${getCatEmoji(c)} ${c}: <strong>${catCounts[c]}</strong>`).join(' &nbsp;|&nbsp; ')}
                         </div>` : ''}
-                        ${nearestFacility ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
-                            📍 Nearest: <strong>${nearestFacility.name}</strong> (${Math.round(nearestFacility.distance)}m)
-                        </div>` : ''}
+                        ${Object.keys(nearestByCategory).length > 0 ? Object.entries(nearestByCategory).slice(0, 4).map(([cat, f]) =>
+                            `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                                ${getCatEmoji(cat)} Nearest ${cat}: <strong>${f.name}</strong> (${Math.round(f.distance)}m)
+                            </div>`
+                        ).join('') : ''}
                     </div>`;
 
                 case 'openOV Public Transport':
                     // API returns: nearestStops[], connections[]
                     const nearestStops = data.nearestStops || [];
                     const stopCount = nearestStops.length;
-                    const stopTypes = [...new Set(nearestStops.map(s => s.type).filter(t => t))];
-                    const nearestStop = nearestStops[0];
-                    const trainStops = nearestStops.filter(s => s.type === 'Train');
-                    const busStops = nearestStops.filter(s => s.type === 'Bus');
+                    const trainStops = nearestStops.filter(s => s.type === 'Train' || s.type === 'train');
+                    const tramStops = nearestStops.filter(s => s.type === 'Tram' || s.type === 'tram');
+                    const metroStops = nearestStops.filter(s => s.type === 'Metro' || s.type === 'metro');
+                    const busStops = nearestStops.filter(s => s.type === 'Bus' || s.type === 'bus');
+
+                    // Get nearest of each type (sorted by distance)
+                    const nearestTrain = trainStops.sort((a, b) => (a.distance || 0) - (b.distance || 0))[0];
+                    const nearestTram = tramStops.sort((a, b) => (a.distance || 0) - (b.distance || 0))[0];
+                    const nearestMetro = metroStops.sort((a, b) => (a.distance || 0) - (b.distance || 0))[0];
+                    const nearestBus = busStops.sort((a, b) => (a.distance || 0) - (b.distance || 0))[0];
+
+                    // Calculate transit score
+                    const transitScore = Math.min(100, trainStops.length * 20 + metroStops.length * 15 + tramStops.length * 10 + busStops.length * 5);
+                    const transitClass = transitScore >= 60 ? 'good' : transitScore >= 30 ? 'moderate' : 'poor';
 
                     return `<div class="metric-display">
                         <div class="metric-value">${stopCount}</div>
-                        <div class="metric-label">PT Stops Nearby</div>
-                        ${stopTypes.length > 0 ? `<div class="metric-secondary">
-                            ${stopTypes.map(t => `<span class="status-badge good" style="margin-right: 4px;">🚏 ${t} (${t === 'Train' ? trainStops.length : t === 'Bus' ? busStops.length : nearestStops.filter(s => s.type === t).length})</span>`).join('')}
+                        <div class="metric-label">🚏 PT Stops (500m radius)</div>
+                        <div class="metric-secondary">
+                            ${busStops.length > 0 ? `🚌 Bus (<strong>${busStops.length}</strong>)` : ''}
+                            ${trainStops.length > 0 ? ` &nbsp;|&nbsp; 🚆 Train (<strong>${trainStops.length}</strong>)` : ''}
+                            ${tramStops.length > 0 ? ` &nbsp;|&nbsp; 🚊 Tram (<strong>${tramStops.length}</strong>)` : ''}
+                            ${metroStops.length > 0 ? ` &nbsp;|&nbsp; 🚇 Metro (<strong>${metroStops.length}</strong>)` : ''}
+                        </div>
+                        <div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🏆 Transit score: <span class="status-badge ${transitClass}">${transitScore}/100</span>
+                        </div>
+                        ${nearestBus ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🚌 Nearest Bus: <strong>${nearestBus.name}</strong> (${Math.round(nearestBus.distance)}m)
                         </div>` : ''}
-                        ${nearestStop ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
-                            📍 Nearest: <strong>${nearestStop.name}</strong> (${Math.round(nearestStop.distance)}m) - ${nearestStop.type}
+                        ${nearestTram ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🚊 Nearest Tram: <strong>${nearestTram.name}</strong> (${Math.round(nearestTram.distance)}m)
+                        </div>` : ''}
+                        ${nearestTrain ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🚆 Nearest Train: <strong>${nearestTrain.name}</strong> (${Math.round(nearestTrain.distance)}m)
+                        </div>` : ''}
+                        ${nearestMetro ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🚇 Nearest Metro: <strong>${nearestMetro.name}</strong> (${Math.round(nearestMetro.distance)}m)
                         </div>` : ''}
                     </div>`;
 
                 case 'AHN Height Model':
                     const elevation = data.elevation || data.height || data.hoogte || 0;
+                    const terrainSlope = data.slope || data.terrainSlope || 0;
+                    const aspect = data.aspect || '';
+                    const surroundingMin = data.surroundingMin || data.minElevation || 0;
+                    const surroundingMax = data.surroundingMax || data.maxElevation || 0;
+                    const surroundingAvg = data.surroundingAvg || data.averageElevation || 0;
+                    const elevClass = elevation < 0 ? 'poor' : elevation < 2 ? 'moderate' : 'good';
+                    const floodNote = elevation < 0 ? '⚠️ Below sea level' : elevation < 2 ? '⚠️ Low-lying' : '✅ Elevated';
+
+                    // Calculate flood risk based on elevation
+                    const ahnFloodRisk = elevation < -1 ? 'High' : elevation < 0 ? 'Elevated' : elevation < 2 ? 'Moderate' : 'Low';
+                    const ahnFloodClass = elevation < 0 ? 'poor' : elevation < 2 ? 'moderate' : 'good';
+
+                    // View potential based on relative elevation
+                    const relativeHeight = elevation - surroundingAvg;
+                    const viewPotential = relativeHeight > 5 ? 'Excellent' : relativeHeight > 2 ? 'Good' : relativeHeight > 0 ? 'Moderate' : 'Limited';
+                    const viewClass = relativeHeight > 5 ? 'good' : relativeHeight > 0 ? 'moderate' : 'poor';
+
                     return `<div class="metric-display">
-                        <div class="metric-value">${(elevation).toFixed(1)} <span style="font-size: 1rem; font-weight: 500;">m</span></div>
-                        <div class="metric-label">Elevation (NAP)</div>
+                        <div class="metric-value">${elevation.toFixed(2)} <span style="font-size: 1rem; font-weight: 500;">m NAP</span></div>
+                        <div class="metric-label">⛰️ Ground Elevation</div>
                         <div class="metric-secondary">
-                            📍 Above sea level reference
+                            <span class="status-badge ${elevClass}">${floodNote}</span>
+                        </div>
+                        <div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🌊 Flood risk: <span class="status-badge ${ahnFloodClass}">${ahnFloodRisk}</span>
+                            ${elevation < 0 ? ` &nbsp;|&nbsp; 💧 <strong>${Math.abs(elevation).toFixed(2)}m</strong> below sea level` : ''}
+                        </div>
+                        ${terrainSlope > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            📐 Terrain slope: <strong>${terrainSlope.toFixed(1)}°</strong>${aspect ? ` (${aspect})` : ''}
+                        </div>` : ''}
+                        ${surroundingAvg !== 0 || surroundingMin !== 0 || surroundingMax !== 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🏔️ Surroundings: <strong>${surroundingMin.toFixed(1)}</strong>m – <strong>${surroundingMax.toFixed(1)}</strong>m (avg: ${surroundingAvg.toFixed(1)}m)
+                        </div>` : ''}
+                        <div class="metric-secondary" style="margin-top: 0.25rem;">
+                            👁️ View potential: <span class="status-badge ${viewClass}">${viewPotential}</span>
+                            ${relativeHeight !== 0 ? ` (<strong>${relativeHeight > 0 ? '+' : ''}${relativeHeight.toFixed(1)}m</strong> vs avg)` : ''}
+                        </div>
+                        <div class="metric-secondary timestamp" style="margin-top: 0.25rem; font-size: 0.7rem;">
+                            📍 Relative to Amsterdam Ordnance Datum (NAP)
                         </div>
                     </div>`;
 
@@ -1039,19 +1249,28 @@
                     const noiseCategory = data.noiseCategory || 'Unknown';
                     const noiseBadge = noiseCategory === 'Quiet' ? 'good' : noiseCategory === 'Moderate' ? 'moderate' : noiseCategory === 'Unknown' ? 'moderate' : 'poor';
                     const noiseSources = [];
-                    if (data.roadNoise > 0) noiseSources.push(`🚗 Road: ${data.roadNoise}dB`);
-                    if (data.railNoise > 0) noiseSources.push(`🚂 Rail: ${data.railNoise}dB`);
-                    if (data.aircraftNoise > 0) noiseSources.push(`✈️ Air: ${data.aircraftNoise}dB`);
-                    if (data.industryNoise > 0) noiseSources.push(`🏭 Industry: ${data.industryNoise}dB`);
+                    if (data.roadNoise > 0) noiseSources.push({ type: '🚗 Road', value: data.roadNoise });
+                    if (data.railNoise > 0) noiseSources.push({ type: '🚂 Rail', value: data.railNoise });
+                    if (data.aircraftNoise > 0) noiseSources.push({ type: '✈️ Air', value: data.aircraftNoise });
+                    if (data.industryNoise > 0) noiseSources.push({ type: '🏭 Industry', value: data.industryNoise });
+
+                    // Calculate health impact indicator
+                    const healthImpact = totalNoise > 65 ? 'High risk' : totalNoise > 55 ? 'Moderate risk' : 'Low risk';
+                    const healthClass = totalNoise > 65 ? 'poor' : totalNoise > 55 ? 'moderate' : 'good';
 
                     return `<div class="metric-display">
                         <div class="metric-value">${totalNoise} <span style="font-size: 1rem; font-weight: 500;">dB(A)</span></div>
-                        <div class="metric-label">Total Noise Level</div>
+                        <div class="metric-label">🔊 Total Noise Level (Lden)</div>
                         <div style="margin-top: 0.5rem;">
                             <span class="status-badge ${noiseBadge}">${noiseCategory}</span>
-                            ${data.exceedsLimit ? '<span class="status-badge poor" style="margin-left: 4px;">⚠️ Exceeds Limit</span>' : ''}
+                            ${data.exceedsLimit ? '<span class="status-badge poor" style="margin-left: 4px;">⚠️ Exceeds 55dB</span>' : ''}
                         </div>
-                        ${noiseSources.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">${noiseSources.join(' &nbsp;|&nbsp; ')}</div>` : ''}
+                        ${noiseSources.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            ${noiseSources.map(s => `${s.type}: <strong>${s.value}</strong>dB`).join(' &nbsp;|&nbsp; ')}
+                        </div>` : ''}
+                        <div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🏥 Health: <span class="status-badge ${healthClass}">${healthImpact}</span>
+                        </div>
                     </div>`;
 
                 case 'Parking Availability':
@@ -1061,16 +1280,24 @@
                     const occupancyRate = data.occupancyRate || 0;
                     const parkingZones = data.parkingZones || [];
                     const parkingBadge = occupancyRate < 50 ? 'good' : occupancyRate < 80 ? 'moderate' : 'poor';
+                    const parkingTs = formatTimestamp(data.lastUpdated);
+
+                    // Get zone types
+                    const zoneTypes = [...new Set(parkingZones.map(z => z.type).filter(t => t))];
 
                     return `<div class="metric-display">
                         <div class="metric-value">${totalSpaces > 0 ? availableSpaces : '--'}</div>
-                        <div class="metric-label">Available Parking Spaces</div>
+                        <div class="metric-label">🅿️ Available Spaces${parkingTs ? ` <span class="timestamp">(${parkingTs})</span>` : ''}</div>
                         ${totalSpaces > 0 ? `<div class="metric-secondary">
                             🅿️ <strong>${totalSpaces}</strong> total &nbsp;|&nbsp;
-                            <span class="status-badge ${parkingBadge}">${occupancyRate.toFixed(0)}% occupied</span>
-                        </div>` : '<div class="metric-secondary">🅿️ No parking data available for this area</div>'}
+                            <span class="status-badge ${parkingBadge}">${occupancyRate.toFixed(0)}% full</span>
+                        </div>` : '<div class="metric-secondary">🅿️ No real-time parking data</div>'}
                         ${parkingZones.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
                             📍 <strong>${parkingZones.length}</strong> parking zones nearby
+                            ${zoneTypes.length > 0 ? ` (${zoneTypes.join(', ')})` : ''}
+                        </div>` : ''}
+                        ${totalSpaces > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            📊 Avg wait: <strong>${occupancyRate > 80 ? '10-15' : occupancyRate > 50 ? '5-10' : '< 5'}</strong> min
                         </div>` : ''}
                     </div>`;
 
@@ -1083,38 +1310,63 @@
                     const permits = data.permits || [];
                     const trendBadge = growthTrend === 'Increasing' ? 'good' : growthTrend === 'Stable' ? 'moderate' : growthTrend === 'Unknown' ? 'moderate' : 'poor';
 
+                    // Recent permit details
+                    const recentPermit = permits[0];
+                    const permitTypes = [...new Set(permits.map(p => p.type).filter(t => t))];
+
+                    // Development activity indicator
+                    const activityLevel = totalPermits > 10 ? 'High' : totalPermits > 3 ? 'Moderate' : 'Low';
+
                     return `<div class="metric-display">
                         <div class="metric-value">${totalPermits}</div>
-                        <div class="metric-label">Building Permits (2yr)</div>
+                        <div class="metric-label">Building Permits (2yr, 500m)</div>
                         <div class="metric-secondary">
-                            🏗️ New: <strong>${newConstruction}</strong> &nbsp;|&nbsp;
+                            🏗️ New builds: <strong>${newConstruction}</strong> &nbsp;|&nbsp;
                             🔧 Renovations: <strong>${renovations}</strong>
                         </div>
                         <div class="metric-secondary" style="margin-top: 0.25rem;">
-                            📈 Trend: <span class="status-badge ${trendBadge}">${growthTrend}</span>
+                            📈 Trend: <span class="status-badge ${trendBadge}">${growthTrend}</span> &nbsp;|&nbsp;
+                            Activity: <strong>${activityLevel}</strong>
                         </div>
+                        ${permitTypes.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            Types: ${permitTypes.slice(0, 3).join(', ')}${permitTypes.length > 3 ? ` +${permitTypes.length - 3}` : ''}
+                        </div>` : ''}
+                        ${recentPermit ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            📋 Latest: <strong>${recentPermit.type || 'Permit'}</strong> ${recentPermit.date ? `(${recentPermit.date})` : ''}
+                        </div>` : ''}
                     </div>`;
 
                 case 'CBS StatLine':
                     // API returns: regionCode, regionName, population, averageIncome, employmentRate, educationLevel, housingStock, averageWOZ, year
                     const slRegionName = data.regionName || 'Unknown';
+                    const slRegionCode = data.regionCode || '';
                     const slPopulation = data.population || 0;
                     const slAvgIncome = data.averageIncome || 0;
                     const slEmploymentRate = data.employmentRate || 0;
                     const slEducationLevel = data.educationLevel || 'Unknown';
                     const slAvgWOZ = data.averageWOZ || 0;
+                    const slHousingStock = data.housingStock || 0;
+                    const slYear = data.year || 2024;
+
+                    // Employment indicator
+                    const empClass = slEmploymentRate >= 70 ? 'good' : slEmploymentRate >= 50 ? 'moderate' : 'poor';
 
                     return `<div class="metric-display">
                         <div class="metric-value" style="font-size: 1.5rem;">€${slAvgIncome > 0 ? slAvgIncome.toLocaleString() : '--'}</div>
-                        <div class="metric-label">Avg Household Income</div>
+                        <div class="metric-label">Avg Household Income <span class="timestamp">(${slYear})</span></div>
                         <div class="metric-secondary">
-                            👥 Population: <strong>${slPopulation.toLocaleString()}</strong>
-                            ${slEmploymentRate > 0 ? ` &nbsp;|&nbsp; 💼 Employment: <strong>${slEmploymentRate.toFixed(1)}%</strong>` : ''}
+                            👥 Pop: <strong>${slPopulation.toLocaleString()}</strong> &nbsp;|&nbsp;
+                            🏠 Stock: <strong>${slHousingStock.toLocaleString()}</strong>
                         </div>
-                        ${slAvgWOZ > 0 || slEducationLevel !== 'Unknown' ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
-                            ${slAvgWOZ > 0 ? `💰 Avg WOZ: <strong>€${slAvgWOZ.toLocaleString()}</strong>` : ''}
-                            ${slEducationLevel !== 'Unknown' ? ` &nbsp;|&nbsp; 🎓 Education: <strong>${slEducationLevel}</strong>` : ''}
+                        <div class="metric-secondary" style="margin-top: 0.25rem;">
+                            💼 Employment: <span class="status-badge ${empClass}">${slEmploymentRate.toFixed(1)}%</span>
+                            ${slEducationLevel !== 'Unknown' ? ` &nbsp;|&nbsp; 🎓 <strong>${slEducationLevel}</strong>` : ''}
+                        </div>
+                        ${slAvgWOZ > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            💰 Avg WOZ: <strong>€${slAvgWOZ.toLocaleString()}</strong>
+                            ${slAvgIncome > 0 && slAvgWOZ > 0 ? ` &nbsp;|&nbsp; Ratio: <strong>${(slAvgWOZ / slAvgIncome).toFixed(1)}x</strong> income` : ''}
                         </div>` : ''}
+                        ${slRegionCode ? `<div class="metric-secondary" style="margin-top: 0.25rem; font-size: 0.75rem; opacity: 0.7;">Region: ${slRegionName} (${slRegionCode})</div>` : ''}
                     </div>`;
 
                 case 'Altum Energy & Climate':
@@ -1124,20 +1376,28 @@
                     const efficiencyScore = data.efficiencyScore || 0;
                     const annualEnergyCost = data.annualEnergyCost || 0;
                     const co2Emissions = data.co2Emissions || 0;
+                    const heatLoss = data.heatLoss || 0;
                     const labelClass = ['A++++', 'A+++', 'A++', 'A+', 'A', 'B'].includes(energyLabel) ? 'good' : ['C', 'D'].includes(energyLabel) ? 'moderate' : 'poor';
                     const riskClass = climateRisk === 'Low' ? 'good' : climateRisk === 'Medium' ? 'moderate' : climateRisk === 'Unknown' ? 'moderate' : 'poor';
+
+                    // Monthly cost estimate
+                    const monthlyCost = annualEnergyCost > 0 ? Math.round(annualEnergyCost / 12) : 0;
 
                     return `<div class="metric-display">
                         <div style="margin-bottom: 0.5rem;">
                             <span class="status-badge ${labelClass}" style="font-size: 1.1rem; padding: 8px 16px;">⚡ ${energyLabel}</span>
+                            ${efficiencyScore > 0 ? `<span style="margin-left: 8px; opacity: 0.8;">Score: ${efficiencyScore}/100</span>` : ''}
                         </div>
                         <div class="metric-label">Energy Label</div>
                         <div class="metric-secondary" style="margin-top: 0.5rem;">
                             🌡️ Climate Risk: <span class="status-badge ${riskClass}">${climateRisk}</span>
                         </div>
                         ${annualEnergyCost > 0 || co2Emissions > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
-                            ${annualEnergyCost > 0 ? `💶 €${annualEnergyCost.toLocaleString()}/yr` : ''}
-                            ${co2Emissions > 0 ? ` &nbsp;|&nbsp; 🌍 ${co2Emissions.toLocaleString()} kg CO₂/yr` : ''}
+                            ${annualEnergyCost > 0 ? `💶 <strong>€${monthlyCost}</strong>/mo (€${annualEnergyCost.toLocaleString()}/yr)` : ''}
+                            ${co2Emissions > 0 ? ` &nbsp;|&nbsp; 🌍 <strong>${co2Emissions.toLocaleString()}</strong> kg CO₂/yr` : ''}
+                        </div>` : ''}
+                        ${heatLoss > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🔥 Heat loss: <strong>${heatLoss}</strong> W/m²K
                         </div>` : ''}
                     </div>`;
 
@@ -1148,101 +1408,255 @@
                     const measures = data.recommendedMeasures || [];
                     const totalCO2Savings = data.totalCO2Savings || 0;
                     const totalCostSavings = data.totalCostSavings || 0;
+                    const investmentCost = data.investmentCost || 0;
                     const paybackPeriod = data.paybackPeriod || 0;
 
+                    // Rating improvement class
+                    const improvable = currentRating !== potentialRating && potentialRating !== 'Unknown';
+
+                    // ROI calculation
+                    const roi = investmentCost > 0 && totalCostSavings > 0 ? ((totalCostSavings / investmentCost) * 100).toFixed(0) : 0;
+
                     return `<div class="metric-display">
-                        <div class="metric-value" style="font-size: 1.25rem;">${currentRating} → ${potentialRating}</div>
-                        <div class="metric-label">Sustainability Potential</div>
+                        <div class="metric-value" style="font-size: 1.25rem;">${currentRating} ${improvable ? `→ <span style="color: var(--success);">${potentialRating}</span>` : ''}</div>
+                        <div class="metric-label">Sustainability Rating</div>
                         ${totalCostSavings > 0 || totalCO2Savings > 0 ? `<div class="metric-secondary">
                             ${totalCostSavings > 0 ? `💰 Save <strong>€${totalCostSavings.toLocaleString()}</strong>/yr` : ''}
                             ${totalCO2Savings > 0 ? ` &nbsp;|&nbsp; 🌱 <strong>${totalCO2Savings.toLocaleString()}</strong> kg CO₂` : ''}
                         </div>` : ''}
-                        ${paybackPeriod > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
-                            ⏱️ Payback: <strong>${paybackPeriod.toFixed(1)}</strong> years
+                        ${investmentCost > 0 || paybackPeriod > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            ${investmentCost > 0 ? `💵 Investment: <strong>€${investmentCost.toLocaleString()}</strong>` : ''}
+                            ${paybackPeriod > 0 ? ` &nbsp;|&nbsp; ⏱️ Payback: <strong>${paybackPeriod.toFixed(1)}</strong>yr` : ''}
+                            ${roi > 0 ? ` &nbsp;|&nbsp; 📈 ROI: <strong>${roi}%</strong>/yr` : ''}
                         </div>` : ''}
                         ${measures.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
-                            📋 <strong>${measures.length}</strong> recommended measures
+                            📋 <strong>${measures.length}</strong> measures: ${measures.slice(0, 2).map(m => m.name || m).join(', ')}${measures.length > 2 ? '...' : ''}
                         </div>` : ''}
                     </div>`;
 
                 case 'Flood Risk':
                     const riskLevel = data.riskLevel || 'Unknown';
                     const floodBadgeClass = riskLevel === 'Low' ? 'good' : riskLevel === 'Medium' ? 'moderate' : 'poor';
+                    const zoneName = data.zoneName || data.floodZone || '';
+                    const returnPeriod = data.returnPeriod || 0;
+                    const maxDepth = data.maxDepth || data.waterDepth || 0;
+                    const protectionLevel = data.protectionLevel || '';
+                    const nearestDyke = data.nearestDyke || data.dikeName || '';
+                    const dykeDistance = data.dykeDistance || 0;
+                    const dykeQuality = data.dykeQuality || data.dikeQuality || '';
+                    const dykeHeight = data.dykeHeight || data.dikeHeight || 0;
+                    const evacuationTime = data.evacuationTime || 0;
+                    const floodScenario = data.scenario || data.floodScenario || '';
+
+                    // Dyke quality indicator
+                    const dykeClass = dykeQuality === 'Good' || dykeQuality === 'Excellent' ? 'good' : dykeQuality === 'Moderate' || dykeQuality === 'Fair' ? 'moderate' : dykeQuality ? 'poor' : '';
+
                     return `<div class="metric-display">
                         <div style="margin-bottom: 0.5rem;">
-                            <span class="status-badge ${floodBadgeClass}" style="font-size: 0.9rem; padding: 6px 14px;">${riskLevel} Risk</span>
+                            <span class="status-badge ${floodBadgeClass}" style="font-size: 0.9rem; padding: 6px 14px;">🌊 ${riskLevel} Risk</span>
                         </div>
-                        <div class="metric-label">Flood Risk Assessment</div>
-                        ${data.zoneName ? `<div class="metric-secondary">Zone: <strong>${data.zoneName}</strong></div>` : ''}
+                        <div class="metric-label">🌊 Flood Risk Assessment</div>
+                        ${zoneName ? `<div class="metric-secondary">📍 Flood zone: <strong>${zoneName}</strong></div>` : ''}
+                        ${maxDepth > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            💧 Water depth (scenario): <strong>${maxDepth.toFixed(1)}m</strong>${floodScenario ? ` (${floodScenario})` : ''}
+                        </div>` : ''}
+                        ${returnPeriod > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            📊 Return period: <strong>1 in ${returnPeriod}</strong> years
+                        </div>` : ''}
+                        ${nearestDyke ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🏗️ Nearest dyke: <strong>${nearestDyke}</strong>${dykeDistance > 0 ? ` (${Math.round(dykeDistance)}m)` : ''}
+                        </div>` : ''}
+                        ${dykeQuality || dykeHeight > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            ${dykeQuality ? `🛡️ Dyke quality: <span class="status-badge ${dykeClass}">${dykeQuality}</span>` : ''}
+                            ${dykeHeight > 0 ? ` &nbsp;|&nbsp; 📏 Height: <strong>${dykeHeight.toFixed(1)}m</strong>` : ''}
+                        </div>` : ''}
+                        ${protectionLevel ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🛡️ Protection level: <strong>${protectionLevel}</strong>
+                        </div>` : ''}
+                        ${evacuationTime > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            ⏱️ Evacuation time: <strong>${evacuationTime}</strong> hours
+                        </div>` : ''}
                     </div>`;
 
                 case 'NDW Traffic':
+                    // Handle both array and object data
+                    const trafficData = Array.isArray(data) ? data : [data];
+                    const totalIncidents = trafficData.reduce((sum, t) => sum + (t.incidentCount || 0), 0);
+                    const avgSpeed = trafficData.length > 0 ? trafficData.reduce((sum, t) => sum + (t.averageSpeed || 0), 0) / trafficData.length : 0;
+                    const measurementPoints = trafficData.length;
+                    const congestionLevel = avgSpeed < 30 ? 'High' : avgSpeed < 50 ? 'Moderate' : 'Low';
+                    const congestionClass = avgSpeed < 30 ? 'poor' : avgSpeed < 50 ? 'moderate' : 'good';
+
                     return `<div class="metric-display">
-                        <div class="metric-value">${data.incidentCount || 0}</div>
-                        <div class="metric-label">Traffic Incidents</div>
+                        <div class="metric-value">${avgSpeed > 0 ? avgSpeed.toFixed(0) : '--'} <span style="font-size: 1rem; font-weight: 500;">km/h</span></div>
+                        <div class="metric-label">Average Traffic Speed</div>
                         <div class="metric-secondary">
-                            🚗 Avg speed: <strong>${data.averageSpeed || 'N/A'}</strong> km/h
+                            🚗 Congestion: <span class="status-badge ${congestionClass}">${congestionLevel}</span>
+                            &nbsp;|&nbsp; ⚠️ <strong>${totalIncidents}</strong> incidents
+                        </div>
+                        <div class="metric-secondary" style="margin-top: 0.25rem;">
+                            📍 <strong>${measurementPoints}</strong> measurement points nearby
                         </div>
                     </div>`;
 
                 case 'WUR Soil Physicals':
+                    const soilType = data.soilType || 'Unknown';
+                    const soilPh = data.ph || data.pH || 0;
+                    const organicMatter = data.organicMatter || 0;
+                    const waterRetention = data.waterRetention || 0;
+                    const drainage = data.drainage || 'Unknown';
+
+                    // Soil quality indicator
+                    const soilQualityScore = organicMatter > 5 ? 'Good' : organicMatter > 2 ? 'Moderate' : 'Poor';
+                    const soilQualityClass = organicMatter > 5 ? 'good' : organicMatter > 2 ? 'moderate' : 'poor';
+
                     return `<div class="metric-display">
-                        <div class="metric-value" style="font-size: 1.25rem;">${data.soilType || 'Unknown'}</div>
-                        <div class="metric-label">Soil Type</div>
+                        <div class="metric-value" style="font-size: 1.25rem;">${soilType}</div>
+                        <div class="metric-label">Soil Type Classification</div>
                         <div class="metric-secondary">
-                            pH: <strong>${data.ph || 'N/A'}</strong> &nbsp;|&nbsp;
-                            Organic: <strong>${data.organicMatter || 'N/A'}</strong>%
+                            🧪 pH: <strong>${soilPh || 'N/A'}</strong> &nbsp;|&nbsp;
+                            🌱 Organic: <strong>${organicMatter || 'N/A'}</strong>%
+                        </div>
+                        ${waterRetention > 0 || drainage !== 'Unknown' ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            ${waterRetention > 0 ? `💧 Retention: <strong>${waterRetention}</strong>%` : ''}
+                            ${drainage !== 'Unknown' ? ` &nbsp;|&nbsp; 🚰 Drainage: <strong>${drainage}</strong>` : ''}
+                        </div>` : ''}
+                        <div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🏆 Fertility: <span class="status-badge ${soilQualityClass}">${soilQualityScore}</span>
                         </div>
                     </div>`;
 
                 case 'BRO Soil Map':
+                    const broSoilType = data.soilType || data.description || 'Data available';
+                    const broCode = data.soilCode || '';
+                    const broDepth = data.depth || 0;
+                    const broGroundwater = data.groundwaterClass || '';
+
                     return `<div class="metric-display">
-                        <div class="metric-value" style="font-size: 1.1rem;">${data.soilType || data.description || 'Data available'}</div>
-                        <div class="metric-label">Soil Classification</div>
+                        <div class="metric-value" style="font-size: 1.1rem;">${broSoilType}</div>
+                        <div class="metric-label">BRO Soil Classification</div>
+                        ${broCode ? `<div class="metric-secondary">Code: <strong>${broCode}</strong></div>` : ''}
+                        ${broDepth > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            📏 Survey depth: <strong>${broDepth}</strong>m
+                        </div>` : ''}
+                        ${broGroundwater ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            💧 Groundwater: <strong>${broGroundwater}</strong>
+                        </div>` : ''}
                     </div>`;
 
                 case 'SkyGeo Subsidence':
-                    const subsidence = data.subsidenceRate || 0;
-                    const subsidenceClass = subsidence > 5 ? 'poor' : subsidence > 2 ? 'moderate' : 'good';
+                    const subsidenceRate = data.subsidenceRate || 0;
+                    const subsidenceClass = subsidenceRate > 5 ? 'poor' : subsidenceRate > 2 ? 'moderate' : 'good';
+                    const subsidenceRiskLevel = subsidenceRate > 5 ? 'High' : subsidenceRate > 2 ? 'Medium' : 'Low';
+                    const measurementPeriod = data.measurementPeriod || '';
+                    const confidence = data.confidence || 0;
+                    const totalSubsidence = data.totalSubsidence || 0;
+
+                    // Calculate impact
+                    const structuralRisk = subsidenceRate > 5 ? 'Foundation monitoring recommended' : subsidenceRate > 2 ? 'Monitor periodically' : 'No action needed';
+
                     return `<div class="metric-display">
-                        <div class="metric-value">${subsidence} <span style="font-size: 1rem; font-weight: 500;">mm/yr</span></div>
-                        <div class="metric-label">Subsidence Rate</div>
+                        <div class="metric-value">${subsidenceRate.toFixed(1)} <span style="font-size: 1rem; font-weight: 500;">mm/yr</span></div>
+                        <div class="metric-label">Ground Subsidence Rate</div>
                         <div style="margin-top: 0.5rem;">
-                            <span class="status-badge ${subsidenceClass}">${subsidence > 5 ? 'High' : subsidence > 2 ? 'Medium' : 'Low'} Risk</span>
+                            <span class="status-badge ${subsidenceClass}">${subsidenceRiskLevel} Risk</span>
+                        </div>
+                        ${totalSubsidence > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            📉 Total: <strong>${totalSubsidence.toFixed(0)}</strong>mm over ${measurementPeriod || 'measurement period'}
+                        </div>` : ''}
+                        ${confidence > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            📊 Confidence: <strong>${confidence}%</strong>
+                        </div>` : ''}
+                        <div class="metric-secondary" style="margin-top: 0.25rem; font-size: 0.8rem; opacity: 0.8;">
+                            💡 ${structuralRisk}
                         </div>
                     </div>`;
 
                 case 'Monument Status':
                     const hasStatus = data.status && data.status !== 'Not protected';
+                    const monumentType = data.type || '';
+                    const monumentDescription = data.description || '';
+                    const registrationDate = data.registrationDate || '';
+                    const monumentNumber = data.monumentNumber || '';
+
                     return `<div class="metric-display">
                         <div style="margin-bottom: 0.5rem;">
                             <span class="status-badge ${hasStatus ? 'moderate' : 'good'}">${data.status || 'Not Protected'}</span>
+                            ${monumentType ? `<span class="status-badge" style="margin-left: 4px; background: var(--bg-tertiary);">${monumentType}</span>` : ''}
                         </div>
-                        <div class="metric-label">Heritage Status</div>
-                        ${data.description ? `<div class="metric-secondary">${data.description}</div>` : ''}
+                        <div class="metric-label">Heritage Protection Status</div>
+                        ${monumentDescription ? `<div class="metric-secondary">${monumentDescription}</div>` : ''}
+                        ${monumentNumber ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            📋 Register #: <strong>${monumentNumber}</strong>
+                        </div>` : ''}
+                        ${registrationDate ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            📅 Registered: <strong>${registrationDate}</strong>
+                        </div>` : ''}
+                        ${hasStatus ? `<div class="metric-secondary" style="margin-top: 0.25rem; font-size: 0.8rem; opacity: 0.8;">
+                            ⚠️ Renovation requires heritage permit
+                        </div>` : ''}
                     </div>`;
 
                 case 'BAG Address':
+                    const bagAddress = data.address || 'Address verified';
+                    const bagCoords = data.coordinates || [];
+                    const bagMunicipality = data.municipality || '';
+                    const bagProvince = data.province || '';
+                    const bagId = data.id || data.verblijfsobjectId || '';
+                    const pandId = data.pandId || '';
+
                     return `<div class="metric-display">
-                        <div class="metric-value" style="font-size: 1rem; font-weight: 600;">${data.address || 'Address verified'}</div>
+                        <div class="metric-value" style="font-size: 1rem; font-weight: 600;">${bagAddress}</div>
                         <div class="metric-label">Official BAG Registration</div>
-                        ${data.coordinates ? `<div class="metric-secondary">📍 ${data.coordinates[1]?.toFixed(5)}, ${data.coordinates[0]?.toFixed(5)}</div>` : ''}
+                        ${bagMunicipality || bagProvince ? `<div class="metric-secondary">
+                            📍 ${bagMunicipality}${bagProvince ? `, ${bagProvince}` : ''}
+                        </div>` : ''}
+                        ${bagCoords.length >= 2 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🌐 ${bagCoords[1]?.toFixed(6)}, ${bagCoords[0]?.toFixed(6)}
+                        </div>` : ''}
+                        ${bagId ? `<div class="metric-secondary" style="margin-top: 0.25rem; font-size: 0.75rem; opacity: 0.7;">
+                            BAG ID: ${bagId}${pandId ? ` | Pand: ${pandId}` : ''}
+                        </div>` : ''}
                     </div>`;
 
                 case 'PDOK Platform':
+                    const pdokZoning = data.zoningInfo || 'Data Available';
+                    const pdokRestrictions = data.restrictions || [];
+                    const pdokPlanType = data.planType || '';
+                    const pdokPlanStatus = data.planStatus || '';
+
                     return `<div class="metric-display">
-                        <div class="metric-value" style="font-size: 1rem;">${data.zoningInfo || 'Data Available'}</div>
-                        <div class="metric-label">Platform Data</div>
-                        ${data.restrictions && data.restrictions.length > 0 ?
-                            `<div class="metric-secondary">⚠️ <strong>${data.restrictions.length}</strong> restrictions noted</div>` : ''}
+                        <div class="metric-value" style="font-size: 1rem;">${pdokZoning}</div>
+                        <div class="metric-label">Zoning Information</div>
+                        ${pdokPlanType || pdokPlanStatus ? `<div class="metric-secondary">
+                            ${pdokPlanType ? `📋 Type: <strong>${pdokPlanType}</strong>` : ''}
+                            ${pdokPlanStatus ? ` &nbsp;|&nbsp; 📊 Status: <strong>${pdokPlanStatus}</strong>` : ''}
+                        </div>` : ''}
+                        ${pdokRestrictions.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            ⚠️ <strong>${pdokRestrictions.length}</strong> restriction${pdokRestrictions.length > 1 ? 's' : ''}: ${pdokRestrictions.slice(0, 2).join(', ')}${pdokRestrictions.length > 2 ? '...' : ''}
+                        </div>` : ''}
                     </div>`;
 
                 case 'Land Use & Zoning':
+                    const primaryUse = data.primaryUse || data.landUseType || 'Unknown';
+                    const zoningCode = data.zoningCode || '';
+                    const zoningDetails = data.zoningDetails || '';
+                    const allowedUses = data.allowedUses || [];
+                    const maxHeight = data.maxBuildingHeight || 0;
+                    const maxCoverage = data.maxCoverage || 0;
+
                     return `<div class="metric-display">
-                        <div class="metric-value" style="font-size: 1.1rem;">${data.primaryUse || data.landUseType || 'Unknown'}</div>
+                        <div class="metric-value" style="font-size: 1.1rem;">${primaryUse}</div>
                         <div class="metric-label">Land Use Classification</div>
-                        ${data.zoningCode ? `<div class="metric-secondary">Zone Code: <strong>${data.zoningCode}</strong></div>` : ''}
-                        ${data.zoningDetails ? `<div class="metric-secondary" style="margin-top: 0.25rem;">${data.zoningDetails}</div>` : ''}
+                        ${zoningCode ? `<div class="metric-secondary">Zone: <strong>${zoningCode}</strong></div>` : ''}
+                        ${zoningDetails ? `<div class="metric-secondary" style="margin-top: 0.25rem;">${zoningDetails}</div>` : ''}
+                        ${maxHeight > 0 || maxCoverage > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            ${maxHeight > 0 ? `📏 Max height: <strong>${maxHeight}m</strong>` : ''}
+                            ${maxCoverage > 0 ? ` &nbsp;|&nbsp; 📐 Max coverage: <strong>${maxCoverage}%</strong>` : ''}
+                        </div>` : ''}
+                        ${allowedUses.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            ✓ Allowed: ${allowedUses.slice(0, 3).join(', ')}${allowedUses.length > 3 ? '...' : ''}
+                        </div>` : ''}
                     </div>`;
 
                 case 'Altum WOZ':
@@ -1252,16 +1666,19 @@
                     const wozBuildingType = data.buildingType || 'Unknown';
                     const wozBuildYear = data.buildYear || 0;
                     const wozSurfaceArea = data.surfaceArea || 0;
+                    const wozPerSqm = wozValue > 0 && wozSurfaceArea > 0 ? Math.round(wozValue / wozSurfaceArea) : 0;
+                    const buildingAge = wozBuildYear > 0 ? new Date().getFullYear() - wozBuildYear : 0;
 
                     return `<div class="metric-display">
                         <div class="metric-value">€${wozValue.toLocaleString()}</div>
-                        <div class="metric-label">WOZ Tax Value${valueYear ? ` (${valueYear})` : ''}</div>
+                        <div class="metric-label">WOZ Tax Value${valueYear ? ` <span class="timestamp">(${valueYear})</span>` : ''}</div>
                         <div class="metric-secondary">
                             🏠 <strong>${wozBuildingType}</strong>
-                            ${wozBuildYear > 0 ? ` &nbsp;|&nbsp; 📅 Built: <strong>${wozBuildYear}</strong>` : ''}
+                            ${wozBuildYear > 0 ? ` &nbsp;|&nbsp; 📅 <strong>${wozBuildYear}</strong> (${buildingAge}yr old)` : ''}
                         </div>
                         ${wozSurfaceArea > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
                             📐 Surface: <strong>${wozSurfaceArea}m²</strong>
+                            ${wozPerSqm > 0 ? ` &nbsp;|&nbsp; 💰 <strong>€${wozPerSqm.toLocaleString()}</strong>/m²` : ''}
                         </div>` : ''}
                     </div>`;
 
@@ -1270,17 +1687,30 @@
                     const transactions = data.transactions || [];
                     const txCount = data.totalCount || transactions.length;
                     const latestTx = transactions[0];
+                    const oldestTx = transactions[transactions.length - 1];
+
+                    // Price appreciation calculation
+                    let appreciation = 0;
+                    if (transactions.length >= 2 && latestTx?.purchasePrice > 0 && oldestTx?.purchasePrice > 0) {
+                        appreciation = ((latestTx.purchasePrice - oldestTx.purchasePrice) / oldestTx.purchasePrice * 100);
+                    }
 
                     return `<div class="metric-display">
                         <div class="metric-value">${txCount}</div>
-                        <div class="metric-label">Historical Transactions</div>
+                        <div class="metric-label">Transaction History</div>
                         ${latestTx ? `<div class="metric-secondary">
-                            💰 Last sale: <strong>€${(latestTx.purchasePrice || 0).toLocaleString()}</strong>
-                            ${latestTx.date ? ` (${latestTx.date})` : ''}
-                        </div>` : '<div class="metric-secondary">No transaction history available</div>'}
+                            💰 Last: <strong>€${(latestTx.purchasePrice || 0).toLocaleString()}</strong>
+                            ${latestTx.date ? ` <span class="timestamp">(${latestTx.date})</span>` : ''}
+                        </div>` : '<div class="metric-secondary">No transaction history</div>'}
                         ${latestTx && latestTx.surfaceArea ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
                             📐 <strong>${latestTx.surfaceArea}m²</strong> &nbsp;|&nbsp;
                             €${Math.round((latestTx.purchasePrice || 0) / latestTx.surfaceArea).toLocaleString()}/m²
+                        </div>` : ''}
+                        ${appreciation !== 0 && transactions.length >= 2 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            📈 ${appreciation > 0 ? '+' : ''}${appreciation.toFixed(1)}% since ${oldestTx?.date || 'first sale'}
+                        </div>` : ''}
+                        ${transactions.length > 1 ? `<div class="metric-secondary" style="margin-top: 0.25rem; font-size: 0.8rem; opacity: 0.8;">
+                            ${transactions.slice(1, 3).map(t => `€${(t.purchasePrice || 0).toLocaleString()} (${t.date || 'N/A'})`).join(' → ')}
                         </div>` : ''}
                     </div>`;
 
@@ -1292,40 +1722,61 @@
                     const kdPlot = data.plotSize || 0;
                     const kdBuildType = data.buildingType || 'Unknown';
                     const kdBuildYear = data.buildYear || 0;
+                    const kdCadastralRef = data.cadastralReference || '';
+                    const kdMunicipalTaxes = data.municipalTaxes || 0;
                     const kdLabelClass = ['A++++', 'A+++', 'A++', 'A+', 'A', 'B'].includes(kdEnergyLabel) ? 'good' : ['C', 'D'].includes(kdEnergyLabel) ? 'moderate' : 'poor';
+                    const kdBuildingAge = kdBuildYear > 0 ? new Date().getFullYear() - kdBuildYear : 0;
+                    const kdWozPerSqm = kdWOZ > 0 && kdSurface > 0 ? Math.round(kdWOZ / kdSurface) : 0;
 
                     return `<div class="metric-display">
                         ${kdWOZ > 0 ? `<div class="metric-value">€${kdWOZ.toLocaleString()}</div>
-                        <div class="metric-label">Kadaster WOZ Value</div>` :
+                        <div class="metric-label">Kadaster Value</div>` :
                         `<div class="metric-value" style="font-size: 1.25rem;">${kdBuildType}</div>
                         <div class="metric-label">Property Type</div>`}
                         <div class="metric-secondary" style="margin-top: 0.5rem;">
-                            ⚡ Energy: <span class="status-badge ${kdLabelClass}">${kdEnergyLabel}</span>
-                            ${kdBuildYear > 0 ? ` &nbsp;|&nbsp; 📅 Built: <strong>${kdBuildYear}</strong>` : ''}
+                            ⚡ <span class="status-badge ${kdLabelClass}">${kdEnergyLabel}</span>
+                            ${kdBuildYear > 0 ? ` &nbsp;|&nbsp; 📅 <strong>${kdBuildYear}</strong> (${kdBuildingAge}yr)` : ''}
                         </div>
                         ${kdSurface > 0 || kdPlot > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
                             ${kdSurface > 0 ? `📐 Living: <strong>${kdSurface}m²</strong>` : ''}
                             ${kdPlot > 0 ? ` &nbsp;|&nbsp; 🏡 Plot: <strong>${kdPlot}m²</strong>` : ''}
+                            ${kdWozPerSqm > 0 ? ` &nbsp;|&nbsp; €${kdWozPerSqm.toLocaleString()}/m²` : ''}
+                        </div>` : ''}
+                        ${kdMunicipalTaxes > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🏛️ Municipal tax: <strong>€${kdMunicipalTaxes.toLocaleString()}</strong>/yr
+                        </div>` : ''}
+                        ${kdCadastralRef ? `<div class="metric-secondary" style="margin-top: 0.25rem; font-size: 0.75rem; opacity: 0.7;">
+                            Cadastral: ${kdCadastralRef}
                         </div>` : ''}
                     </div>`;
 
                 case 'Matrixian Property Value+':
                     // API returns: marketValue, valuationDate, confidence, comparableProperties[], features, pricePerSqm
                     const marketValue = data.marketValue || 0;
-                    const confidence = data.confidence || 0;
+                    const marketConfidence = data.confidence || 0;
                     const pricePerSqm = data.pricePerSqm || 0;
                     const comparables = data.comparableProperties || [];
-                    const confidenceClass = confidence >= 80 ? 'good' : confidence >= 60 ? 'moderate' : 'poor';
+                    const valuationDate = data.valuationDate || '';
+                    const confidenceClass = marketConfidence >= 80 ? 'good' : marketConfidence >= 60 ? 'moderate' : 'poor';
+                    const features = data.features || {};
+
+                    // Value range based on confidence
+                    const valueLow = marketValue > 0 ? Math.round(marketValue * (1 - (100 - marketConfidence) / 200)) : 0;
+                    const valueHigh = marketValue > 0 ? Math.round(marketValue * (1 + (100 - marketConfidence) / 200)) : 0;
 
                     return `<div class="metric-display">
                         <div class="metric-value">€${marketValue.toLocaleString()}</div>
-                        <div class="metric-label">Estimated Market Value</div>
+                        <div class="metric-label">Market Value${valuationDate ? ` <span class="timestamp">(${valuationDate})</span>` : ''}</div>
                         <div class="metric-secondary">
-                            📊 Confidence: <span class="status-badge ${confidenceClass}">${confidence.toFixed(0)}%</span>
+                            📊 Confidence: <span class="status-badge ${confidenceClass}">${marketConfidence.toFixed(0)}%</span>
                             ${pricePerSqm > 0 ? ` &nbsp;|&nbsp; €${pricePerSqm.toLocaleString()}/m²` : ''}
                         </div>
+                        ${valueLow > 0 && valueHigh > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            📉 Range: <strong>€${valueLow.toLocaleString()}</strong> - <strong>€${valueHigh.toLocaleString()}</strong>
+                        </div>` : ''}
                         ${comparables.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
                             🏘️ Based on <strong>${comparables.length}</strong> comparable sales
+                            ${comparables[0]?.price ? ` (€${comparables[0].price.toLocaleString()} avg)` : ''}
                         </div>` : ''}
                     </div>`;
 
@@ -1335,18 +1786,23 @@
                     const waterLevel = data.waterLevel || 0;
                     const nearestWater = data.nearestWater || '';
                     const waterDistance = data.distance || 0;
+                    const waterParams = data.parameters || [];
+                    const waterTs = formatTimestamp(data.lastMeasured);
                     const qualityClass = waterQuality === 'Excellent' || waterQuality === 'Good' ? 'good' : waterQuality === 'Fair' ? 'moderate' : 'poor';
 
                     return `<div class="metric-display">
                         <div style="margin-bottom: 0.5rem;">
                             <span class="status-badge ${qualityClass}" style="font-size: 0.9rem; padding: 6px 14px;">💧 ${waterQuality}</span>
                         </div>
-                        <div class="metric-label">Water Quality</div>
+                        <div class="metric-label">Water Quality${waterTs ? ` <span class="timestamp">(${waterTs})</span>` : ''}</div>
                         ${nearestWater ? `<div class="metric-secondary">
-                            📍 ${nearestWater}${waterDistance > 0 ? ` (${Math.round(waterDistance)}m)` : ''}
+                            📍 ${nearestWater}${waterDistance > 0 ? ` (<strong>${Math.round(waterDistance)}m</strong>)` : ''}
                         </div>` : ''}
                         ${waterLevel !== 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
-                            📏 Water level: <strong>${waterLevel.toFixed(2)}m</strong> (NAP)
+                            📏 Water level: <strong>${waterLevel.toFixed(2)}m</strong> NAP
+                        </div>` : ''}
+                        ${waterParams.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🧪 ${waterParams.slice(0, 3).map(p => `${p.name}: <strong>${p.value}</strong>${p.unit || ''}`).join(' | ')}
                         </div>` : ''}
                     </div>`;
 
@@ -1402,6 +1858,8 @@
                     // API returns: contaminationLevel, contaminants[], qualityZone, restrictedUse, lastTested
                     const contamLevel = data.contaminationLevel || 'Unknown';
                     const contaminants = data.contaminants || [];
+                    const qualityZone = data.qualityZone || '';
+                    const soilLastTested = formatTimestamp(data.lastTested);
                     const restrictedUse = data.restrictedUse || false;
                     const contamClass = contamLevel === 'Clean' ? 'good' : contamLevel === 'Light' ? 'moderate' : contamLevel === 'Unknown' ? 'moderate' : 'poor';
 
@@ -1410,8 +1868,9 @@
                             <span class="status-badge ${contamClass}" style="font-size: 0.9rem; padding: 6px 14px;">🧪 ${contamLevel}</span>
                             ${restrictedUse ? '<span class="status-badge poor" style="margin-left: 4px;">⚠️ Restricted Use</span>' : ''}
                         </div>
-                        <div class="metric-label">Soil Contamination</div>
-                        ${contaminants.length > 0 ? `<div class="metric-secondary">
+                        <div class="metric-label">Soil Contamination${soilLastTested ? ` <span class="timestamp">(${soilLastTested})</span>` : ''}</div>
+                        ${qualityZone ? `<div class="metric-secondary">📍 Zone: <strong>${qualityZone}</strong></div>` : ''}
+                        ${contaminants.length > 0 ? `<div class="metric-secondary"${qualityZone ? ' style="margin-top: 0.25rem;"' : ''}>
                             Detected: ${contaminants.slice(0, 3).map(c => `<strong>${c}</strong>`).join(', ')}
                             ${contaminants.length > 3 ? ` +${contaminants.length - 3} more` : ''}
                         </div>` : '<div class="metric-secondary">No contaminants detected</div>'}

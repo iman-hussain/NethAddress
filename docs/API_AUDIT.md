@@ -8,6 +8,7 @@
 ## Executive Summary
 
 AddressIQ integrates **33 APIs** across Free, Freemium, and Premium tiers. This audit verifies:
+
 1. Each API returns data correctly
 2. Frontend formatters display data properly
 3. Error handling works as expected
@@ -168,15 +169,18 @@ case 'API Name':
 ## Recommendations
 
 ### Priority 1: Configure Free APIs
+
 - [ ] PDOK Platform - Government geospatial data
 - [ ] Land Use & Zoning - Planning/zoning information
 
 ### Priority 2: Configure High-Value Freemium APIs
+
 - [ ] Kadaster Object Info - Property ownership data
 - [ ] CBS Safety Experience - Neighbourhood safety scores
 - [ ] Noise Pollution - Environmental noise levels
 
 ### Priority 3: Improve Data Quality
+
 - [ ] Fix secondary school distance calculation (showing 5812km for some schools)
 - [ ] Add caching for expensive API calls
 - [ ] Implement rate limiting for external APIs

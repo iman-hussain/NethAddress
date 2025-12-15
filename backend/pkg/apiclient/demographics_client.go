@@ -12,13 +12,17 @@ import (
 // Default PDOK CBS API endpoint (free, no auth required)
 const defaultCBSBuurtenApiURL = "https://api.pdok.nl/cbs/wijken-en-buurten-2024/ogc/v1"
 
-// CBSPopulationData represents grid-based population data
+// CBSPopulationData represents neighbourhood-based population data from CBS buurten
 type CBSPopulationData struct {
-	TotalPopulation int                    `json:"totalPopulation"`
-	AgeDistribution map[string]int         `json:"ageDistribution"`
-	Households      int                    `json:"households"`
-	AverageHHSize   float64                `json:"averageHouseholdSize"`
-	Demographics    PopulationDemographics `json:"demographics"`
+	TotalPopulation   int                    `json:"totalPopulation"`
+	AgeDistribution   map[string]int         `json:"ageDistribution"`
+	Households        int                    `json:"households"`
+	AverageHHSize     float64                `json:"averageHouseholdSize"`
+	Demographics      PopulationDemographics `json:"demographics"`
+	NeighbourhoodName string                 `json:"neighbourhoodName"` // Buurtnaam
+	MunicipalityName  string                 `json:"municipalityName"`  // Gemeentenaam
+	DensityPerKm2     int                    `json:"densityPerKm2"`     // Population density per km²
+	NeighbourhoodCode string                 `json:"neighbourhoodCode"` // Buurtcode
 }
 
 // PopulationDemographics represents demographic breakdown
@@ -145,6 +149,12 @@ func (c *ApiClient) FetchCBSPopulationData(cfg *config.Config, lat, lon float64)
 		}
 	}
 
+	// Extract density
+	densityPerKm2 := 0
+	if props.Bevolkingsdichtheid != nil && *props.Bevolkingsdichtheid >= 0 {
+		densityPerKm2 = *props.Bevolkingsdichtheid
+	}
+
 	result := &CBSPopulationData{
 		TotalPopulation: population,
 		AgeDistribution: map[string]int{
@@ -154,8 +164,12 @@ func (c *ApiClient) FetchCBSPopulationData(cfg *config.Config, lat, lon float64)
 			"45-64": age45to64,
 			"65+":   age65plus,
 		},
-		Households:    households,
-		AverageHHSize: avgHHSize,
+		Households:        households,
+		AverageHHSize:     avgHHSize,
+		NeighbourhoodName: props.Buurtnaam,
+		MunicipalityName:  props.Gemeentenaam,
+		DensityPerKm2:     densityPerKm2,
+		NeighbourhoodCode: props.Buurtcode,
 		Demographics: PopulationDemographics{
 			Age0to14:  age0to14,
 			Age15to24: age15to24,
@@ -171,10 +185,14 @@ func (c *ApiClient) FetchCBSPopulationData(cfg *config.Config, lat, lon float64)
 
 func emptyPopulationData() *CBSPopulationData {
 	return &CBSPopulationData{
-		TotalPopulation: 0,
-		AgeDistribution: make(map[string]int),
-		Households:      0,
-		AverageHHSize:   0,
+		TotalPopulation:   0,
+		AgeDistribution:   make(map[string]int),
+		Households:        0,
+		AverageHHSize:     0,
+		NeighbourhoodName: "",
+		MunicipalityName:  "",
+		DensityPerKm2:     0,
+		NeighbourhoodCode: "",
 		Demographics: PopulationDemographics{
 			Age0to14:  0,
 			Age15to24: 0,
@@ -294,12 +312,14 @@ func (c *ApiClient) FetchCBSStatLineData(cfg *config.Config, regionCode string) 
 
 // CBSSquareStatsData represents hyperlocal neighbourhood statistics
 type CBSSquareStatsData struct {
-	GridID         string  `json:"gridId"`
-	Population     int     `json:"population"`
-	Households     int     `json:"households"`
-	AverageWOZ     float64 `json:"averageWOZ"`
-	AverageIncome  float64 `json:"averageIncome"`
-	HousingDensity int     `json:"housingDensity"` // units per hectare
+	GridID            string  `json:"gridId"`
+	Population        int     `json:"population"`
+	Households        int     `json:"households"`
+	AverageWOZ        float64 `json:"averageWOZ"`
+	AverageIncome     float64 `json:"averageIncome"`
+	HousingDensity    int     `json:"housingDensity"`    // addresses per km²
+	NeighbourhoodName string  `json:"neighbourhoodName"` // Buurtnaam
+	MunicipalityName  string  `json:"municipalityName"`  // Gemeentenaam
 }
 
 // cbsSquareResponse for parsing CBS grid statistics
@@ -310,6 +330,8 @@ type cbsSquareResponse struct {
 		ID         string `json:"id"`
 		Properties struct {
 			Buurtcode                  string `json:"buurtcode"`
+			Buurtnaam                  string `json:"buurtnaam"`
+			Gemeentenaam               string `json:"gemeentenaam"`
 			AantalInwoners             *int   `json:"aantal_inwoners"`
 			AantalHuishoudens          *int   `json:"aantal_huishoudens"`
 			GemiddeldeWozWaardeWoning  *int   `json:"gemiddelde_woningwaarde"`
@@ -394,12 +416,14 @@ func (c *ApiClient) FetchCBSSquareStats(cfg *config.Config, lat, lon float64) (*
 	}
 
 	result := &CBSSquareStatsData{
-		GridID:         props.Buurtcode,
-		Population:     population,
-		Households:     households,
-		AverageWOZ:     avgWOZ,
-		AverageIncome:  avgIncome,
-		HousingDensity: density,
+		GridID:            props.Buurtcode,
+		Population:        population,
+		Households:        households,
+		AverageWOZ:        avgWOZ,
+		AverageIncome:     avgIncome,
+		HousingDensity:    density,
+		NeighbourhoodName: props.Buurtnaam,
+		MunicipalityName:  props.Gemeentenaam,
 	}
 
 	logutil.Debugf("[CBS Square] Result: grid=%s, pop=%d, woz=%.0f", props.Buurtcode, population, avgWOZ)
@@ -408,11 +432,13 @@ func (c *ApiClient) FetchCBSSquareStats(cfg *config.Config, lat, lon float64) (*
 
 func emptySquareStats() *CBSSquareStatsData {
 	return &CBSSquareStatsData{
-		GridID:         "",
-		Population:     0,
-		Households:     0,
-		AverageWOZ:     0,
-		AverageIncome:  0,
-		HousingDensity: 0,
+		GridID:            "",
+		Population:        0,
+		Households:        0,
+		AverageWOZ:        0,
+		AverageIncome:     0,
+		HousingDensity:    0,
+		NeighbourhoodName: "",
+		MunicipalityName:  "",
 	}
 }
