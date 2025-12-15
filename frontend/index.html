@@ -821,69 +821,120 @@
                     </div>`;
 
                 case 'CBS Population':
-                    const pop = data.population || 0;
+                    // Handle both field names: totalPopulation (from API) and population (legacy)
+                    const pop = data.totalPopulation || data.population || 0;
                     const households = data.households || 0;
+                    const avgHouseholdSize = data.averageHouseholdSize || 0;
+                    const ageDist = data.ageDistribution || data.demographics || {};
+                    
+                    let ageBreakdown = '';
+                    if (Object.keys(ageDist).length > 0) {
+                        const ageLabels = Object.keys(ageDist).slice(0, 3);
+                        ageBreakdown = ageLabels.map(k => `${k}: <strong>${ageDist[k]}</strong>`).join(' &nbsp;|&nbsp; ');
+                    }
+                    
                     return `<div class="metric-display">
                         <div class="metric-value">${pop.toLocaleString()}</div>
                         <div class="metric-label">Residents in Area</div>
                         <div class="metric-secondary">
-                            🏠 <strong>${households.toLocaleString()}</strong> households &nbsp;|&nbsp;
-                            📊 Density: <strong>${(data.populationDensity || 0).toLocaleString()}</strong>/km²
+                            🏠 <strong>${households.toLocaleString()}</strong> households
+                            ${avgHouseholdSize ? ` &nbsp;|&nbsp; 👥 Avg size: <strong>${avgHouseholdSize}</strong>` : ''}
                         </div>
+                        ${ageBreakdown ? `<div class="metric-secondary" style="margin-top: 0.25rem;">${ageBreakdown}</div>` : ''}
                     </div>`;
 
                 case 'CBS Square Statistics':
+                    // Handle various field names from the API
+                    const sqInhabitants = data.inhabitants || data.aantalInwoners || 0;
+                    const sqAddresses = data.addresses || data.aantalAdressen || 0;
+                    const sqMen = data.men || data.aantalMannen || 0;
+                    const sqWomen = data.women || data.aantalVrouwen || 0;
+                    
                     return `<div class="metric-display">
-                        <div class="metric-value">${data.inhabitants || data.area || 0}</div>
-                        <div class="metric-label">${data.inhabitants ? 'Inhabitants' : 'Area (km²)'}</div>
+                        <div class="metric-value">${sqInhabitants.toLocaleString()}</div>
+                        <div class="metric-label">Inhabitants (500m grid)</div>
                         <div class="metric-secondary">
-                            🏢 <strong>${data.addresses || data.buildingCount || 0}</strong> addresses
+                            🏢 <strong>${sqAddresses.toLocaleString()}</strong> addresses
+                            ${sqMen || sqWomen ? ` &nbsp;|&nbsp; ♂ ${sqMen} ♀ ${sqWomen}` : ''}
                         </div>
                     </div>`;
 
                 case 'Green Spaces':
-                    const totalArea = data.totalArea || 0;
+                    // Handle array of spaces or summary data
+                    const spaces = Array.isArray(data) ? data : (data.spaces || data.features || []);
+                    const greenCount = spaces.length || data.count || 0;
+                    const greenTotalArea = data.totalArea || spaces.reduce((sum, s) => sum + (s.area || 0), 0);
+                    const greenTypes = [...new Set(spaces.map(s => s.type || s.name || 'Green').slice(0, 3))];
+                    
                     return `<div class="metric-display">
-                        <div class="metric-value">${totalArea.toLocaleString()} <span style="font-size: 1rem; font-weight: 500;">m²</span></div>
-                        <div class="metric-label">Green Space Nearby</div>
+                        <div class="metric-value">${greenCount}</div>
+                        <div class="metric-label">Green Spaces Nearby</div>
                         <div class="metric-secondary">
-                            🌳 <strong>${data.count || 0}</strong> areas within <strong>${data.radius || 500}</strong>m
+                            🌳 <strong>${greenTotalArea.toLocaleString()}</strong> m² total area
                         </div>
+                        ${greenTypes.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            ${greenTypes.map(t => `<span class="status-badge good" style="margin-right: 4px;">${t}</span>`).join('')}
+                        </div>` : ''}
                     </div>`;
 
                 case 'Education Facilities':
+                    // Handle array of schools or summary data
+                    const schools = Array.isArray(data) ? data : (data.schools || data.features || []);
+                    const schoolCount = schools.length || data.totalSchools || data.count || 0;
+                    const schoolTypes = [...new Set(schools.map(s => s.type || s.schoolType || s.onderwijstype || 'School'))].slice(0, 3);
+                    const schoolNames = schools.slice(0, 2).map(s => s.name || s.naam || s.schoolnaam || 'School');
+                    
                     return `<div class="metric-display">
-                        <div class="metric-value">${data.totalSchools || 0}</div>
+                        <div class="metric-value">${schoolCount}</div>
                         <div class="metric-label">Schools Nearby</div>
-                        <div class="metric-secondary">
-                            👨‍🎓 <strong>${(data.totalStudents || 0).toLocaleString()}</strong> students total
-                        </div>
+                        ${schoolTypes.length > 0 ? `<div class="metric-secondary">
+                            ${schoolTypes.map(t => `<span class="status-badge good" style="margin-right: 4px;">${t}</span>`).join('')}
+                        </div>` : ''}
+                        ${schoolNames.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🏫 ${schoolNames.join(', ')}
+                        </div>` : ''}
                     </div>`;
 
                 case 'Facilities & Amenities':
-                    const facilities = data.facilities || [];
-                    const topCategories = [...new Set(facilities.map(f => f.category))].slice(0, 3);
+                    // Handle array or object with facilities
+                    const amenities = Array.isArray(data) ? data : (data.facilities || data.features || []);
+                    const amenityCount = amenities.length || data.totalFacilities || data.count || 0;
+                    const categories = [...new Set(amenities.map(f => f.category || f.type || f.categorie || 'Facility'))].slice(0, 4);
+                    const amenityNames = amenities.slice(0, 3).map(f => f.name || f.naam || 'Facility');
+                    
                     return `<div class="metric-display">
-                        <div class="metric-value">${data.totalFacilities || facilities.length || 0}</div>
+                        <div class="metric-value">${amenityCount}</div>
                         <div class="metric-label">Amenities Nearby</div>
-                        ${topCategories.length > 0 ? `<div class="metric-secondary">
-                            ${topCategories.map(c => `<span class="status-badge good" style="margin-right: 4px; margin-top: 4px;">${c}</span>`).join('')}
+                        ${categories.length > 0 ? `<div class="metric-secondary">
+                            ${categories.map(c => `<span class="status-badge good" style="margin-right: 4px; margin-bottom: 4px;">${c}</span>`).join('')}
+                        </div>` : ''}
+                        ${amenityNames.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            📍 ${amenityNames.slice(0, 2).join(', ')}${amenityCount > 2 ? ` +${amenityCount - 2} more` : ''}
                         </div>` : ''}
                     </div>`;
 
                 case 'openOV Public Transport':
-                    const stops = data.stops || [];
+                    // Handle array of stops or object with stops array
+                    const ptStops = Array.isArray(data) ? data : (data.stops || data.features || []);
+                    const stopCount = ptStops.length || data.count || 0;
+                    const stopTypes = [...new Set(ptStops.map(s => s.type || s.stopType || s.modality || 'Stop'))].slice(0, 3);
+                    const stopNames = ptStops.slice(0, 3).map(s => s.name || s.stopName || s.naam || 'Stop');
+                    
                     return `<div class="metric-display">
-                        <div class="metric-value">${stops.length || data.count || 0}</div>
+                        <div class="metric-value">${stopCount}</div>
                         <div class="metric-label">PT Stops Nearby</div>
-                        ${stops.length > 0 ? `<div class="metric-secondary">
-                            ${stops.slice(0, 2).map(s => `🚏 ${s.name || s.stopName || 'Stop'}`).join(' &nbsp;|&nbsp; ')}
+                        ${stopTypes.length > 0 ? `<div class="metric-secondary">
+                            ${stopTypes.map(t => `<span class="status-badge good" style="margin-right: 4px;">🚏 ${t}</span>`).join('')}
+                        </div>` : ''}
+                        ${stopNames.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            ${stopNames.join(' • ')}
                         </div>` : ''}
                     </div>`;
 
                 case 'AHN Height Model':
+                    const elevation = data.elevation || data.height || data.hoogte || 0;
                     return `<div class="metric-display">
-                        <div class="metric-value">${(data.elevation || 0).toFixed(1)} <span style="font-size: 1rem; font-weight: 500;">m</span></div>
+                        <div class="metric-value">${(elevation).toFixed(1)} <span style="font-size: 1rem; font-weight: 500;">m</span></div>
                         <div class="metric-label">Elevation (NAP)</div>
                         <div class="metric-secondary">
                             📍 Above sea level reference
@@ -969,22 +1020,88 @@
                         ${data.zoningCode ? `<div class="metric-secondary">Zone Code: <strong>${data.zoningCode}</strong></div>` : ''}
                     </div>`;
 
-                // Default fallback for other APIs
+                // Default fallback - smart extraction for unknown APIs
                 default:
-                    if (typeof data === 'object' && Object.keys(data).length > 0) {
-                        const firstKey = Object.keys(data)[0];
-                        const firstValue = data[firstKey];
-                        if (typeof firstValue === 'number' || typeof firstValue === 'string') {
-                            return `<div class="metric-display">
-                                <div class="metric-value" style="font-size: 1.25rem;">${typeof firstValue === 'number' ? firstValue.toLocaleString() : firstValue}</div>
-                                <div class="metric-label">${firstKey.replace(/([A-Z])/g, ' $1').trim()}</div>
-                            </div>`;
+                    return formatUnknownData(apiName, data);
+            }
+        }
+
+        // Smart formatter for unknown data structures
+        function formatUnknownData(apiName, data) {
+            if (!data) return '';
+            
+            // If it's an array, show count and sample items
+            if (Array.isArray(data)) {
+                const count = data.length;
+                const sampleItems = data.slice(0, 3).map(item => {
+                    if (typeof item === 'string') return item;
+                    if (typeof item === 'object') return item.name || item.naam || item.title || item.type || JSON.stringify(item).substring(0, 30);
+                    return String(item);
+                });
+                
+                return `<div class="metric-display">
+                    <div class="metric-value">${count}</div>
+                    <div class="metric-label">Items Found</div>
+                    ${sampleItems.length > 0 ? `<div class="metric-secondary">${sampleItems.join(' • ')}</div>` : ''}
+                </div>`;
+            }
+            
+            // If it's an object, extract key metrics
+            if (typeof data === 'object') {
+                const keys = Object.keys(data);
+                
+                // Look for common numeric fields to highlight
+                const numericFields = ['total', 'count', 'aantal', 'population', 'inhabitants', 'area', 'distance', 'value', 'score'];
+                let primaryMetric = null;
+                let primaryLabel = null;
+                
+                for (const field of numericFields) {
+                    for (const key of keys) {
+                        if (key.toLowerCase().includes(field) && typeof data[key] === 'number') {
+                            primaryMetric = data[key];
+                            primaryLabel = key.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase()).trim();
+                            break;
                         }
                     }
+                    if (primaryMetric !== null) break;
+                }
+                
+                // Build secondary info from other fields
+                const secondaryFields = [];
+                for (const key of keys.slice(0, 5)) {
+                    const val = data[key];
+                    if (key === primaryLabel?.replace(/ /g, '')) continue;
+                    
+                    if (typeof val === 'number') {
+                        secondaryFields.push(`${key}: <strong>${val.toLocaleString()}</strong>`);
+                    } else if (typeof val === 'string' && val.length < 30) {
+                        secondaryFields.push(`${key}: <strong>${val}</strong>`);
+                    } else if (Array.isArray(val)) {
+                        secondaryFields.push(`${key}: <strong>${val.length} items</strong>`);
+                    }
+                }
+                
+                if (primaryMetric !== null) {
                     return `<div class="metric-display">
-                        <div class="metric-label" style="color: var(--success);">✓ Data retrieved successfully</div>
+                        <div class="metric-value">${typeof primaryMetric === 'number' ? primaryMetric.toLocaleString() : primaryMetric}</div>
+                        <div class="metric-label">${primaryLabel}</div>
+                        ${secondaryFields.length > 0 ? `<div class="metric-secondary">${secondaryFields.slice(0, 3).join(' &nbsp;|&nbsp; ')}</div>` : ''}
                     </div>`;
+                }
+                
+                // No numeric primary found, show first few fields
+                if (secondaryFields.length > 0) {
+                    return `<div class="metric-display">
+                        <div class="metric-label" style="color: var(--success); margin-bottom: 0.5rem;">✓ Data Retrieved</div>
+                        <div class="metric-secondary">${secondaryFields.slice(0, 4).join('<br>')}</div>
+                    </div>`;
+                }
             }
+            
+            // Fallback for primitives or empty objects
+            return `<div class="metric-display">
+                <div class="metric-label" style="color: var(--success);">✓ Data retrieved successfully</div>
+            </div>`;
         }
 
         function renderApiResults() {
