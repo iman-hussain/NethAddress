@@ -16,7 +16,7 @@
     <link href="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.css" rel="stylesheet" />
     <script src="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
     <style>
-        /* 
+        /*
          * AddressIQ Design System
          * Modern, high-contrast, readable colour scheme
          * Works great in day and night - no dark mode needed
@@ -26,19 +26,19 @@
             --primary: #2563eb;
             --primary-hover: #1d4ed8;
             --primary-light: #3b82f6;
-            
+
             /* Neutral greys - high contrast for readability */
             --bg-page: #f8fafc;
             --bg-card: #ffffff;
             --bg-card-alt: #f1f5f9;
             --bg-dark: #0f172a;
-            
+
             /* Text colours - strong contrast */
             --text-primary: #0f172a;
             --text-secondary: #475569;
             --text-muted: #64748b;
             --text-on-primary: #ffffff;
-            
+
             /* Status colours - vibrant and clear */
             --success: #16a34a;
             --success-bg: #dcfce7;
@@ -48,14 +48,14 @@
             --danger-bg: #fee2e2;
             --info: #0284c7;
             --info-bg: #e0f2fe;
-            
+
             /* Borders and shadows */
             --border: #e2e8f0;
             --border-strong: #cbd5e1;
             --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
             --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
             --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
-            
+
             /* Spacing */
             --radius-sm: 8px;
             --radius-md: 12px;
@@ -66,7 +66,7 @@
         * {
             box-sizing: border-box;
         }
-        
+
         html, body {
             height: 100%;
             margin: 0;
@@ -169,7 +169,7 @@
         .results-wrapper {
             pointer-events: auto;
         }
-        
+
         /* Custom scrollbar */
         .sidebar-content::-webkit-scrollbar {
             width: 8px;
@@ -290,7 +290,7 @@
             gap: 0.5rem;
             margin-bottom: 0.25rem;
         }
-        
+
         /* Status indicator dot */
         .status-dot {
             width: 10px;
@@ -351,17 +351,17 @@
             font-weight: 600;
             letter-spacing: 0.3px;
         }
-        .status-badge.good { 
-            background: var(--success-bg); 
-            color: var(--success); 
+        .status-badge.good {
+            background: var(--success-bg);
+            color: var(--success);
         }
-        .status-badge.moderate { 
-            background: var(--warning-bg); 
-            color: var(--warning); 
+        .status-badge.moderate {
+            background: var(--warning-bg);
+            color: var(--warning);
         }
-        .status-badge.poor { 
-            background: var(--danger-bg); 
-            color: var(--danger); 
+        .status-badge.poor {
+            background: var(--danger-bg);
+            color: var(--danger);
         }
 
         /* ========================================
@@ -939,13 +939,13 @@
                     const households = data.households || 0;
                     const avgHouseholdSize = data.averageHouseholdSize || 0;
                     const ageDist = data.ageDistribution || data.demographics || {};
-                    
+
                     let ageBreakdown = '';
                     if (Object.keys(ageDist).length > 0) {
                         const ageLabels = Object.keys(ageDist).slice(0, 3);
                         ageBreakdown = ageLabels.map(k => `${k}: <strong>${ageDist[k]}</strong>`).join(' &nbsp;|&nbsp; ');
                     }
-                    
+
                     return `<div class="metric-display">
                         <div class="metric-value">${pop.toLocaleString()}</div>
                         <div class="metric-label">Residents in Area</div>
@@ -962,7 +962,7 @@
                     const sqHouseholds = data.households || 0;
                     const sqDensity = data.housingDensity || 0;
                     const sqWOZ = data.averageWOZ || 0;
-                    
+
                     return `<div class="metric-display">
                         <div class="metric-value">${sqPop.toLocaleString()}</div>
                         <div class="metric-label">Population (Grid Area)</div>
@@ -983,7 +983,7 @@
                     const treeCanopy = data.treeCanopyCover || 0;
                     const greenSpaceCount = greenSpacesArr.length;
                     const greenTypes = [...new Set(greenSpacesArr.map(s => s.type).filter(t => t))].slice(0, 3);
-                    
+
                     return `<div class="metric-display">
                         <div class="metric-value">${totalGreenArea.toLocaleString()} <span style="font-size: 1rem; font-weight: 500;">m²</span></div>
                         <div class="metric-label">Green Space Nearby</div>
@@ -1007,7 +1007,7 @@
                     const avgQuality = data.averageQuality || 0;
                     const schoolCount = allSchools.length;
                     const schoolTypeSet = [...new Set(allSchools.map(s => s.type).filter(t => t))];
-                    
+
                     return `<div class="metric-display">
                         <div class="metric-value">${schoolCount}</div>
                         <div class="metric-label">Schools Nearby</div>
@@ -1028,7 +1028,7 @@
                     const totalFacilities = Object.values(catCounts).reduce((a, b) => a + b, 0) || topFacilities.length;
                     const categoryNames = Object.keys(catCounts).slice(0, 4);
                     const nearestFacility = topFacilities[0];
-                    
+
                     return `<div class="metric-display">
                         <div class="metric-value">${totalFacilities}</div>
                         <div class="metric-label">Amenities Nearby</div>
@@ -1051,7 +1051,7 @@
                     const nearestStop = nearestStops[0];
                     const trainStops = nearestStops.filter(s => s.type === 'Train');
                     const busStops = nearestStops.filter(s => s.type === 'Bus');
-                    
+
                     return `<div class="metric-display">
                         <div class="metric-value">${stopCount}</div>
                         <div class="metric-label">PT Stops Nearby</div>
@@ -1083,7 +1083,7 @@
                     if (data.railNoise > 0) noiseSources.push(`🚂 Rail: ${data.railNoise}dB`);
                     if (data.aircraftNoise > 0) noiseSources.push(`✈️ Air: ${data.aircraftNoise}dB`);
                     if (data.industryNoise > 0) noiseSources.push(`🏭 Industry: ${data.industryNoise}dB`);
-                    
+
                     return `<div class="metric-display">
                         <div class="metric-value">${totalNoise} <span style="font-size: 1rem; font-weight: 500;">dB(A)</span></div>
                         <div class="metric-label">Total Noise Level</div>
@@ -1101,7 +1101,7 @@
                     const occupancyRate = data.occupancyRate || 0;
                     const parkingZones = data.parkingZones || [];
                     const parkingBadge = occupancyRate < 50 ? 'good' : occupancyRate < 80 ? 'moderate' : 'poor';
-                    
+
                     return `<div class="metric-display">
                         <div class="metric-value">${totalSpaces > 0 ? availableSpaces : '--'}</div>
                         <div class="metric-label">Available Parking Spaces</div>
@@ -1122,7 +1122,7 @@
                     const growthTrend = data.growthTrend || 'Unknown';
                     const permits = data.permits || [];
                     const trendBadge = growthTrend === 'Increasing' ? 'good' : growthTrend === 'Stable' ? 'moderate' : growthTrend === 'Unknown' ? 'moderate' : 'poor';
-                    
+
                     return `<div class="metric-display">
                         <div class="metric-value">${totalPermits}</div>
                         <div class="metric-label">Building Permits (2yr)</div>
@@ -1143,7 +1143,7 @@
                     const slEmploymentRate = data.employmentRate || 0;
                     const slEducationLevel = data.educationLevel || 'Unknown';
                     const slAvgWOZ = data.averageWOZ || 0;
-                    
+
                     return `<div class="metric-display">
                         <div class="metric-value" style="font-size: 1.5rem;">€${slAvgIncome > 0 ? slAvgIncome.toLocaleString() : '--'}</div>
                         <div class="metric-label">Avg Household Income</div>
@@ -1166,7 +1166,7 @@
                     const co2Emissions = data.co2Emissions || 0;
                     const labelClass = ['A++++', 'A+++', 'A++', 'A+', 'A', 'B'].includes(energyLabel) ? 'good' : ['C', 'D'].includes(energyLabel) ? 'moderate' : 'poor';
                     const riskClass = climateRisk === 'Low' ? 'good' : climateRisk === 'Medium' ? 'moderate' : climateRisk === 'Unknown' ? 'moderate' : 'poor';
-                    
+
                     return `<div class="metric-display">
                         <div style="margin-bottom: 0.5rem;">
                             <span class="status-badge ${labelClass}" style="font-size: 1.1rem; padding: 8px 16px;">⚡ ${energyLabel}</span>
@@ -1189,7 +1189,7 @@
                     const totalCO2Savings = data.totalCO2Savings || 0;
                     const totalCostSavings = data.totalCostSavings || 0;
                     const paybackPeriod = data.paybackPeriod || 0;
-                    
+
                     return `<div class="metric-display">
                         <div class="metric-value" style="font-size: 1.25rem;">${currentRating} → ${potentialRating}</div>
                         <div class="metric-label">Sustainability Potential</div>
@@ -1292,7 +1292,7 @@
                     const wozBuildingType = data.buildingType || 'Unknown';
                     const wozBuildYear = data.buildYear || 0;
                     const wozSurfaceArea = data.surfaceArea || 0;
-                    
+
                     return `<div class="metric-display">
                         <div class="metric-value">€${wozValue.toLocaleString()}</div>
                         <div class="metric-label">WOZ Tax Value${valueYear ? ` (${valueYear})` : ''}</div>
@@ -1310,7 +1310,7 @@
                     const transactions = data.transactions || [];
                     const txCount = data.totalCount || transactions.length;
                     const latestTx = transactions[0];
-                    
+
                     return `<div class="metric-display">
                         <div class="metric-value">${txCount}</div>
                         <div class="metric-label">Historical Transactions</div>
@@ -1333,10 +1333,10 @@
                     const kdBuildType = data.buildingType || 'Unknown';
                     const kdBuildYear = data.buildYear || 0;
                     const kdLabelClass = ['A++++', 'A+++', 'A++', 'A+', 'A', 'B'].includes(kdEnergyLabel) ? 'good' : ['C', 'D'].includes(kdEnergyLabel) ? 'moderate' : 'poor';
-                    
+
                     return `<div class="metric-display">
                         ${kdWOZ > 0 ? `<div class="metric-value">€${kdWOZ.toLocaleString()}</div>
-                        <div class="metric-label">Kadaster WOZ Value</div>` : 
+                        <div class="metric-label">Kadaster WOZ Value</div>` :
                         `<div class="metric-value" style="font-size: 1.25rem;">${kdBuildType}</div>
                         <div class="metric-label">Property Type</div>`}
                         <div class="metric-secondary" style="margin-top: 0.5rem;">
@@ -1356,7 +1356,7 @@
                     const pricePerSqm = data.pricePerSqm || 0;
                     const comparables = data.comparableProperties || [];
                     const confidenceClass = confidence >= 80 ? 'good' : confidence >= 60 ? 'moderate' : 'poor';
-                    
+
                     return `<div class="metric-display">
                         <div class="metric-value">€${marketValue.toLocaleString()}</div>
                         <div class="metric-label">Estimated Market Value</div>
@@ -1376,7 +1376,7 @@
                     const nearestWater = data.nearestWater || '';
                     const waterDistance = data.distance || 0;
                     const qualityClass = waterQuality === 'Excellent' || waterQuality === 'Good' ? 'good' : waterQuality === 'Fair' ? 'moderate' : 'poor';
-                    
+
                     return `<div class="metric-display">
                         <div style="margin-bottom: 0.5rem;">
                             <span class="status-badge ${qualityClass}" style="font-size: 0.9rem; padding: 6px 14px;">💧 ${waterQuality}</span>
@@ -1398,7 +1398,7 @@
                     const policeResponse = data.policeResponse || 0;
                     const yoyChange = data.yearOverYearChange || 0;
                     const safetyClass = safetyPerception === 'Very Safe' || safetyPerception === 'Safe' ? 'good' : safetyPerception === 'Moderate' ? 'moderate' : 'poor';
-                    
+
                     return `<div class="metric-display">
                         <div class="metric-value">${safetyScore.toFixed(0)}<span style="font-size: 1rem; font-weight: 500;">/100</span></div>
                         <div class="metric-label">Safety Score</div>
@@ -1422,7 +1422,7 @@
                     const noiseContour = data.noiseContour || '';
                     const flightPaths = data.flightPaths || [];
                     const flightNoiseClass = flightNoiseLevel < 45 ? 'good' : flightNoiseLevel < 55 ? 'moderate' : 'poor';
-                    
+
                     return `<div class="metric-display">
                         <div class="metric-value">${flightNoiseLevel.toFixed(0)} <span style="font-size: 1rem; font-weight: 500;">dB(A)</span></div>
                         <div class="metric-label">Aviation Noise Level</div>
@@ -1444,7 +1444,7 @@
                     const contaminants = data.contaminants || [];
                     const restrictedUse = data.restrictedUse || false;
                     const contamClass = contamLevel === 'Clean' ? 'good' : contamLevel === 'Light' ? 'moderate' : contamLevel === 'Unknown' ? 'moderate' : 'poor';
-                    
+
                     return `<div class="metric-display">
                         <div style="margin-bottom: 0.5rem;">
                             <span class="status-badge ${contamClass}" style="font-size: 0.9rem; padding: 6px 14px;">🧪 ${contamLevel}</span>
@@ -1465,7 +1465,7 @@
                     const pollutionIdx = data.pollutionIndex || 0;
                     const recommendations = data.recommendations || [];
                     const esgClass = ['A+', 'A', 'B+', 'B'].includes(esgRating) ? 'good' : ['C+', 'C'].includes(esgRating) ? 'moderate' : 'poor';
-                    
+
                     return `<div class="metric-display">
                         <div class="metric-value">${envScore.toFixed(0)}<span style="font-size: 1rem; font-weight: 500;">/100</span></div>
                         <div class="metric-label">Environment Score</div>
@@ -1490,7 +1490,7 @@
         // Smart formatter for unknown data structures
         function formatUnknownData(apiName, data) {
             if (!data) return '';
-            
+
             // If it's an array, show count and sample items
             if (Array.isArray(data)) {
                 const count = data.length;
@@ -1499,23 +1499,23 @@
                     if (typeof item === 'object') return item.name || item.naam || item.title || item.type || JSON.stringify(item).substring(0, 30);
                     return String(item);
                 });
-                
+
                 return `<div class="metric-display">
                     <div class="metric-value">${count}</div>
                     <div class="metric-label">Items Found</div>
                     ${sampleItems.length > 0 ? `<div class="metric-secondary">${sampleItems.join(' • ')}</div>` : ''}
                 </div>`;
             }
-            
+
             // If it's an object, extract key metrics
             if (typeof data === 'object') {
                 const keys = Object.keys(data);
-                
+
                 // Look for common numeric fields to highlight
                 const numericFields = ['total', 'count', 'aantal', 'population', 'inhabitants', 'area', 'distance', 'value', 'score'];
                 let primaryMetric = null;
                 let primaryLabel = null;
-                
+
                 for (const field of numericFields) {
                     for (const key of keys) {
                         if (key.toLowerCase().includes(field) && typeof data[key] === 'number') {
@@ -1526,13 +1526,13 @@
                     }
                     if (primaryMetric !== null) break;
                 }
-                
+
                 // Build secondary info from other fields
                 const secondaryFields = [];
                 for (const key of keys.slice(0, 5)) {
                     const val = data[key];
                     if (key === primaryLabel?.replace(/ /g, '')) continue;
-                    
+
                     if (typeof val === 'number') {
                         secondaryFields.push(`${key}: <strong>${val.toLocaleString()}</strong>`);
                     } else if (typeof val === 'string' && val.length < 30) {
@@ -1541,7 +1541,7 @@
                         secondaryFields.push(`${key}: <strong>${val.length} items</strong>`);
                     }
                 }
-                
+
                 if (primaryMetric !== null) {
                     return `<div class="metric-display">
                         <div class="metric-value">${typeof primaryMetric === 'number' ? primaryMetric.toLocaleString() : primaryMetric}</div>
@@ -1549,7 +1549,7 @@
                         ${secondaryFields.length > 0 ? `<div class="metric-secondary">${secondaryFields.slice(0, 3).join(' &nbsp;|&nbsp; ')}</div>` : ''}
                     </div>`;
                 }
-                
+
                 // No numeric primary found, show first few fields
                 if (secondaryFields.length > 0) {
                     return `<div class="metric-display">
@@ -1558,7 +1558,7 @@
                     </div>`;
                 }
             }
-            
+
             // Fallback for primitives or empty objects
             return `<div class="metric-display">
                 <div class="metric-label" style="color: var(--success);">✓ Data retrieved successfully</div>
@@ -1600,6 +1600,14 @@
                 if (results.length === 0) return '';
                 const sectionResults = results.filter(result => enabledAPIs.has(result.name));
                 if (sectionResults.length === 0) return '';
+
+                // Sort results: success first, then error, then not_configured
+                const statusPriority = { 'success': 0, 'error': 1, 'not_configured': 2 };
+                sectionResults.sort((a, b) => {
+                    const priorityA = statusPriority[a.status] ?? 3;
+                    const priorityB = statusPriority[b.status] ?? 3;
+                    return priorityA - priorityB;
+                });
 
                 let sectionHtml = `<div class="mb-5">
                     <div class="section-header">
