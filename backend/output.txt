@@ -1,8 +1,1 @@
-2025/12/15 14:55:17 Starting AddressIQ backend...
-2025/12/15 14:55:17 Initial build metadata: commit=unknown, date=unknown
-2025/12/15 14:55:17 Final build metadata: commit=0916da6137f28a18ddcc6021ed21cd7b829ac9fe, date=2025-12-15T13:21:21Z
-2025/12/15 14:55:17 After debug set: commit=0916da6137f28a18ddcc6021ed21cd7b829ac9fe, date=2025-12-15T13:21:21Z
-2025/12/15 14:55:17 Ô£à Configuration loaded successfully
-redis: 2025/12/15 14:55:22 pool.go:376: redis: connection pool: failed to dial after 5 attempts: dial tcp: lookup cache: i/o timeout
-2025/12/15 14:55:22 Warning: could not connect to Redis: failed to connect to Redis: dial tcp: lookup cache: i/o timeout, caching disabled
-2025/12/15 14:55:22 ÔÜá´©Å  Redis not configured, using direct API calls (no caching)
+404 page not found

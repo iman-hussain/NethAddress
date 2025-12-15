@@ -1,6 +1,6 @@
 # AddressIQ API Audit Report
 
-**Date:** 2025-12-15  
+**Date:** 2025-12-15
 **Test Address:** 3541ED / 53 (Rigastraat 53, Utrecht)
 
 ---
