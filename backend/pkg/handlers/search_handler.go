@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"html"
 	"log"
 	"net/http"
 	"strings"
@@ -172,8 +173,8 @@ func (h *SearchHandler) HandleSearch(w http.ResponseWriter, r *http.Request) {
 		bagData.Address,
 		bagData.Coordinates[1], bagData.Coordinates[0],
 		postcode, houseNumber,
-		bagData.GeoJSON,
-		string(responseJSON))
+		html.EscapeString(bagData.GeoJSON),
+		html.EscapeString(string(responseJSON)))
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
