@@ -216,8 +216,14 @@ func (c *ApiClient) FetchPDOKData(coordinates string) (*models.PDOKData, error) 
 	
 	// Build WFS GetFeature request with proper BBOX
 	// Using a small buffer around the point to ensure we catch the containing polygon
-	lonFloat, _ := strconv.ParseFloat(lon, 64)
-	latFloat, _ := strconv.ParseFloat(lat, 64)
+	lonFloat, err := strconv.ParseFloat(lon, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid longitude '%s': %w", lon, err)
+	}
+	latFloat, err := strconv.ParseFloat(lat, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid latitude '%s': %w", lat, err)
+	}
 	buffer := 0.001 // ~100m buffer
 	
 	bbox := fmt.Sprintf("%.6f,%.6f,%.6f,%.6f", 
@@ -254,7 +260,12 @@ func (c *ApiClient) FetchPDOKData(coordinates string) (*models.PDOKData, error) 
 		return nil, err
 	}
 	
-	logutil.Debugf("[PDOK] Raw response (first 500 chars): %s", string(body[:min(500, len(body))]))
+	// Log first 500 chars or less of response
+	bodyPreview := string(body)
+	if len(bodyPreview) > 500 {
+		bodyPreview = bodyPreview[:500]
+	}
+	logutil.Debugf("[PDOK] Raw response (first 500 chars): %s", bodyPreview)
 	
 	// Parse GeoJSON response
 	var geoJSON struct {
@@ -297,12 +308,4 @@ func (c *ApiClient) FetchPDOKData(coordinates string) (*models.PDOKData, error) 
 		ZoningInfo:   zoning,
 		Restrictions: restrictions,
 	}, nil
-}
-
-// Helper function for min
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
