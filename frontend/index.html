@@ -316,7 +316,7 @@
         .card-header-title {
             color: var(--text-secondary);
             font-weight: 600;
-            font-size: 0.9375rem;
+            font-size: 1.0625rem;
             display: flex;
             align-items: center;
             gap: 0.5rem;
@@ -927,8 +927,10 @@
                     const aqi = data.aqi || 0;
                     const category = data.category || 'Unknown';
                     const aqiBadgeClass = category === 'Good' ? 'good' : category === 'Moderate' ? 'moderate' : 'poor';
+                    const aqiEmoji = category === 'Good' ? '😊' : category === 'Moderate' ? '😐' : category === 'Poor' ? '😷' : '❓';
                     const aqiTs = formatTimestamp(data.lastUpdated);
                     const stationName = data.stationName || '';
+                    const stationDistance = data.stationDistance || data.distance || 0;
                     const measurements = data.measurements || [];
 
                     // Get key pollutants
@@ -937,19 +939,26 @@
                     const no2 = measurements.find(m => m.parameter === 'NO2' || m.parameter === 'no2');
                     const o3 = measurements.find(m => m.parameter === 'O3' || m.parameter === 'o3');
 
+                    // Pollutant quality indicators
+                    const pm25Class = pm25 ? (pm25.value <= 10 ? 'good' : pm25.value <= 25 ? 'moderate' : 'poor') : '';
+                    const pm10Class = pm10 ? (pm10.value <= 20 ? 'good' : pm10.value <= 50 ? 'moderate' : 'poor') : '';
+                    const no2Class = no2 ? (no2.value <= 40 ? 'good' : no2.value <= 100 ? 'moderate' : 'poor') : '';
+
                     return `<div class="metric-display">
                         <div class="metric-value">${aqi}</div>
-                        <div class="metric-label">Air Quality Index${aqiTs ? ` <span class="timestamp">(${aqiTs})</span>` : ''}</div>
+                        <div class="metric-label">🌬️ Air Quality Index${aqiTs ? ` <span class="timestamp">(${aqiTs})</span>` : ''}</div>
                         <div style="margin-top: 0.5rem;">
-                            <span class="status-badge ${aqiBadgeClass}">${category}</span>
+                            <span class="status-badge ${aqiBadgeClass}">${aqiEmoji} ${category}</span>
                         </div>
                         <div class="metric-secondary" style="margin-top: 0.25rem;">
-                            ${pm25 ? `PM2.5: <strong>${pm25.value.toFixed(1)}</strong>` : ''}
-                            ${pm10 ? ` &nbsp;|&nbsp; PM10: <strong>${pm10.value.toFixed(1)}</strong>` : ''}
-                            ${no2 ? ` &nbsp;|&nbsp; NO₂: <strong>${no2.value.toFixed(1)}</strong>` : ''}
+                            ${pm25 ? `🔴 PM2.5: <span class="status-badge ${pm25Class}" style="font-size: 0.75rem; padding: 2px 6px;"><strong>${pm25.value.toFixed(1)}</strong></span>` : ''}
+                            ${pm10 ? ` &nbsp;|&nbsp; 🟠 PM10: <span class="status-badge ${pm10Class}" style="font-size: 0.75rem; padding: 2px 6px;"><strong>${pm10.value.toFixed(1)}</strong></span>` : ''}
                         </div>
-                        ${o3 ? `<div class="metric-secondary">O₃: <strong>${o3.value.toFixed(1)}</strong> ${o3.unit || 'µg/m³'}</div>` : ''}
-                        ${stationName ? `<div class="metric-secondary">📍 Station: ${stationName}</div>` : ''}
+                        <div class="metric-secondary" style="margin-top: 0.25rem;">
+                            ${no2 ? `🟡 NO₂: <span class="status-badge ${no2Class}" style="font-size: 0.75rem; padding: 2px 6px;"><strong>${no2.value.toFixed(1)}</strong></span>` : ''}
+                            ${o3 ? ` &nbsp;|&nbsp; 🟢 O₃: <strong>${o3.value.toFixed(1)}</strong> ${o3.unit || 'µg/m³'}` : ''}
+                        </div>
+                        ${stationName ? `<div class="metric-secondary" style="margin-top: 0.25rem;">📍 Station: <strong>${stationName}</strong>${stationDistance > 0 ? ` (${Math.round(stationDistance)}m)` : ''}</div>` : ''}
                     </div>`;
 
                 case 'CBS Population':
@@ -970,7 +979,7 @@
 
                     return `<div class="metric-display">
                         <div class="metric-value">${pop.toLocaleString()}</div>
-                        <div class="metric-label">Residents ${popNeighbourhood ? `in ${popNeighbourhood}` : 'in Neighbourhood'}</div>
+                        <div class="metric-label">👥 Residents ${popNeighbourhood ? `in ${popNeighbourhood}` : 'in Neighbourhood'}</div>
                         ${popLocationStr ? `<div class="metric-secondary">
                             📍 <strong>${popLocationStr}</strong> (CBS Buurt)
                         </div>` : ''}
@@ -1043,7 +1052,7 @@
 
                     return `<div class="metric-display">
                         <div class="metric-value">${totalGreenArea.toLocaleString()} <span style="font-size: 1rem; font-weight: 500;">m²</span></div>
-                        <div class="metric-label">Green Space (500m radius)</div>
+                        <div class="metric-label">🌿 Green Space (500m radius)</div>
                         <div class="metric-secondary">
                             🌳 <strong>${greenSpaceCount}</strong> areas &nbsp;|&nbsp;
                             📊 <strong>${(greenPct * 100).toFixed(1)}%</strong> coverage &nbsp;|&nbsp;
@@ -1051,7 +1060,7 @@
                         </div>
                         <div class="metric-secondary" style="margin-top: 0.25rem;">
                             🌲 Tree canopy: <strong>${(treeCanopy * 100).toFixed(1)}%</strong>
-                            ${nearestPark && parkDist > 0 ? ` &nbsp;|&nbsp; 📍 ${nearestPark}: <strong>${Math.round(parkDist)}m</strong>` : ''}
+                            ${nearestPark && parkDist > 0 ? ` &nbsp;|&nbsp; 🏞️ ${nearestPark}: <strong>${Math.round(parkDist)}m</strong>` : ''}
                         </div>
                         ${greenTypes.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
                             ${greenTypes.slice(0, 4).map(t => `<span class="status-badge good" style="margin-right: 4px; font-size: 0.7rem;">${t}</span>`).join('')}
@@ -1066,23 +1075,36 @@
                     const nearestSecondary = data.nearestSecondarySchool;
                     const avgQuality = data.averageQuality || 0;
                     const schoolCount = allSchools.length;
-                    const schoolTypeSet = [...new Set(allSchools.map(s => s.type).filter(t => t))];
-                    const primaryCount = allSchools.filter(s => s.type === 'Primary').length;
-                    const secondaryCount = allSchools.filter(s => s.type === 'Secondary').length;
+                    const primaryCount = allSchools.filter(s => s.type === 'Primary' || s.type === 'primary').length;
+                    const secondaryCount = allSchools.filter(s => s.type === 'Secondary' || s.type === 'secondary').length;
+                    const otherCount = schoolCount - primaryCount - secondaryCount;
+                    const publicSchools = allSchools.filter(s => s.sector === 'Public' || s.sector === 'public' || s.isPublic).length;
+                    const privateSchools = allSchools.filter(s => s.sector === 'Private' || s.sector === 'private' || s.isPrivate).length;
+
+                    // Quality indicators
+                    const primaryQualityClass = nearestPrimary?.quality >= 7 ? 'good' : nearestPrimary?.quality >= 5 ? 'moderate' : 'poor';
+                    const secondaryQualityClass = nearestSecondary?.quality >= 7 ? 'good' : nearestSecondary?.quality >= 5 ? 'moderate' : 'poor';
 
                     return `<div class="metric-display">
                         <div class="metric-value">${schoolCount}</div>
-                        <div class="metric-label">Schools (1km radius)</div>
+                        <div class="metric-label">🎒 Schools (1km radius)</div>
                         <div class="metric-secondary">
                             🏫 Primary: <strong>${primaryCount}</strong> &nbsp;|&nbsp;
-                            🎓 Secondary: <strong>${secondaryCount}</strong> &nbsp;|&nbsp;
-                            ⭐ Quality: <strong>${avgQuality.toFixed(1)}</strong>/10
+                            🎓 Secondary: <strong>${secondaryCount}</strong>
+                            ${otherCount > 0 ? ` &nbsp;|&nbsp; 📚 Other: <strong>${otherCount}</strong>` : ''}
                         </div>
+                        ${publicSchools > 0 || privateSchools > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🏛️ Public: <strong>${publicSchools}</strong> &nbsp;|&nbsp;
+                            🏢 Private: <strong>${privateSchools}</strong> &nbsp;|&nbsp;
+                            ⭐ Avg quality: <strong>${avgQuality.toFixed(1)}</strong>/10
+                        </div>` : `<div class="metric-secondary" style="margin-top: 0.25rem;">⭐ Avg quality: <strong>${avgQuality.toFixed(1)}</strong>/10</div>`}
                         ${nearestPrimary ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
-                            📍 Nearest primary: <strong>${nearestPrimary.name}</strong> (${Math.round(nearestPrimary.distance)}m)
+                            🏫 Nearest primary: <strong>${nearestPrimary.name}</strong> (${Math.round(nearestPrimary.distance)}m)
+                            ${nearestPrimary.quality ? ` <span class="status-badge ${primaryQualityClass}" style="font-size: 0.7rem; padding: 2px 6px;">⭐ ${nearestPrimary.quality.toFixed(1)}</span>` : ''}
                         </div>` : ''}
                         ${nearestSecondary ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
-                            📍 Nearest secondary: <strong>${nearestSecondary.name}</strong> (${Math.round(nearestSecondary.distance)}m)
+                            🎓 Nearest secondary: <strong>${nearestSecondary.name}</strong> (${Math.round(nearestSecondary.distance)}m)
+                            ${nearestSecondary.quality ? ` <span class="status-badge ${secondaryQualityClass}" style="font-size: 0.7rem; padding: 2px 6px;">⭐ ${nearestSecondary.quality.toFixed(1)}</span>` : ''}
                         </div>` : ''}
                     </div>`;
 
@@ -1093,35 +1115,59 @@
                     const catCounts = data.categoryCounts || {};
                     const totalFacilities = Object.values(catCounts).reduce((a, b) => a + b, 0) || topFacilities.length;
                     const categoryNames = Object.keys(catCounts);
-                    const nearestFacility = topFacilities[0];
                     const scoreClass = amenitiesScore >= 70 ? 'good' : amenitiesScore >= 40 ? 'moderate' : 'poor';
+
+                    // Category emoji mapping
+                    const catEmojis = {
+                        'Dining': '🍽️', 'Restaurant': '🍽️', 'Food': '🍽️',
+                        'Healthcare': '🏥', 'Medical': '🏥', 'Health': '🏥',
+                        'Leisure': '🎭', 'Entertainment': '🎭', 'Recreation': '🎭',
+                        'Retail': '🛒', 'Shopping': '🛒', 'Shop': '🛒',
+                        'Sport': '⚽', 'Sports': '⚽', 'Fitness': '💪',
+                        'Culture': '🎨', 'Museum': '🏛️', 'Library': '📚',
+                        'Education': '🎓', 'Supermarket': '🛒', 'Cafe': '☕'
+                    };
+                    const getCatEmoji = (cat) => catEmojis[cat] || '📍';
+
+                    // Find nearest facility of each category type
+                    const nearestByCategory = {};
+                    topFacilities.forEach(f => {
+                        const cat = f.category || f.type;
+                        if (cat && (!nearestByCategory[cat] || f.distance < nearestByCategory[cat].distance)) {
+                            nearestByCategory[cat] = f;
+                        }
+                    });
 
                     return `<div class="metric-display">
                         <div class="metric-value">${totalFacilities}</div>
-                        <div class="metric-label">Amenities (500m radius)</div>
+                        <div class="metric-label">🏪 Amenities (500m radius)</div>
                         <div class="metric-secondary">
                             🏆 Score: <span class="status-badge ${scoreClass}">${amenitiesScore.toFixed(0)}/100</span>
                         </div>
                         ${categoryNames.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
-                            ${categoryNames.slice(0, 5).map(c => `${c}: <strong>${catCounts[c]}</strong>`).join(' &nbsp;|&nbsp; ')}
+                            ${categoryNames.slice(0, 6).map(c => `${getCatEmoji(c)} ${c}: <strong>${catCounts[c]}</strong>`).join(' &nbsp;|&nbsp; ')}
                         </div>` : ''}
-                        ${nearestFacility ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
-                            📍 Nearest: <strong>${nearestFacility.name}</strong> (${nearestFacility.type}, ${Math.round(nearestFacility.distance)}m)
-                        </div>` : ''}
-                        ${topFacilities.length > 1 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
-                            ${topFacilities.slice(1, 4).map(f => `• ${f.name} (${Math.round(f.distance)}m)`).join(' ')}
-                        </div>` : ''}
+                        ${Object.keys(nearestByCategory).length > 0 ? Object.entries(nearestByCategory).slice(0, 4).map(([cat, f]) => 
+                            `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                                ${getCatEmoji(cat)} Nearest ${cat}: <strong>${f.name}</strong> (${Math.round(f.distance)}m)
+                            </div>`
+                        ).join('') : ''}
                     </div>`;
 
                 case 'openOV Public Transport':
                     // API returns: nearestStops[], connections[]
                     const nearestStops = data.nearestStops || [];
                     const stopCount = nearestStops.length;
-                    const nearestStop = nearestStops[0];
                     const trainStops = nearestStops.filter(s => s.type === 'Train' || s.type === 'train');
                     const tramStops = nearestStops.filter(s => s.type === 'Tram' || s.type === 'tram');
                     const metroStops = nearestStops.filter(s => s.type === 'Metro' || s.type === 'metro');
                     const busStops = nearestStops.filter(s => s.type === 'Bus' || s.type === 'bus');
+
+                    // Get nearest of each type (sorted by distance)
+                    const nearestTrain = trainStops.sort((a, b) => (a.distance || 0) - (b.distance || 0))[0];
+                    const nearestTram = tramStops.sort((a, b) => (a.distance || 0) - (b.distance || 0))[0];
+                    const nearestMetro = metroStops.sort((a, b) => (a.distance || 0) - (b.distance || 0))[0];
+                    const nearestBus = busStops.sort((a, b) => (a.distance || 0) - (b.distance || 0))[0];
 
                     // Calculate transit score
                     const transitScore = Math.min(100, trainStops.length * 20 + metroStops.length * 15 + tramStops.length * 10 + busStops.length * 5);
@@ -1129,40 +1175,72 @@
 
                     return `<div class="metric-display">
                         <div class="metric-value">${stopCount}</div>
-                        <div class="metric-label">PT Stops (500m radius)</div>
+                        <div class="metric-label">🚏 PT Stops (500m radius)</div>
                         <div class="metric-secondary">
-                            ${trainStops.length > 0 ? `🚆 <strong>${trainStops.length}</strong> train` : ''}
-                            ${metroStops.length > 0 ? ` &nbsp;|&nbsp; 🚇 <strong>${metroStops.length}</strong> metro` : ''}
-                            ${tramStops.length > 0 ? ` &nbsp;|&nbsp; 🚊 <strong>${tramStops.length}</strong> tram` : ''}
-                            ${busStops.length > 0 ? ` &nbsp;|&nbsp; 🚌 <strong>${busStops.length}</strong> bus` : ''}
+                            ${busStops.length > 0 ? `🚌 Bus (<strong>${busStops.length}</strong>)` : ''}
+                            ${trainStops.length > 0 ? ` &nbsp;|&nbsp; 🚆 Train (<strong>${trainStops.length}</strong>)` : ''}
+                            ${tramStops.length > 0 ? ` &nbsp;|&nbsp; 🚊 Tram (<strong>${tramStops.length}</strong>)` : ''}
+                            ${metroStops.length > 0 ? ` &nbsp;|&nbsp; 🚇 Metro (<strong>${metroStops.length}</strong>)` : ''}
                         </div>
                         <div class="metric-secondary" style="margin-top: 0.25rem;">
                             🏆 Transit score: <span class="status-badge ${transitClass}">${transitScore}/100</span>
                         </div>
-                        ${nearestStop ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
-                            📍 Nearest: <strong>${nearestStop.name}</strong> (${nearestStop.type}, ${Math.round(nearestStop.distance)}m)
+                        ${nearestBus ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🚌 Nearest Bus: <strong>${nearestBus.name}</strong> (${Math.round(nearestBus.distance)}m)
                         </div>` : ''}
-                        ${nearestStops.length > 1 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
-                            ${nearestStops.slice(1, 4).map(s => `• ${s.name} (${Math.round(s.distance)}m)`).join(' ')}
+                        ${nearestTram ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🚊 Nearest Tram: <strong>${nearestTram.name}</strong> (${Math.round(nearestTram.distance)}m)
+                        </div>` : ''}
+                        ${nearestTrain ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🚆 Nearest Train: <strong>${nearestTrain.name}</strong> (${Math.round(nearestTrain.distance)}m)
+                        </div>` : ''}
+                        ${nearestMetro ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🚇 Nearest Metro: <strong>${nearestMetro.name}</strong> (${Math.round(nearestMetro.distance)}m)
                         </div>` : ''}
                     </div>`;
 
                 case 'AHN Height Model':
                     const elevation = data.elevation || data.height || data.hoogte || 0;
+                    const terrainSlope = data.slope || data.terrainSlope || 0;
+                    const aspect = data.aspect || '';
+                    const surroundingMin = data.surroundingMin || data.minElevation || 0;
+                    const surroundingMax = data.surroundingMax || data.maxElevation || 0;
+                    const surroundingAvg = data.surroundingAvg || data.averageElevation || 0;
                     const elevClass = elevation < 0 ? 'poor' : elevation < 2 ? 'moderate' : 'good';
-                    const floodNote = elevation < 0 ? '⚠️ Below sea level' : elevation < 2 ? '⚠️ Low-lying area' : '✓ Elevated';
+                    const floodNote = elevation < 0 ? '⚠️ Below sea level' : elevation < 2 ? '⚠️ Low-lying' : '✅ Elevated';
+
+                    // Calculate flood risk based on elevation
+                    const ahnFloodRisk = elevation < -1 ? 'High' : elevation < 0 ? 'Elevated' : elevation < 2 ? 'Moderate' : 'Low';
+                    const ahnFloodClass = elevation < 0 ? 'poor' : elevation < 2 ? 'moderate' : 'good';
+
+                    // View potential based on relative elevation
+                    const relativeHeight = elevation - surroundingAvg;
+                    const viewPotential = relativeHeight > 5 ? 'Excellent' : relativeHeight > 2 ? 'Good' : relativeHeight > 0 ? 'Moderate' : 'Limited';
+                    const viewClass = relativeHeight > 5 ? 'good' : relativeHeight > 0 ? 'moderate' : 'poor';
+
                     return `<div class="metric-display">
                         <div class="metric-value">${elevation.toFixed(2)} <span style="font-size: 1rem; font-weight: 500;">m NAP</span></div>
-                        <div class="metric-label">Ground Elevation</div>
+                        <div class="metric-label">⛰️ Ground Elevation</div>
                         <div class="metric-secondary">
                             <span class="status-badge ${elevClass}">${floodNote}</span>
                         </div>
                         <div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🌊 Flood risk: <span class="status-badge ${ahnFloodClass}">${ahnFloodRisk}</span>
+                            ${elevation < 0 ? ` &nbsp;|&nbsp; 💧 <strong>${Math.abs(elevation).toFixed(2)}m</strong> below sea level` : ''}
+                        </div>
+                        ${terrainSlope > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            📐 Terrain slope: <strong>${terrainSlope.toFixed(1)}°</strong>${aspect ? ` (${aspect})` : ''}
+                        </div>` : ''}
+                        ${surroundingAvg !== 0 || surroundingMin !== 0 || surroundingMax !== 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🏔️ Surroundings: <strong>${surroundingMin.toFixed(1)}</strong>m – <strong>${surroundingMax.toFixed(1)}</strong>m (avg: ${surroundingAvg.toFixed(1)}m)
+                        </div>` : ''}
+                        <div class="metric-secondary" style="margin-top: 0.25rem;">
+                            👁️ View potential: <span class="status-badge ${viewClass}">${viewPotential}</span>
+                            ${relativeHeight !== 0 ? ` (<strong>${relativeHeight > 0 ? '+' : ''}${relativeHeight.toFixed(1)}m</strong> vs avg)` : ''}
+                        </div>
+                        <div class="metric-secondary timestamp" style="margin-top: 0.25rem; font-size: 0.7rem;">
                             📍 Relative to Amsterdam Ordnance Datum (NAP)
                         </div>
-                        ${elevation < 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
-                            💧 <strong>${Math.abs(elevation).toFixed(2)}m</strong> below sea level
-                        </div>` : ''}
                     </div>`;
 
                 case 'Noise Pollution':
@@ -1182,7 +1260,7 @@
 
                     return `<div class="metric-display">
                         <div class="metric-value">${totalNoise} <span style="font-size: 1rem; font-weight: 500;">dB(A)</span></div>
-                        <div class="metric-label">Total Noise Level (Lden)</div>
+                        <div class="metric-label">🔊 Total Noise Level (Lden)</div>
                         <div style="margin-top: 0.5rem;">
                             <span class="status-badge ${noiseBadge}">${noiseCategory}</span>
                             ${data.exceedsLimit ? '<span class="status-badge poor" style="margin-left: 4px;">⚠️ Exceeds 55dB</span>' : ''}
@@ -1209,7 +1287,7 @@
 
                     return `<div class="metric-display">
                         <div class="metric-value">${totalSpaces > 0 ? availableSpaces : '--'}</div>
-                        <div class="metric-label">Available Spaces${parkingTs ? ` <span class="timestamp">(${parkingTs})</span>` : ''}</div>
+                        <div class="metric-label">🅿️ Available Spaces${parkingTs ? ` <span class="timestamp">(${parkingTs})</span>` : ''}</div>
                         ${totalSpaces > 0 ? `<div class="metric-secondary">
                             🅿️ <strong>${totalSpaces}</strong> total &nbsp;|&nbsp;
                             <span class="status-badge ${parkingBadge}">${occupancyRate.toFixed(0)}% full</span>
@@ -1359,25 +1437,44 @@
                 case 'Flood Risk':
                     const riskLevel = data.riskLevel || 'Unknown';
                     const floodBadgeClass = riskLevel === 'Low' ? 'good' : riskLevel === 'Medium' ? 'moderate' : 'poor';
-                    const zoneName = data.zoneName || '';
+                    const zoneName = data.zoneName || data.floodZone || '';
                     const returnPeriod = data.returnPeriod || 0;
-                    const maxDepth = data.maxDepth || 0;
+                    const maxDepth = data.maxDepth || data.waterDepth || 0;
                     const protectionLevel = data.protectionLevel || '';
+                    const nearestDyke = data.nearestDyke || data.dikeName || '';
+                    const dykeDistance = data.dykeDistance || 0;
+                    const dykeQuality = data.dykeQuality || data.dikeQuality || '';
+                    const dykeHeight = data.dykeHeight || data.dikeHeight || 0;
+                    const evacuationTime = data.evacuationTime || 0;
+                    const floodScenario = data.scenario || data.floodScenario || '';
+
+                    // Dyke quality indicator
+                    const dykeClass = dykeQuality === 'Good' || dykeQuality === 'Excellent' ? 'good' : dykeQuality === 'Moderate' || dykeQuality === 'Fair' ? 'moderate' : dykeQuality ? 'poor' : '';
 
                     return `<div class="metric-display">
                         <div style="margin-bottom: 0.5rem;">
                             <span class="status-badge ${floodBadgeClass}" style="font-size: 0.9rem; padding: 6px 14px;">🌊 ${riskLevel} Risk</span>
                         </div>
-                        <div class="metric-label">Flood Risk Assessment</div>
-                        ${zoneName ? `<div class="metric-secondary">Zone: <strong>${zoneName}</strong></div>` : ''}
+                        <div class="metric-label">🌊 Flood Risk Assessment</div>
+                        ${zoneName ? `<div class="metric-secondary">📍 Flood zone: <strong>${zoneName}</strong></div>` : ''}
+                        ${maxDepth > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            💧 Water depth (scenario): <strong>${maxDepth.toFixed(1)}m</strong>${floodScenario ? ` (${floodScenario})` : ''}
+                        </div>` : ''}
                         ${returnPeriod > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
                             📊 Return period: <strong>1 in ${returnPeriod}</strong> years
                         </div>` : ''}
-                        ${maxDepth > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
-                            💧 Max depth: <strong>${maxDepth.toFixed(1)}</strong>m in event
+                        ${nearestDyke ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🏗️ Nearest dyke: <strong>${nearestDyke}</strong>${dykeDistance > 0 ? ` (${Math.round(dykeDistance)}m)` : ''}
+                        </div>` : ''}
+                        ${dykeQuality || dykeHeight > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            ${dykeQuality ? `🛡️ Dyke quality: <span class="status-badge ${dykeClass}">${dykeQuality}</span>` : ''}
+                            ${dykeHeight > 0 ? ` &nbsp;|&nbsp; 📏 Height: <strong>${dykeHeight.toFixed(1)}m</strong>` : ''}
                         </div>` : ''}
                         ${protectionLevel ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
-                            🛡️ Protection: <strong>${protectionLevel}</strong>
+                            🛡️ Protection level: <strong>${protectionLevel}</strong>
+                        </div>` : ''}
+                        ${evacuationTime > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            ⏱️ Evacuation time: <strong>${evacuationTime}</strong> hours
                         </div>` : ''}
                     </div>`;
 
