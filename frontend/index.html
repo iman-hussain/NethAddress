@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AddressIQ - Dutch Property Intelligence</title>
+    <!-- Google Fonts - Inter for clean modern typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <!-- Bulma CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bulma@1/css/bulma.min.css" rel="stylesheet">
     <!-- HTMX -->
@@ -12,32 +16,71 @@
     <link href="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.css" rel="stylesheet" />
     <script src="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
     <style>
-        /* Custom colour scheme - professional teal/slate palette */
+        /* 
+         * AddressIQ Design System
+         * Modern, high-contrast, readable colour scheme
+         * Works great in day and night - no dark mode needed
+         */
         :root {
-            --primary: #0d9488;
-            --primary-dark: #0f766e;
-            --primary-light: #14b8a6;
-            --secondary: #334155;
-            --secondary-dark: #1e293b;
-            --accent: #f59e0b;
-            --success: #10b981;
-            --warning: #f59e0b;
-            --danger: #ef4444;
-            --info: #0ea5e9;
-            --bg-card: rgba(255, 255, 255, 0.95);
-            --bg-card-hover: rgba(255, 255, 255, 1);
-            --text-primary: #1e293b;
-            --text-secondary: #64748b;
-            --border-light: rgba(0, 0, 0, 0.08);
+            /* Primary brand - vibrant blue that's easy on eyes */
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --primary-light: #3b82f6;
+            
+            /* Neutral greys - high contrast for readability */
+            --bg-page: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-card-alt: #f1f5f9;
+            --bg-dark: #0f172a;
+            
+            /* Text colours - strong contrast */
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            --text-on-primary: #ffffff;
+            
+            /* Status colours - vibrant and clear */
+            --success: #16a34a;
+            --success-bg: #dcfce7;
+            --warning: #ca8a04;
+            --warning-bg: #fef9c3;
+            --danger: #dc2626;
+            --danger-bg: #fee2e2;
+            --info: #0284c7;
+            --info-bg: #e0f2fe;
+            
+            /* Borders and shadows */
+            --border: #e2e8f0;
+            --border-strong: #cbd5e1;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+            
+            /* Spacing */
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
         }
 
+        /* Base styles */
+        * {
+            box-sizing: border-box;
+        }
+        
         html, body {
             height: 100%;
             margin: 0;
             padding: 0;
             overflow: hidden;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-size: 16px;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background: var(--bg-page);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
+
         .full-height-columns {
             display: flex;
             flex-direction: column;
@@ -49,34 +92,36 @@
             position: relative;
         }
 
-        /* Professional navbar styling */
+        /* ========================================
+           NAVBAR - Clean and prominent
+           ======================================== */
         .navbar.is-primary {
-            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            background: var(--bg-dark);
+            box-shadow: var(--shadow-md);
+            padding: 0.5rem 0;
         }
         .navbar-brand .navbar-item {
-            font-weight: 700;
-            font-size: 1.4rem;
+            font-weight: 800;
+            font-size: 1.5rem;
             letter-spacing: -0.5px;
             color: white !important;
+            gap: 0.5rem;
         }
         .navbar-brand .navbar-item:hover {
             background: transparent !important;
         }
         .logo-icon {
-            width: 28px;
-            height: 28px;
-            margin-right: 8px;
-            background: white;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 800;
-            font-size: 14px;
-            color: var(--primary);
+            font-size: 1.5rem;
+        }
+        .navbar-end .tag {
+            background: rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.8);
+            font-size: 0.75rem;
         }
 
+        /* ========================================
+           MAP AND LAYOUT
+           ======================================== */
         #map {
             width: 100%;
             height: 100%;
@@ -92,7 +137,7 @@
             position: absolute;
             top: 0;
             left: 0;
-            width: 50%;
+            width: 52%;
             height: 100%;
             pointer-events: none;
             z-index: 20;
@@ -100,15 +145,15 @@
         .sidebar-content {
             height: 100%;
             overflow-y: auto;
-            padding: 1.25rem 1.75rem 2rem;
+            padding: 1.5rem 2rem 2rem;
             pointer-events: auto;
-            direction: rtl; /* Right-to-left to put scrollbar on left */
+            direction: rtl;
             display: flex;
             flex-direction: column;
-            gap: 1.5rem;
+            gap: 1.25rem;
         }
         .sidebar-content > * {
-            direction: ltr; /* Reset content back to left-to-right */
+            direction: ltr;
         }
         .sidebar-overlay,
         .sidebar-content {
@@ -117,109 +162,136 @@
         .panel-grid {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 1rem;
+            gap: 1.25rem;
         }
         .search-panel,
         .results-header-panel,
         .results-wrapper {
             pointer-events: auto;
         }
-        /* Custom scrollbar styling */
+        
+        /* Custom scrollbar */
         .sidebar-content::-webkit-scrollbar {
             width: 8px;
         }
         .sidebar-content::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.1);
-            border-radius: 4px;
+            background: transparent;
         }
         .sidebar-content::-webkit-scrollbar-thumb {
-            background: rgba(0, 0, 0, 0.3);
+            background: var(--border-strong);
             border-radius: 4px;
         }
         .sidebar-content::-webkit-scrollbar-thumb:hover {
-            background: rgba(0, 0, 0, 0.5);
+            background: var(--text-muted);
         }
 
-        /* Search panel styling */
+        /* ========================================
+           SEARCH PANEL - Clean and prominent
+           ======================================== */
         .search-panel .box {
             background: var(--bg-card);
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
-            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border);
+            padding: 1.5rem;
         }
         .search-panel .label {
             color: var(--text-primary);
             font-weight: 600;
-            font-size: 0.875rem;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
         }
         .search-panel .input {
-            border-radius: 8px;
-            border: 2px solid #e2e8f0;
+            border-radius: var(--radius-sm);
+            border: 2px solid var(--border);
+            font-size: 1rem;
+            padding: 0.75rem 1rem;
+            height: auto;
             transition: all 0.2s ease;
         }
         .search-panel .input:focus {
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+        .search-panel .input::placeholder {
+            color: var(--text-muted);
         }
         .search-panel .button.is-primary {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            background: var(--primary);
             border: none;
-            border-radius: 8px;
+            border-radius: var(--radius-sm);
             font-weight: 600;
+            font-size: 1rem;
+            padding: 0.75rem 1.5rem;
+            height: auto;
             transition: all 0.2s ease;
         }
         .search-panel .button.is-primary:hover {
+            background: var(--primary-hover);
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.35);
+            box-shadow: var(--shadow-md);
         }
 
-        /* Results header styling */
+        /* ========================================
+           RESULTS HEADER
+           ======================================== */
         .results-header-panel .box {
             background: var(--bg-card);
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
-            border: 1px solid var(--border-light);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border);
+            padding: 1.25rem 1.5rem;
         }
         .results-header-panel .title {
             color: var(--text-primary);
             font-weight: 700;
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+        .results-header-panel .is-size-6 {
+            color: var(--text-secondary);
+            font-size: 0.95rem !important;
         }
 
-        /* API results grid - larger cards */
+        /* ========================================
+           API RESULTS GRID
+           ======================================== */
         .api-results-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(2, 1fr);
             gap: 1rem;
             margin-top: 1rem;
         }
 
-        /* Result card styling - more prominent */
+        /* ========================================
+           RESULT CARDS - Big, readable, modern
+           ======================================== */
         .result-card {
-            margin: 0 !important;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            hyphens: auto;
             background: var(--bg-card) !important;
-            border-radius: 12px !important;
-            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-            border: 1px solid var(--border-light) !important;
-            padding: 1rem !important;
+            border-radius: var(--radius-md) !important;
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border) !important;
+            padding: 1.25rem !important;
             transition: all 0.2s ease;
+            margin: 0 !important;
         }
         .result-card:hover {
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
-            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--border-strong) !important;
         }
 
-        /* Card header with status indicator */
-        .result-card .card-header-title {
+        /* Card header */
+        .card-header-title {
             color: var(--text-primary);
-            font-weight: 600;
-            font-size: 0.95rem;
+            font-weight: 700;
+            font-size: 1rem;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 0.5rem;
+            margin-bottom: 0.25rem;
         }
+        
+        /* Status indicator dot */
         .status-dot {
             width: 10px;
             height: 10px;
@@ -230,116 +302,154 @@
         .status-dot.error { background: var(--danger); }
         .status-dot.warning { background: var(--warning); }
 
-        /* Key metric display - large and prominent */
+        /* ========================================
+           METRIC DISPLAY - Large and readable
+           ======================================== */
         .metric-display {
-            margin: 0.75rem 0;
+            margin: 0.75rem 0 0.5rem;
         }
         .metric-value {
-            font-size: 1.75rem;
-            font-weight: 700;
+            font-size: 2rem;
+            font-weight: 800;
             color: var(--text-primary);
-            line-height: 1.2;
+            line-height: 1.1;
+            letter-spacing: -0.5px;
+        }
+        .metric-value span {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-secondary);
         }
         .metric-label {
-            font-size: 0.8rem;
-            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-top: 2px;
+            margin-top: 0.25rem;
         }
         .metric-secondary {
-            font-size: 0.875rem;
+            font-size: 0.95rem;
             color: var(--text-secondary);
             margin-top: 0.5rem;
+            line-height: 1.5;
         }
         .metric-secondary strong {
             color: var(--text-primary);
+            font-weight: 600;
         }
 
-        /* Status badges */
+        /* ========================================
+           STATUS BADGES - Clear and vibrant
+           ======================================== */
         .status-badge {
             display: inline-flex;
             align-items: center;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 0.75rem;
+            padding: 0.35rem 0.75rem;
+            border-radius: 100px;
+            font-size: 0.8rem;
             font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
         }
-        .status-badge.good { background: rgba(16, 185, 129, 0.15); color: #059669; }
-        .status-badge.moderate { background: rgba(245, 158, 11, 0.15); color: #d97706; }
-        .status-badge.poor { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
+        .status-badge.good { 
+            background: var(--success-bg); 
+            color: var(--success); 
+        }
+        .status-badge.moderate { 
+            background: var(--warning-bg); 
+            color: var(--warning); 
+        }
+        .status-badge.poor { 
+            background: var(--danger-bg); 
+            color: var(--danger); 
+        }
 
-        /* Raw data toggle */
+        /* ========================================
+           RAW DATA TOGGLE
+           ======================================== */
         .raw-data-toggle {
-            margin-top: 0.75rem;
+            margin-top: 1rem;
             padding-top: 0.75rem;
-            border-top: 1px solid var(--border-light);
+            border-top: 1px solid var(--border);
         }
         .raw-data-toggle summary {
             cursor: pointer;
-            font-size: 0.75rem;
+            font-size: 0.85rem;
             color: var(--primary);
-            font-weight: 500;
+            font-weight: 600;
             transition: color 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
         }
         .raw-data-toggle summary:hover {
-            color: var(--primary-dark);
+            color: var(--primary-hover);
+        }
+        .raw-data-toggle summary::before {
+            content: '📄';
         }
         .raw-data-toggle pre {
-            margin-top: 0.5rem;
-            padding: 0.75rem;
-            background: #1e293b;
+            margin-top: 0.75rem;
+            padding: 1rem;
+            background: var(--bg-dark);
             color: #e2e8f0;
-            border-radius: 8px;
-            font-size: 0.7rem;
-            max-height: 200px;
+            border-radius: var(--radius-sm);
+            font-size: 0.8rem;
+            max-height: 250px;
             overflow-y: auto;
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-family: 'SF Mono', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            line-height: 1.5;
         }
 
-        /* Section headers */
+        /* ========================================
+           SECTION HEADERS
+           ======================================== */
         .section-header {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.75rem;
             margin-bottom: 1rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid var(--border-light);
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid var(--border);
         }
         .section-header h4 {
             margin: 0;
-            font-size: 1.1rem;
+            font-size: 1.15rem;
             font-weight: 700;
             color: var(--text-primary);
         }
         .section-icon {
-            font-size: 1.25rem;
+            font-size: 1.5rem;
         }
 
-        /* Summary notification */
+        /* ========================================
+           SUMMARY NOTIFICATION
+           ======================================== */
         .summary-notification {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%) !important;
+            background: var(--bg-dark) !important;
             color: white !important;
-            border-radius: 12px;
-            padding: 1rem 1.25rem;
+            border-radius: var(--radius-md);
+            padding: 1.25rem 1.5rem;
             margin-bottom: 1.5rem;
         }
         .summary-notification strong {
             color: white;
+            font-size: 1.1rem;
         }
         .summary-stats {
             display: flex;
-            gap: 1.5rem;
-            margin-top: 0.5rem;
+            flex-wrap: wrap;
+            gap: 1.25rem;
+            margin-top: 0.75rem;
         }
         .summary-stat {
             display: flex;
             align-items: center;
-            gap: 0.35rem;
-            font-size: 0.9rem;
+            gap: 0.5rem;
+            font-size: 1rem;
+            font-weight: 500;
         }
+        /* Misc */
         .result-card pre {
             word-break: break-all;
             white-space: pre-wrap;
@@ -356,13 +466,13 @@
         #results-header:empty {
             display: none;
         }
-
-        /* Hide mobile results on desktop */
         .mobile-results {
             display: none;
         }
 
-        /* Mobile layout */
+        /* ========================================
+           MOBILE LAYOUT
+           ======================================== */
         @media screen and (max-width: 768px) {
             html, body {
                 height: 100%;
@@ -374,6 +484,9 @@
                 left: 0;
                 right: 0;
                 z-index: 40;
+            }
+            .navbar-brand .navbar-item {
+                font-size: 1.25rem;
             }
             .full-height-columns {
                 height: 100%;
@@ -469,7 +582,7 @@
         <nav class="navbar is-primary">
             <div class="navbar-brand">
                 <a class="navbar-item" href="#">
-                    <span class="logo-icon">IQ</span>
+                    <span class="logo-icon">🏠</span>
                     AddressIQ
                 </a>
             </div>
