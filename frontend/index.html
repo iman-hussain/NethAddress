@@ -1279,9 +1279,206 @@
 
                 case 'Land Use & Zoning':
                     return `<div class="metric-display">
-                        <div class="metric-value" style="font-size: 1.1rem;">${data.landUseType || 'Unknown'}</div>
+                        <div class="metric-value" style="font-size: 1.1rem;">${data.primaryUse || data.landUseType || 'Unknown'}</div>
                         <div class="metric-label">Land Use Classification</div>
                         ${data.zoningCode ? `<div class="metric-secondary">Zone Code: <strong>${data.zoningCode}</strong></div>` : ''}
+                        ${data.zoningDetails ? `<div class="metric-secondary" style="margin-top: 0.25rem;">${data.zoningDetails}</div>` : ''}
+                    </div>`;
+
+                case 'Altum WOZ':
+                    // API returns: wozValue, valueYear, buildingType, buildYear, surfaceArea
+                    const wozValue = data.wozValue || 0;
+                    const valueYear = data.valueYear || '';
+                    const wozBuildingType = data.buildingType || 'Unknown';
+                    const wozBuildYear = data.buildYear || 0;
+                    const wozSurfaceArea = data.surfaceArea || 0;
+                    
+                    return `<div class="metric-display">
+                        <div class="metric-value">€${wozValue.toLocaleString()}</div>
+                        <div class="metric-label">WOZ Tax Value${valueYear ? ` (${valueYear})` : ''}</div>
+                        <div class="metric-secondary">
+                            🏠 <strong>${wozBuildingType}</strong>
+                            ${wozBuildYear > 0 ? ` &nbsp;|&nbsp; 📅 Built: <strong>${wozBuildYear}</strong>` : ''}
+                        </div>
+                        ${wozSurfaceArea > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            📐 Surface: <strong>${wozSurfaceArea}m²</strong>
+                        </div>` : ''}
+                    </div>`;
+
+                case 'Altum Transactions':
+                    // API returns: transactions[], totalCount
+                    const transactions = data.transactions || [];
+                    const txCount = data.totalCount || transactions.length;
+                    const latestTx = transactions[0];
+                    
+                    return `<div class="metric-display">
+                        <div class="metric-value">${txCount}</div>
+                        <div class="metric-label">Historical Transactions</div>
+                        ${latestTx ? `<div class="metric-secondary">
+                            💰 Last sale: <strong>€${(latestTx.purchasePrice || 0).toLocaleString()}</strong>
+                            ${latestTx.date ? ` (${latestTx.date})` : ''}
+                        </div>` : '<div class="metric-secondary">No transaction history available</div>'}
+                        ${latestTx && latestTx.surfaceArea ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            📐 <strong>${latestTx.surfaceArea}m²</strong> &nbsp;|&nbsp;
+                            €${Math.round((latestTx.purchasePrice || 0) / latestTx.surfaceArea).toLocaleString()}/m²
+                        </div>` : ''}
+                    </div>`;
+
+                case 'Kadaster Object Info':
+                    // API returns: ownerName, cadastralReference, wozValue, energyLabel, municipalTaxes, surfaceArea, plotSize, buildingType, buildYear
+                    const kdWOZ = data.wozValue || 0;
+                    const kdEnergyLabel = data.energyLabel || 'Unknown';
+                    const kdSurface = data.surfaceArea || 0;
+                    const kdPlot = data.plotSize || 0;
+                    const kdBuildType = data.buildingType || 'Unknown';
+                    const kdBuildYear = data.buildYear || 0;
+                    const kdLabelClass = ['A++++', 'A+++', 'A++', 'A+', 'A', 'B'].includes(kdEnergyLabel) ? 'good' : ['C', 'D'].includes(kdEnergyLabel) ? 'moderate' : 'poor';
+                    
+                    return `<div class="metric-display">
+                        ${kdWOZ > 0 ? `<div class="metric-value">€${kdWOZ.toLocaleString()}</div>
+                        <div class="metric-label">Kadaster WOZ Value</div>` : 
+                        `<div class="metric-value" style="font-size: 1.25rem;">${kdBuildType}</div>
+                        <div class="metric-label">Property Type</div>`}
+                        <div class="metric-secondary" style="margin-top: 0.5rem;">
+                            ⚡ Energy: <span class="status-badge ${kdLabelClass}">${kdEnergyLabel}</span>
+                            ${kdBuildYear > 0 ? ` &nbsp;|&nbsp; 📅 Built: <strong>${kdBuildYear}</strong>` : ''}
+                        </div>
+                        ${kdSurface > 0 || kdPlot > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            ${kdSurface > 0 ? `📐 Living: <strong>${kdSurface}m²</strong>` : ''}
+                            ${kdPlot > 0 ? ` &nbsp;|&nbsp; 🏡 Plot: <strong>${kdPlot}m²</strong>` : ''}
+                        </div>` : ''}
+                    </div>`;
+
+                case 'Matrixian Property Value+':
+                    // API returns: marketValue, valuationDate, confidence, comparableProperties[], features, pricePerSqm
+                    const marketValue = data.marketValue || 0;
+                    const confidence = data.confidence || 0;
+                    const pricePerSqm = data.pricePerSqm || 0;
+                    const comparables = data.comparableProperties || [];
+                    const confidenceClass = confidence >= 80 ? 'good' : confidence >= 60 ? 'moderate' : 'poor';
+                    
+                    return `<div class="metric-display">
+                        <div class="metric-value">€${marketValue.toLocaleString()}</div>
+                        <div class="metric-label">Estimated Market Value</div>
+                        <div class="metric-secondary">
+                            📊 Confidence: <span class="status-badge ${confidenceClass}">${confidence.toFixed(0)}%</span>
+                            ${pricePerSqm > 0 ? ` &nbsp;|&nbsp; €${pricePerSqm.toLocaleString()}/m²` : ''}
+                        </div>
+                        ${comparables.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🏘️ Based on <strong>${comparables.length}</strong> comparable sales
+                        </div>` : ''}
+                    </div>`;
+
+                case 'Digital Delta Water Quality':
+                    // API returns: waterLevel, waterQuality, parameters, nearestWater, distance, lastMeasured
+                    const waterQuality = data.waterQuality || 'Unknown';
+                    const waterLevel = data.waterLevel || 0;
+                    const nearestWater = data.nearestWater || '';
+                    const waterDistance = data.distance || 0;
+                    const qualityClass = waterQuality === 'Excellent' || waterQuality === 'Good' ? 'good' : waterQuality === 'Fair' ? 'moderate' : 'poor';
+                    
+                    return `<div class="metric-display">
+                        <div style="margin-bottom: 0.5rem;">
+                            <span class="status-badge ${qualityClass}" style="font-size: 0.9rem; padding: 6px 14px;">💧 ${waterQuality}</span>
+                        </div>
+                        <div class="metric-label">Water Quality</div>
+                        ${nearestWater ? `<div class="metric-secondary">
+                            📍 ${nearestWater}${waterDistance > 0 ? ` (${Math.round(waterDistance)}m)` : ''}
+                        </div>` : ''}
+                        ${waterLevel !== 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            📏 Water level: <strong>${waterLevel.toFixed(2)}m</strong> (NAP)
+                        </div>` : ''}
+                    </div>`;
+
+                case 'CBS Safety Experience':
+                    // API returns: safetyScore, safetyPerception, crimeRate, crimeTypes, policeResponse, yearOverYearChange
+                    const safetyScore = data.safetyScore || 0;
+                    const safetyPerception = data.safetyPerception || 'Unknown';
+                    const crimeRate = data.crimeRate || 0;
+                    const policeResponse = data.policeResponse || 0;
+                    const yoyChange = data.yearOverYearChange || 0;
+                    const safetyClass = safetyPerception === 'Very Safe' || safetyPerception === 'Safe' ? 'good' : safetyPerception === 'Moderate' ? 'moderate' : 'poor';
+                    
+                    return `<div class="metric-display">
+                        <div class="metric-value">${safetyScore.toFixed(0)}<span style="font-size: 1rem; font-weight: 500;">/100</span></div>
+                        <div class="metric-label">Safety Score</div>
+                        <div style="margin-top: 0.5rem;">
+                            <span class="status-badge ${safetyClass}">${safetyPerception}</span>
+                        </div>
+                        <div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🚔 Crime: <strong>${crimeRate.toFixed(1)}</strong>/1000 residents
+                            ${policeResponse > 0 ? ` &nbsp;|&nbsp; 🚨 Response: <strong>${policeResponse.toFixed(0)}</strong>min` : ''}
+                        </div>
+                        ${yoyChange !== 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            ${yoyChange > 0 ? '📈' : '📉'} YoY: <strong>${yoyChange > 0 ? '+' : ''}${yoyChange.toFixed(1)}%</strong>
+                        </div>` : ''}
+                    </div>`;
+
+                case 'Schiphol Flight Noise':
+                    // API returns: dailyFlights, noiseLevel, peakHours[], flightPaths[], nightFlights, noiseContour
+                    const dailyFlights = data.dailyFlights || 0;
+                    const flightNoiseLevel = data.noiseLevel || 0;
+                    const nightFlights = data.nightFlights || 0;
+                    const noiseContour = data.noiseContour || '';
+                    const flightPaths = data.flightPaths || [];
+                    const flightNoiseClass = flightNoiseLevel < 45 ? 'good' : flightNoiseLevel < 55 ? 'moderate' : 'poor';
+                    
+                    return `<div class="metric-display">
+                        <div class="metric-value">${flightNoiseLevel.toFixed(0)} <span style="font-size: 1rem; font-weight: 500;">dB(A)</span></div>
+                        <div class="metric-label">Aviation Noise Level</div>
+                        <div class="metric-secondary">
+                            ✈️ <strong>${dailyFlights}</strong> flights/day
+                            ${nightFlights > 0 ? ` &nbsp;|&nbsp; 🌙 <strong>${nightFlights}</strong> at night` : ''}
+                        </div>
+                        ${noiseContour ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            📍 Noise zone: <span class="status-badge ${flightNoiseClass}">Ke ${noiseContour}</span>
+                        </div>` : ''}
+                        ${flightPaths.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🛫 <strong>${flightPaths.length}</strong> flight paths nearby
+                        </div>` : ''}
+                    </div>`;
+
+                case 'Soil Quality':
+                    // API returns: contaminationLevel, contaminants[], qualityZone, restrictedUse, lastTested
+                    const contamLevel = data.contaminationLevel || 'Unknown';
+                    const contaminants = data.contaminants || [];
+                    const restrictedUse = data.restrictedUse || false;
+                    const contamClass = contamLevel === 'Clean' ? 'good' : contamLevel === 'Light' ? 'moderate' : contamLevel === 'Unknown' ? 'moderate' : 'poor';
+                    
+                    return `<div class="metric-display">
+                        <div style="margin-bottom: 0.5rem;">
+                            <span class="status-badge ${contamClass}" style="font-size: 0.9rem; padding: 6px 14px;">🧪 ${contamLevel}</span>
+                            ${restrictedUse ? '<span class="status-badge poor" style="margin-left: 4px;">⚠️ Restricted Use</span>' : ''}
+                        </div>
+                        <div class="metric-label">Soil Contamination</div>
+                        ${contaminants.length > 0 ? `<div class="metric-secondary">
+                            Detected: ${contaminants.slice(0, 3).map(c => `<strong>${c}</strong>`).join(', ')}
+                            ${contaminants.length > 3 ? ` +${contaminants.length - 3} more` : ''}
+                        </div>` : '<div class="metric-secondary">No contaminants detected</div>'}
+                    </div>`;
+
+                case 'Stratopo Environment':
+                    // API returns: environmentScore, totalVariables, pollutionIndex, urbanizationLevel, environmentFactors, esgRating, recommendations[]
+                    const envScore = data.environmentScore || 0;
+                    const esgRating = data.esgRating || 'Unknown';
+                    const urbanLevel = data.urbanizationLevel || 'Unknown';
+                    const pollutionIdx = data.pollutionIndex || 0;
+                    const recommendations = data.recommendations || [];
+                    const esgClass = ['A+', 'A', 'B+', 'B'].includes(esgRating) ? 'good' : ['C+', 'C'].includes(esgRating) ? 'moderate' : 'poor';
+                    
+                    return `<div class="metric-display">
+                        <div class="metric-value">${envScore.toFixed(0)}<span style="font-size: 1rem; font-weight: 500;">/100</span></div>
+                        <div class="metric-label">Environment Score</div>
+                        <div class="metric-secondary" style="margin-top: 0.5rem;">
+                            🌿 ESG: <span class="status-badge ${esgClass}">${esgRating}</span>
+                            &nbsp;|&nbsp; 🏙️ <strong>${urbanLevel}</strong>
+                        </div>
+                        ${pollutionIdx > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            💨 Pollution index: <strong>${pollutionIdx.toFixed(1)}</strong>
+                        </div>` : ''}
+                        ${recommendations.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            💡 <strong>${recommendations.length}</strong> recommendations available
+                        </div>` : ''}
                     </div>`;
 
                 // Default fallback - smart extraction for unknown APIs
