@@ -1039,78 +1039,76 @@
                     </div>`;
 
                 case 'CBS Population':
-                    // Handle both field names: totalPopulation (from API) and population (legacy)
-                    const pop = data.totalPopulation || data.population || 0;
-                    const households = data.households || 0;
-                    const avgHouseholdSize = data.averageHouseholdSize || 0;
-                    const ageDist = data.ageDistribution || data.demographics || {};
-                    const demog = data.demographics || {};
-                    const popNeighbourhood = data.neighbourhoodName || '';
-                    const popMunicipality = data.municipalityName || '';
-                    const popDensity = data.populationDensity || 0;
+                case 'CBS Square Statistics':
+                    // Combined CBS Demographics card - merges Population and Square Statistics
+                    // Try to get data from both sources
+                    let cbsPopData = data;
+                    let cbsSqData = {};
+                    
+                    // If this is CBS Population, try to find CBS Square Statistics data
+                    if (apiName === 'CBS Population' && currentResponse?.apiResults?.Demographics) {
+                        const sqStats = currentResponse.apiResults.Demographics.find(r => r.name === 'CBS Square Statistics');
+                        if (sqStats?.data) cbsSqData = sqStats.data;
+                    }
+                    // If this is CBS Square Statistics, try to find CBS Population data
+                    if (apiName === 'CBS Square Statistics' && currentResponse?.apiResults?.Demographics) {
+                        const popStats = currentResponse.apiResults.Demographics.find(r => r.name === 'CBS Population');
+                        if (popStats?.data) {
+                            cbsPopData = popStats.data;
+                            cbsSqData = data;
+                        } else {
+                            // No population data, use square stats as primary
+                            cbsPopData = data;
+                        }
+                    }
+
+                    // Extract all fields from both sources
+                    const cbsPop = cbsPopData.totalPopulation || cbsPopData.population || cbsSqData.population || 0;
+                    const cbsHouseholds = cbsPopData.households || cbsSqData.households || 0;
+                    const cbsAvgHouseholdSize = cbsPopData.averageHouseholdSize || 0;
+                    const cbsAgeDist = cbsPopData.ageDistribution || cbsPopData.demographics || {};
+                    const cbsDemog = cbsPopData.demographics || {};
+                    const cbsNeighbourhood = cbsPopData.neighbourhoodName || cbsSqData.neighbourhoodName || '';
+                    const cbsMunicipality = cbsPopData.municipalityName || cbsSqData.municipalityName || '';
+                    const cbsDensity = cbsPopData.populationDensity || cbsSqData.housingDensity || 0;
+                    const cbsWOZ = cbsSqData.averageWOZ || 0;
+                    const cbsIncome = cbsSqData.averageIncome || 0;
+                    const cbsGridId = cbsSqData.gridId || '';
+
+                    // Skip rendering if this is CBS Square Statistics and CBS Population exists (avoid duplicate)
+                    if (apiName === 'CBS Square Statistics' && currentResponse?.apiResults?.Demographics) {
+                        const hasPop = currentResponse.apiResults.Demographics.some(r => r.name === 'CBS Population' && r.data);
+                        if (hasPop) return ''; // Don't render duplicate
+                    }
 
                     // Build location string
-                    const popLocationStr = popNeighbourhood && popMunicipality
-                        ? `${popNeighbourhood}, ${popMunicipality}`
-                        : popNeighbourhood || popMunicipality || '';
+                    const cbsLocationStr = cbsNeighbourhood && cbsMunicipality
+                        ? `${cbsNeighbourhood}, ${cbsMunicipality}`
+                        : cbsNeighbourhood || cbsMunicipality || '';
 
                     return `<div class="metric-display">
-                        <div class="metric-value">${pop.toLocaleString()}</div>
-                        <div class="metric-label">👥 Residents ${popNeighbourhood ? `in ${popNeighbourhood}` : 'in Neighbourhood'}</div>
-                        ${popLocationStr ? `<div class="metric-secondary">
-                            📍 <strong>${popLocationStr}</strong> (CBS Buurt)
-                        </div>` : ''}
-                        <div class="metric-secondary"${popLocationStr ? ' style="margin-top: 0.25rem;"' : ''}>
-                            🏠 <strong>${households.toLocaleString()}</strong> households
-                            ${avgHouseholdSize ? ` &nbsp;|&nbsp; 👥 <strong>${avgHouseholdSize.toFixed(1)}</strong> avg/hh` : ''}
-                        </div>
-                        ${Object.keys(ageDist).length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
-                            👶 0-14: <strong>${ageDist['0-14'] || demog.age0to14 || 0}</strong> &nbsp;|&nbsp;
-                            👨 25-44: <strong>${ageDist['25-44'] || demog.age25to44 || 0}</strong> &nbsp;|&nbsp;
-                            👴 65+: <strong>${ageDist['65+'] || demog.age65plus || 0}</strong>
+                        <div class="metric-value">${cbsPop.toLocaleString()}</div>
+                        <div class="metric-label">👥 Residents ${cbsNeighbourhood ? `in ${cbsNeighbourhood}` : 'in Neighbourhood'}</div>
+                        ${cbsLocationStr ? `<div class="metric-secondary">
+                            📍 <strong>${cbsLocationStr}</strong> (CBS Buurt)
                         </div>` : ''}
                         <div class="metric-secondary" style="margin-top: 0.25rem;">
-                            📊 Density: <strong>${popDensity > 0 ? popDensity.toLocaleString() : '~' + pop.toLocaleString()}</strong> per km²
+                            🏠 <strong>${cbsHouseholds.toLocaleString()}</strong> households
+                            ${cbsAvgHouseholdSize ? ` &nbsp;|&nbsp; 👥 <strong>${cbsAvgHouseholdSize.toFixed(1)}</strong> avg/hh` : ''}
+                            &nbsp;|&nbsp; 📊 <strong>${cbsDensity > 0 ? cbsDensity.toLocaleString() : '~' + cbsPop.toLocaleString()}</strong>/km²
                         </div>
-                        <div class="metric-secondary timestamp" style="margin-top: 0.25rem; font-size: 0.7rem;">
-                            ℹ️ CBS 'Buurt' = neighbourhood statistical area (variable size, not fixed grid)
-                        </div>
-                    </div>`;
-
-                case 'CBS Square Statistics':
-                    // API returns: gridId, population, households, averageWOZ, averageIncome, housingDensity, neighbourhoodName, municipalityName
-                    const sqPop = data.population || 0;
-                    const sqHouseholds = data.households || 0;
-                    const sqDensity = data.housingDensity || 0;
-                    const sqWOZ = data.averageWOZ || 0;
-                    const sqIncome = data.averageIncome || 0;
-                    const sqGridId = data.gridId || '';
-                    const sqNeighbourhood = data.neighbourhoodName || '';
-                    const sqMunicipality = data.municipalityName || '';
-
-                    // Build location string
-                    const sqLocationStr = sqNeighbourhood && sqMunicipality
-                        ? `${sqNeighbourhood}, ${sqMunicipality}`
-                        : sqNeighbourhood || sqMunicipality || '';
-
-                    return `<div class="metric-display">
-                        <div class="metric-value">${sqPop.toLocaleString()}</div>
-                        <div class="metric-label">Population ${sqNeighbourhood ? `in ${sqNeighbourhood}` : 'in Area'}</div>
-                        ${sqLocationStr ? `<div class="metric-secondary">
-                            📍 <strong>${sqLocationStr}</strong> (CBS Buurt)
+                        ${Object.keys(cbsAgeDist).length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            👶 0-14: <strong>${cbsAgeDist['0-14'] || cbsDemog.age0to14 || 0}</strong> &nbsp;|&nbsp;
+                            👨 25-44: <strong>${cbsAgeDist['25-44'] || cbsDemog.age25to44 || 0}</strong> &nbsp;|&nbsp;
+                            👴 65+: <strong>${cbsAgeDist['65+'] || cbsDemog.age65plus || 0}</strong>
                         </div>` : ''}
-                        <div class="metric-secondary"${sqLocationStr ? ' style="margin-top: 0.25rem;"' : ''}>
-                            🏠 <strong>${sqHouseholds.toLocaleString()}</strong> households &nbsp;|&nbsp;
-                            📊 <strong>${sqDensity.toLocaleString()}</strong> per km²
-                        </div>
-                        ${sqWOZ > 0 || sqIncome > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
-                            ${sqWOZ > 0 ? `💰 WOZ: <strong>€${sqWOZ.toLocaleString()}</strong>` : ''}
-                            ${sqIncome > 0 ? ` &nbsp;|&nbsp; 💵 Income: <strong>€${sqIncome.toLocaleString()}</strong>` : ''}
+                        ${cbsWOZ > 0 || cbsIncome > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            ${cbsWOZ > 0 ? `💰 Avg WOZ: <strong>€${cbsWOZ.toLocaleString()}</strong>` : ''}
+                            ${cbsIncome > 0 ? `${cbsWOZ > 0 ? ' &nbsp;|&nbsp; ' : ''}💵 Avg Income: <strong>€${cbsIncome.toLocaleString()}</strong>` : ''}
                         </div>` : ''}
                         <div class="metric-secondary timestamp" style="margin-top: 0.25rem; font-size: 0.7rem;">
-                            ℹ️ CBS 'Buurt' = neighbourhood statistical area (variable size, not fixed grid)
+                            ℹ️ CBS 'Buurt' = neighbourhood statistical area (variable size)
                         </div>
-                        ${sqGridId ? `<div class="metric-secondary" style="font-size: 0.7rem; opacity: 0.6;">Grid ref: ${sqGridId}</div>` : ''}
                     </div>`;
 
                 case 'Green Spaces':
