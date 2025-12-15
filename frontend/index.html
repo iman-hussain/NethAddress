@@ -844,33 +844,42 @@
                     </div>`;
 
                 case 'CBS Square Statistics':
-                    // Handle various field names from the API
-                    const sqInhabitants = data.inhabitants || data.aantalInwoners || 0;
-                    const sqAddresses = data.addresses || data.aantalAdressen || 0;
-                    const sqMen = data.men || data.aantalMannen || 0;
-                    const sqWomen = data.women || data.aantalVrouwen || 0;
+                    // API returns: gridId, population, households, averageWOZ, averageIncome, housingDensity
+                    const sqPop = data.population || 0;
+                    const sqHouseholds = data.households || 0;
+                    const sqDensity = data.housingDensity || 0;
+                    const sqWOZ = data.averageWOZ || 0;
                     
                     return `<div class="metric-display">
-                        <div class="metric-value">${sqInhabitants.toLocaleString()}</div>
-                        <div class="metric-label">Inhabitants (500m grid)</div>
+                        <div class="metric-value">${sqPop.toLocaleString()}</div>
+                        <div class="metric-label">Population (Grid Area)</div>
                         <div class="metric-secondary">
-                            🏢 <strong>${sqAddresses.toLocaleString()}</strong> addresses
-                            ${sqMen || sqWomen ? ` &nbsp;|&nbsp; ♂ ${sqMen} ♀ ${sqWomen}` : ''}
+                            🏠 <strong>${sqHouseholds.toLocaleString()}</strong> households &nbsp;|&nbsp;
+                            📊 Density: <strong>${sqDensity.toLocaleString()}</strong>/km²
                         </div>
+                        ${sqWOZ > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            💰 Avg WOZ: <strong>€${sqWOZ.toLocaleString()}</strong>
+                        </div>` : ''}
                     </div>`;
 
                 case 'Green Spaces':
-                    // Handle array of spaces or summary data
-                    const spaces = Array.isArray(data) ? data : (data.spaces || data.features || []);
-                    const greenCount = spaces.length || data.count || 0;
-                    const greenTotalArea = data.totalArea || spaces.reduce((sum, s) => sum + (s.area || 0), 0);
-                    const greenTypes = [...new Set(spaces.map(s => s.type || s.name || 'Green').slice(0, 3))];
+                    // API returns: totalGreenArea, greenPercentage, nearestPark, parkDistance, treeCanopyCover, greenSpaces[]
+                    const greenSpacesArr = data.greenSpaces || [];
+                    const totalGreenArea = data.totalGreenArea || 0;
+                    const greenPct = data.greenPercentage || 0;
+                    const treeCanopy = data.treeCanopyCover || 0;
+                    const greenSpaceCount = greenSpacesArr.length;
+                    const greenTypes = [...new Set(greenSpacesArr.map(s => s.type).filter(t => t))].slice(0, 3);
                     
                     return `<div class="metric-display">
-                        <div class="metric-value">${greenCount}</div>
-                        <div class="metric-label">Green Spaces Nearby</div>
+                        <div class="metric-value">${totalGreenArea.toLocaleString()} <span style="font-size: 1rem; font-weight: 500;">m²</span></div>
+                        <div class="metric-label">Green Space Nearby</div>
                         <div class="metric-secondary">
-                            🌳 <strong>${greenTotalArea.toLocaleString()}</strong> m² total area
+                            🌳 <strong>${greenSpaceCount}</strong> areas &nbsp;|&nbsp;
+                            📊 <strong>${(greenPct * 100).toFixed(1)}%</strong> green coverage
+                        </div>
+                        <div class="metric-secondary" style="margin-top: 0.25rem;">
+                            🌲 Tree canopy: <strong>${(treeCanopy * 100).toFixed(1)}%</strong>
                         </div>
                         ${greenTypes.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
                             ${greenTypes.map(t => `<span class="status-badge good" style="margin-right: 4px;">${t}</span>`).join('')}
@@ -878,56 +887,66 @@
                     </div>`;
 
                 case 'Education Facilities':
-                    // Handle array of schools or summary data
-                    const schools = Array.isArray(data) ? data : (data.schools || data.features || []);
-                    const schoolCount = schools.length || data.totalSchools || data.count || 0;
-                    const schoolTypes = [...new Set(schools.map(s => s.type || s.schoolType || s.onderwijstype || 'School'))].slice(0, 3);
-                    const schoolNames = schools.slice(0, 2).map(s => s.name || s.naam || s.schoolnaam || 'School');
+                    // API returns: nearestPrimarySchool, nearestSecondarySchool, allSchools[], averageQuality
+                    const allSchools = data.allSchools || [];
+                    const nearestPrimary = data.nearestPrimarySchool;
+                    const nearestSecondary = data.nearestSecondarySchool;
+                    const avgQuality = data.averageQuality || 0;
+                    const schoolCount = allSchools.length;
+                    const schoolTypeSet = [...new Set(allSchools.map(s => s.type).filter(t => t))];
                     
                     return `<div class="metric-display">
                         <div class="metric-value">${schoolCount}</div>
                         <div class="metric-label">Schools Nearby</div>
-                        ${schoolTypes.length > 0 ? `<div class="metric-secondary">
-                            ${schoolTypes.map(t => `<span class="status-badge good" style="margin-right: 4px;">${t}</span>`).join('')}
+                        ${nearestPrimary ? `<div class="metric-secondary">
+                            🏫 Nearest: <strong>${nearestPrimary.name}</strong> (${Math.round(nearestPrimary.distance)}m)
                         </div>` : ''}
-                        ${schoolNames.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
-                            🏫 ${schoolNames.join(', ')}
-                        </div>` : ''}
+                        <div class="metric-secondary" style="margin-top: 0.25rem;">
+                            ⭐ Avg quality: <strong>${avgQuality}/10</strong>
+                            ${schoolTypeSet.length > 0 ? ` &nbsp;|&nbsp; ${schoolTypeSet.map(t => `<span class="status-badge good" style="margin-right: 4px;">${t}</span>`).join('')}` : ''}
+                        </div>
                     </div>`;
 
                 case 'Facilities & Amenities':
-                    // Handle array or object with facilities
-                    const amenities = Array.isArray(data) ? data : (data.facilities || data.features || []);
-                    const amenityCount = amenities.length || data.totalFacilities || data.count || 0;
-                    const categories = [...new Set(amenities.map(f => f.category || f.type || f.categorie || 'Facility'))].slice(0, 4);
-                    const amenityNames = amenities.slice(0, 3).map(f => f.name || f.naam || 'Facility');
+                    // API returns: topFacilities[], amenitiesScore, categoryCounts{}
+                    const topFacilities = data.topFacilities || [];
+                    const amenitiesScore = data.amenitiesScore || 0;
+                    const catCounts = data.categoryCounts || {};
+                    const totalFacilities = Object.values(catCounts).reduce((a, b) => a + b, 0) || topFacilities.length;
+                    const categoryNames = Object.keys(catCounts).slice(0, 4);
+                    const nearestFacility = topFacilities[0];
                     
                     return `<div class="metric-display">
-                        <div class="metric-value">${amenityCount}</div>
+                        <div class="metric-value">${totalFacilities}</div>
                         <div class="metric-label">Amenities Nearby</div>
-                        ${categories.length > 0 ? `<div class="metric-secondary">
-                            ${categories.map(c => `<span class="status-badge good" style="margin-right: 4px; margin-bottom: 4px;">${c}</span>`).join('')}
+                        <div class="metric-secondary">
+                            ⭐ Score: <strong>${amenitiesScore.toFixed(1)}</strong>/100
+                        </div>
+                        ${categoryNames.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            ${categoryNames.map(c => `<span class="status-badge good" style="margin-right: 4px; margin-bottom: 4px;">${c} (${catCounts[c]})</span>`).join('')}
                         </div>` : ''}
-                        ${amenityNames.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
-                            📍 ${amenityNames.slice(0, 2).join(', ')}${amenityCount > 2 ? ` +${amenityCount - 2} more` : ''}
+                        ${nearestFacility ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            📍 Nearest: <strong>${nearestFacility.name}</strong> (${Math.round(nearestFacility.distance)}m)
                         </div>` : ''}
                     </div>`;
 
                 case 'openOV Public Transport':
-                    // Handle array of stops or object with stops array
-                    const ptStops = Array.isArray(data) ? data : (data.stops || data.features || []);
-                    const stopCount = ptStops.length || data.count || 0;
-                    const stopTypes = [...new Set(ptStops.map(s => s.type || s.stopType || s.modality || 'Stop'))].slice(0, 3);
-                    const stopNames = ptStops.slice(0, 3).map(s => s.name || s.stopName || s.naam || 'Stop');
+                    // API returns: nearestStops[], connections[]
+                    const nearestStops = data.nearestStops || [];
+                    const stopCount = nearestStops.length;
+                    const stopTypes = [...new Set(nearestStops.map(s => s.type).filter(t => t))];
+                    const nearestStop = nearestStops[0];
+                    const trainStops = nearestStops.filter(s => s.type === 'Train');
+                    const busStops = nearestStops.filter(s => s.type === 'Bus');
                     
                     return `<div class="metric-display">
                         <div class="metric-value">${stopCount}</div>
                         <div class="metric-label">PT Stops Nearby</div>
                         ${stopTypes.length > 0 ? `<div class="metric-secondary">
-                            ${stopTypes.map(t => `<span class="status-badge good" style="margin-right: 4px;">🚏 ${t}</span>`).join('')}
+                            ${stopTypes.map(t => `<span class="status-badge good" style="margin-right: 4px;">🚏 ${t} (${t === 'Train' ? trainStops.length : t === 'Bus' ? busStops.length : nearestStops.filter(s => s.type === t).length})</span>`).join('')}
                         </div>` : ''}
-                        ${stopNames.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
-                            ${stopNames.join(' • ')}
+                        ${nearestStop ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+                            📍 Nearest: <strong>${nearestStop.name}</strong> (${Math.round(nearestStop.distance)}m) - ${nearestStop.type}
                         </div>` : ''}
                     </div>`;
 
