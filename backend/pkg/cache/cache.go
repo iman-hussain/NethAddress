@@ -89,6 +89,14 @@ func (cs *CacheService) Close() error {
 	return cs.client.Close()
 }
 
+// FlushAll clears all keys from the cache
+func (cs *CacheService) FlushAll() error {
+	if err := cs.client.FlushAll(cs.ctx).Err(); err != nil {
+		return fmt.Errorf("cache flush error: %w", err)
+	}
+	return nil
+}
+
 // Cache TTL constants for different data types
 const (
 	// Property data - changes infrequently

@@ -2,8 +2,10 @@ package routes
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
+	"github.com/iman-hussain/AddressIQ/backend/pkg/cache"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/handlers"
 )
 
@@ -31,16 +33,19 @@ func SetFrontendBuildInfo(commit, date string) {
 type Router struct {
 	propertyHandler *handlers.PropertyHandler
 	searchHandler   *handlers.SearchHandler
+	cacheService    *cache.CacheService
 }
 
 // NewRouter creates a new router with all handlers
 func NewRouter(
 	propertyHandler *handlers.PropertyHandler,
 	searchHandler *handlers.SearchHandler,
+	cacheService *cache.CacheService,
 ) *Router {
 	return &Router{
 		propertyHandler: propertyHandler,
 		searchHandler:   searchHandler,
+		cacheService:    cacheService,
 	}
 }
 
@@ -50,6 +55,9 @@ func (router *Router) SetupRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/healthz", handleHealthCheck)
 	mux.HandleFunc("/build-info", handleBuildInfo)
 	mux.HandleFunc("/", handleRoot)
+
+	// Admin endpoints
+	mux.HandleFunc("/admin/cache/flush", router.handleCacheFlush)
 
 	// Legacy endpoint (backward compatibility)
 	mux.HandleFunc("/search", router.searchHandler.HandleSearch)
@@ -73,6 +81,51 @@ func handleHealthCheck(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{
 		"status":  "ok",
 		"service": "addressiq-backend",
+	})
+}
+
+// Cache flush endpoint (admin)
+func (router *Router) handleCacheFlush(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/admin/cache/flush" {
+		http.NotFound(w, r)
+		return
+	}
+
+	// Only allow POST requests
+	if r.Method != http.MethodPost {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "method not allowed, use POST",
+		})
+		return
+	}
+
+	if router.cacheService == nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "cache service not available",
+		})
+		return
+	}
+
+	if err := router.cacheService.FlushAll(); err != nil {
+		log.Printf("Cache flush error: %v", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "failed to flush cache",
+		})
+		return
+	}
+
+	log.Println("✅ Cache flushed successfully via admin endpoint")
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":  "ok",
+		"message": "cache flushed successfully",
 	})
 }
 

@@ -155,7 +155,7 @@ func main() {
 	routes.SetFrontendBuildInfo(frontendCommit, frontendDate)
 
 	// Initialize router
-	router := routes.NewRouter(propertyHandler, searchHandler)
+	router := routes.NewRouter(propertyHandler, searchHandler, cacheService)
 
 	// Setup routes
 	mux := http.NewServeMux()
