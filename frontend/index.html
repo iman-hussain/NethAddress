@@ -1147,7 +1147,7 @@
                         ${categoryNames.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
                             ${categoryNames.slice(0, 6).map(c => `${getCatEmoji(c)} ${c}: <strong>${catCounts[c]}</strong>`).join(' &nbsp;|&nbsp; ')}
                         </div>` : ''}
-                        ${Object.keys(nearestByCategory).length > 0 ? Object.entries(nearestByCategory).slice(0, 4).map(([cat, f]) => 
+                        ${Object.keys(nearestByCategory).length > 0 ? Object.entries(nearestByCategory).slice(0, 4).map(([cat, f]) =>
                             `<div class="metric-secondary" style="margin-top: 0.25rem;">
                                 ${getCatEmoji(cat)} Nearest ${cat}: <strong>${f.name}</strong> (${Math.round(f.distance)}m)
                             </div>`
