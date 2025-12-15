@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AddressIQ</title>
+    <title>AddressIQ - Dutch Property Intelligence</title>
     <!-- Bulma CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bulma@1/css/bulma.min.css" rel="stylesheet">
     <!-- HTMX -->
@@ -12,11 +12,31 @@
     <link href="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.css" rel="stylesheet" />
     <script src="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
     <style>
+        /* Custom colour scheme - professional teal/slate palette */
+        :root {
+            --primary: #0d9488;
+            --primary-dark: #0f766e;
+            --primary-light: #14b8a6;
+            --secondary: #334155;
+            --secondary-dark: #1e293b;
+            --accent: #f59e0b;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #0ea5e9;
+            --bg-card: rgba(255, 255, 255, 0.95);
+            --bg-card-hover: rgba(255, 255, 255, 1);
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border-light: rgba(0, 0, 0, 0.08);
+        }
+
         html, body {
             height: 100%;
             margin: 0;
             padding: 0;
             overflow: hidden;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
         }
         .full-height-columns {
             display: flex;
@@ -28,6 +48,35 @@
             overflow: hidden;
             position: relative;
         }
+
+        /* Professional navbar styling */
+        .navbar.is-primary {
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+        .navbar-brand .navbar-item {
+            font-weight: 700;
+            font-size: 1.4rem;
+            letter-spacing: -0.5px;
+            color: white !important;
+        }
+        .navbar-brand .navbar-item:hover {
+            background: transparent !important;
+        }
+        .logo-icon {
+            width: 28px;
+            height: 28px;
+            margin-right: 8px;
+            background: white;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 14px;
+            color: var(--primary);
+        }
+
         #map {
             width: 100%;
             height: 100%;
@@ -90,17 +139,203 @@
         .sidebar-content::-webkit-scrollbar-thumb:hover {
             background: rgba(0, 0, 0, 0.5);
         }
+
+        /* Search panel styling */
+        .search-panel .box {
+            background: var(--bg-card);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+            border: 1px solid var(--border-light);
+        }
+        .search-panel .label {
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        .search-panel .input {
+            border-radius: 8px;
+            border: 2px solid #e2e8f0;
+            transition: all 0.2s ease;
+        }
+        .search-panel .input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+        }
+        .search-panel .button.is-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .search-panel .button.is-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(13, 148, 136, 0.35);
+        }
+
+        /* Results header styling */
+        .results-header-panel .box {
+            background: var(--bg-card);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+            border: 1px solid var(--border-light);
+        }
+        .results-header-panel .title {
+            color: var(--text-primary);
+            font-weight: 700;
+        }
+
+        /* API results grid - larger cards */
         .api-results-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 0.5rem;
+            gap: 1rem;
             margin-top: 1rem;
         }
+
+        /* Result card styling - more prominent */
         .result-card {
             margin: 0 !important;
             word-wrap: break-word;
             overflow-wrap: break-word;
             hyphens: auto;
+            background: var(--bg-card) !important;
+            border-radius: 12px !important;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            border: 1px solid var(--border-light) !important;
+            padding: 1rem !important;
+            transition: all 0.2s ease;
+        }
+        .result-card:hover {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+            transform: translateY(-2px);
+        }
+
+        /* Card header with status indicator */
+        .result-card .card-header-title {
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .status-dot.success { background: var(--success); }
+        .status-dot.error { background: var(--danger); }
+        .status-dot.warning { background: var(--warning); }
+
+        /* Key metric display - large and prominent */
+        .metric-display {
+            margin: 0.75rem 0;
+        }
+        .metric-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.2;
+        }
+        .metric-label {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+        }
+        .metric-secondary {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+        }
+        .metric-secondary strong {
+            color: var(--text-primary);
+        }
+
+        /* Status badges */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .status-badge.good { background: rgba(16, 185, 129, 0.15); color: #059669; }
+        .status-badge.moderate { background: rgba(245, 158, 11, 0.15); color: #d97706; }
+        .status-badge.poor { background: rgba(239, 68, 68, 0.15); color: #dc2626; }
+
+        /* Raw data toggle */
+        .raw-data-toggle {
+            margin-top: 0.75rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid var(--border-light);
+        }
+        .raw-data-toggle summary {
+            cursor: pointer;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            transition: color 0.2s;
+        }
+        .raw-data-toggle summary:hover {
+            color: var(--primary);
+        }
+        .raw-data-toggle pre {
+            margin-top: 0.5rem;
+            padding: 0.75rem;
+            background: #f8fafc;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        /* Section headers */
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border-light);
+        }
+        .section-header h4 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .section-icon {
+            font-size: 1.25rem;
+        }
+
+        /* Summary notification */
+        .summary-notification {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%) !important;
+            color: white !important;
+            border-radius: 12px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+        .summary-notification strong {
+            color: white;
+        }
+        .summary-stats {
+            display: flex;
+            gap: 1.5rem;
+            margin-top: 0.5rem;
+        }
+        .summary-stat {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.9rem;
         }
         .result-card pre {
             word-break: break-all;
@@ -231,7 +466,8 @@
         <nav class="navbar is-primary">
             <div class="navbar-brand">
                 <a class="navbar-item" href="#">
-                    LocateNL
+                    <span class="logo-icon">IQ</span>
+                    AddressIQ
                 </a>
             </div>
             <div class="navbar-end">
@@ -547,119 +783,204 @@
 
             switch (apiName) {
                 case 'KNMI Weather':
-                    return `<div class="is-size-7">
-                        <strong>${data.temperature || 0}°C</strong> |
-                        💨 ${data.windSpeed || 0} km/h |
-                        💧 ${data.humidity || 0}% |
-                        🌧️ ${data.precipitation || 0} mm
+                    return `<div class="metric-display">
+                        <div class="metric-value">${data.temperature || 0}°C</div>
+                        <div class="metric-label">Current Temperature</div>
+                        <div class="metric-secondary">
+                            💨 <strong>${data.windSpeed || 0}</strong> km/h &nbsp;|&nbsp;
+                            💧 <strong>${data.humidity || 0}</strong>% &nbsp;|&nbsp;
+                            🌧️ <strong>${data.precipitation || 0}</strong> mm
+                        </div>
                     </div>`;
 
                 case 'KNMI Solar':
-                    return `<div class="is-size-7">
-                        <strong>${(data.solarRadiation || 0).toFixed(0)} W/m²</strong> |
-                        ☀️ ${(data.sunshineHours || 0).toFixed(1)}h |
-                        🕶️ UV ${(data.uvIndex || 0).toFixed(1)}
+                    return `<div class="metric-display">
+                        <div class="metric-value">${(data.solarRadiation || 0).toFixed(0)} <span style="font-size: 1rem; font-weight: 500;">W/m²</span></div>
+                        <div class="metric-label">Solar Radiation</div>
+                        <div class="metric-secondary">
+                            ☀️ <strong>${(data.sunshineHours || 0).toFixed(1)}</strong>h sunshine &nbsp;|&nbsp;
+                            🕶️ UV Index: <strong>${(data.uvIndex || 0).toFixed(1)}</strong>
+                        </div>
                     </div>`;
 
                 case 'Luchtmeetnet Air Quality':
                     const aqi = data.aqi || 0;
                     const category = data.category || 'Unknown';
-                    const aqiColor = category === 'Good' ? 'has-text-success' :
-                                   category === 'Moderate' ? 'has-text-warning' : 'has-text-danger';
-                    return `<div class="is-size-7">
-                        <strong class="${aqiColor}">AQI: ${aqi}</strong> |
-                        ${category}
+                    const aqiBadgeClass = category === 'Good' ? 'good' : category === 'Moderate' ? 'moderate' : 'poor';
+                    return `<div class="metric-display">
+                        <div class="metric-value">${aqi}</div>
+                        <div class="metric-label">Air Quality Index</div>
+                        <div style="margin-top: 0.5rem;">
+                            <span class="status-badge ${aqiBadgeClass}">${category}</span>
+                        </div>
                         ${data.measurements && data.measurements.length > 0 ?
-                            ` | ${data.measurements.slice(0, 2).map(m => `${m.parameter}: ${m.value}${m.unit}`).join(', ')}` : ''}
+                            `<div class="metric-secondary">${data.measurements.slice(0, 3).map(m => `${m.parameter}: <strong>${m.value}</strong>${m.unit}`).join(' &nbsp;|&nbsp; ')}</div>` : ''}
                     </div>`;
 
                 case 'CBS Population':
-                    return `<div class="is-size-7">
-                        <strong>${data.population || 0}</strong> residents |
-                        Density: ${data.populationDensity || 0}/km²
+                    const pop = data.population || 0;
+                    const households = data.households || 0;
+                    return `<div class="metric-display">
+                        <div class="metric-value">${pop.toLocaleString()}</div>
+                        <div class="metric-label">Residents in Area</div>
+                        <div class="metric-secondary">
+                            🏠 <strong>${households.toLocaleString()}</strong> households &nbsp;|&nbsp;
+                            📊 Density: <strong>${(data.populationDensity || 0).toLocaleString()}</strong>/km²
+                        </div>
                     </div>`;
 
                 case 'CBS Square Statistics':
-                    return `<div class="is-size-7">
-                        <strong>${data.area || 0} km²</strong> |
-                        Buildings: ${data.buildingCount || 0}
+                    return `<div class="metric-display">
+                        <div class="metric-value">${data.inhabitants || data.area || 0}</div>
+                        <div class="metric-label">${data.inhabitants ? 'Inhabitants' : 'Area (km²)'}</div>
+                        <div class="metric-secondary">
+                            🏢 <strong>${data.addresses || data.buildingCount || 0}</strong> addresses
+                        </div>
                     </div>`;
 
                 case 'Green Spaces':
-                    return `<div class="is-size-7">
-                        <strong>${data.totalArea || 0} m²</strong> within ${data.radius || 0}m |
-                        ${data.count || 0} spaces
+                    const totalArea = data.totalArea || 0;
+                    return `<div class="metric-display">
+                        <div class="metric-value">${totalArea.toLocaleString()} <span style="font-size: 1rem; font-weight: 500;">m²</span></div>
+                        <div class="metric-label">Green Space Nearby</div>
+                        <div class="metric-secondary">
+                            🌳 <strong>${data.count || 0}</strong> areas within <strong>${data.radius || 500}</strong>m
+                        </div>
                     </div>`;
 
                 case 'Education Facilities':
-                    return `<div class="is-size-7">
-                        <strong>${data.totalSchools || 0}</strong> schools |
-                        ${data.totalStudents || 0} students
+                    return `<div class="metric-display">
+                        <div class="metric-value">${data.totalSchools || 0}</div>
+                        <div class="metric-label">Schools Nearby</div>
+                        <div class="metric-secondary">
+                            👨‍🎓 <strong>${(data.totalStudents || 0).toLocaleString()}</strong> students total
+                        </div>
                     </div>`;
 
                 case 'Facilities & Amenities':
-                    return `<div class="is-size-7">
-                        <strong>${data.totalFacilities || 0}</strong> facilities |
-                        ${data.categories ? data.categories.length : 0} categories
+                    const facilities = data.facilities || [];
+                    const topCategories = [...new Set(facilities.map(f => f.category))].slice(0, 3);
+                    return `<div class="metric-display">
+                        <div class="metric-value">${data.totalFacilities || facilities.length || 0}</div>
+                        <div class="metric-label">Amenities Nearby</div>
+                        ${topCategories.length > 0 ? `<div class="metric-secondary">
+                            ${topCategories.map(c => `<span class="status-badge good" style="margin-right: 4px; margin-top: 4px;">${c}</span>`).join('')}
+                        </div>` : ''}
+                    </div>`;
+
+                case 'openOV Public Transport':
+                    const stops = data.stops || [];
+                    return `<div class="metric-display">
+                        <div class="metric-value">${stops.length || data.count || 0}</div>
+                        <div class="metric-label">PT Stops Nearby</div>
+                        ${stops.length > 0 ? `<div class="metric-secondary">
+                            ${stops.slice(0, 2).map(s => `🚏 ${s.name || s.stopName || 'Stop'}`).join(' &nbsp;|&nbsp; ')}
+                        </div>` : ''}
                     </div>`;
 
                 case 'AHN Height Model':
-                    return `<div class="is-size-7">
-                        <strong>${data.elevation || 0} m</strong> above sea level
+                    return `<div class="metric-display">
+                        <div class="metric-value">${(data.elevation || 0).toFixed(1)} <span style="font-size: 1rem; font-weight: 500;">m</span></div>
+                        <div class="metric-label">Elevation (NAP)</div>
+                        <div class="metric-secondary">
+                            📍 Above sea level reference
+                        </div>
                     </div>`;
 
                 case 'Flood Risk':
                     const riskLevel = data.riskLevel || 'Unknown';
-                    const floodColor = riskLevel === 'Low' ? 'has-text-success' :
-                                     riskLevel === 'Medium' ? 'has-text-warning' : 'has-text-danger';
-                    return `<div class="is-size-7">
-                        <strong class="${floodColor}">${riskLevel}</strong> flood risk
+                    const floodBadgeClass = riskLevel === 'Low' ? 'good' : riskLevel === 'Medium' ? 'moderate' : 'poor';
+                    return `<div class="metric-display">
+                        <div style="margin-bottom: 0.5rem;">
+                            <span class="status-badge ${floodBadgeClass}" style="font-size: 0.9rem; padding: 6px 14px;">${riskLevel} Risk</span>
+                        </div>
+                        <div class="metric-label">Flood Risk Assessment</div>
+                        ${data.zoneName ? `<div class="metric-secondary">Zone: <strong>${data.zoneName}</strong></div>` : ''}
                     </div>`;
 
                 case 'NDW Traffic':
-                    return `<div class="is-size-7">
-                        <strong>${data.incidentCount || 0}</strong> incidents |
-                        ${data.averageSpeed || 0} km/h avg speed
+                    return `<div class="metric-display">
+                        <div class="metric-value">${data.incidentCount || 0}</div>
+                        <div class="metric-label">Traffic Incidents</div>
+                        <div class="metric-secondary">
+                            🚗 Avg speed: <strong>${data.averageSpeed || 'N/A'}</strong> km/h
+                        </div>
                     </div>`;
 
                 case 'WUR Soil Physicals':
-                    return `<div class="is-size-7">
-                        <strong>${data.soilType || 'Unknown'}</strong> |
-                        pH: ${data.ph || 0} |
-                        Organic: ${data.organicMatter || 0}%
+                    return `<div class="metric-display">
+                        <div class="metric-value" style="font-size: 1.25rem;">${data.soilType || 'Unknown'}</div>
+                        <div class="metric-label">Soil Type</div>
+                        <div class="metric-secondary">
+                            pH: <strong>${data.ph || 'N/A'}</strong> &nbsp;|&nbsp;
+                            Organic: <strong>${data.organicMatter || 'N/A'}</strong>%
+                        </div>
+                    </div>`;
+
+                case 'BRO Soil Map':
+                    return `<div class="metric-display">
+                        <div class="metric-value" style="font-size: 1.1rem;">${data.soilType || data.description || 'Data available'}</div>
+                        <div class="metric-label">Soil Classification</div>
                     </div>`;
 
                 case 'SkyGeo Subsidence':
                     const subsidence = data.subsidenceRate || 0;
-                    const subsidenceRisk = subsidence > 5 ? 'High' : subsidence > 2 ? 'Medium' : 'Low';
-                    const subsidenceColor = subsidenceRisk === 'Low' ? 'has-text-success' :
-                                          subsidenceRisk === 'Medium' ? 'has-text-warning' : 'has-text-danger';
-                    return `<div class="is-size-7">
-                        <strong class="${subsidenceColor}">${subsidence} mm/year</strong> subsidence
+                    const subsidenceClass = subsidence > 5 ? 'poor' : subsidence > 2 ? 'moderate' : 'good';
+                    return `<div class="metric-display">
+                        <div class="metric-value">${subsidence} <span style="font-size: 1rem; font-weight: 500;">mm/yr</span></div>
+                        <div class="metric-label">Subsidence Rate</div>
+                        <div style="margin-top: 0.5rem;">
+                            <span class="status-badge ${subsidenceClass}">${subsidence > 5 ? 'High' : subsidence > 2 ? 'Medium' : 'Low'} Risk</span>
+                        </div>
                     </div>`;
 
                 case 'Monument Status':
-                    return `<div class="is-size-7">
-                        <strong>${data.status || 'Not protected'}</strong>
-                        ${data.description ? ` - ${data.description}` : ''}
+                    const hasStatus = data.status && data.status !== 'Not protected';
+                    return `<div class="metric-display">
+                        <div style="margin-bottom: 0.5rem;">
+                            <span class="status-badge ${hasStatus ? 'moderate' : 'good'}">${data.status || 'Not Protected'}</span>
+                        </div>
+                        <div class="metric-label">Heritage Status</div>
+                        ${data.description ? `<div class="metric-secondary">${data.description}</div>` : ''}
+                    </div>`;
+
+                case 'BAG Address':
+                    return `<div class="metric-display">
+                        <div class="metric-value" style="font-size: 1rem; font-weight: 600;">${data.address || 'Address verified'}</div>
+                        <div class="metric-label">Official BAG Registration</div>
+                        ${data.coordinates ? `<div class="metric-secondary">📍 ${data.coordinates[1]?.toFixed(5)}, ${data.coordinates[0]?.toFixed(5)}</div>` : ''}
                     </div>`;
 
                 case 'PDOK Platform':
-                    return `<div class="is-size-7">
-                        <strong>${data.zoningInfo || 'No zoning data'}</strong>
+                    return `<div class="metric-display">
+                        <div class="metric-value" style="font-size: 1rem;">${data.zoningInfo || 'Data Available'}</div>
+                        <div class="metric-label">Platform Data</div>
                         ${data.restrictions && data.restrictions.length > 0 ?
-                            ` | ${data.restrictions.length} restrictions` : ''}
+                            `<div class="metric-secondary">⚠️ <strong>${data.restrictions.length}</strong> restrictions noted</div>` : ''}
                     </div>`;
 
                 case 'Land Use & Zoning':
-                    return `<div class="is-size-7">
-                        <strong>${data.landUseType || 'Unknown'}</strong> |
-                        Zone: ${data.zoningCode || 'N/A'}
+                    return `<div class="metric-display">
+                        <div class="metric-value" style="font-size: 1.1rem;">${data.landUseType || 'Unknown'}</div>
+                        <div class="metric-label">Land Use Classification</div>
+                        ${data.zoningCode ? `<div class="metric-secondary">Zone Code: <strong>${data.zoningCode}</strong></div>` : ''}
                     </div>`;
 
                 // Default fallback for other APIs
                 default:
-                    return '<div class="is-size-7 has-text-grey">Data retrieved successfully</div>';
+                    if (typeof data === 'object' && Object.keys(data).length > 0) {
+                        const firstKey = Object.keys(data)[0];
+                        const firstValue = data[firstKey];
+                        if (typeof firstValue === 'number' || typeof firstValue === 'string') {
+                            return `<div class="metric-display">
+                                <div class="metric-value" style="font-size: 1.25rem;">${typeof firstValue === 'number' ? firstValue.toLocaleString() : firstValue}</div>
+                                <div class="metric-label">${firstKey.replace(/([A-Z])/g, ' $1').trim()}</div>
+                            </div>`;
+                        }
+                    }
+                    return `<div class="metric-display">
+                        <div class="metric-label" style="color: var(--success);">✓ Data retrieved successfully</div>
+                    </div>`;
             }
         }
 
@@ -685,40 +1006,44 @@
             const errorCount = filtered.filter(r => r.status === 'error').length;
             const notConfiguredCount = filtered.filter(r => r.status === 'not_configured').length;
 
-            let html = '<div class="notification is-info is-light mb-3">';
-            html += `<strong>Showing ${filtered.length} API data sources:</strong> `;
-            html += `✓ ${successCount} success | ✗ ${errorCount} error | ⚠ ${notConfiguredCount} not configured`;
-            html += '</div>';
+            let html = '<div class="summary-notification">';
+            html += `<strong>Property Intelligence Report</strong>`;
+            html += `<div class="summary-stats">`;
+            html += `<span class="summary-stat">✓ ${successCount} successful</span>`;
+            html += `<span class="summary-stat">✗ ${errorCount} errors</span>`;
+            html += `<span class="summary-stat">⚠ ${notConfiguredCount} not configured</span>`;
+            html += `</div></div>`;
 
             // Helper function to render a section
-            const renderSection = (title, results, colorClass) => {
+            const renderSection = (title, icon, results) => {
                 if (results.length === 0) return '';
                 const sectionResults = results.filter(result => enabledAPIs.has(result.name));
                 if (sectionResults.length === 0) return '';
 
-                let sectionHtml = `<div class="mb-4">
-                    <h4 class="title is-5 ${colorClass} mb-3">${title}</h4>
+                let sectionHtml = `<div class="mb-5">
+                    <div class="section-header">
+                        <span class="section-icon">${icon}</span>
+                        <h4>${title}</h4>
+                    </div>
                     <div class="api-results-grid">`;
 
                 sectionResults.forEach(result => {
-                    const statusClass = result.status === 'success'
-                        ? 'is-success'
-                        : result.status === 'error'
-                            ? 'is-danger'
-                            : 'is-warning';
-                    const statusSymbol = result.status === 'success' ? '✓' : result.status === 'error' ? '✗' : '⚠';
-                    const errorMessage = result.error ? `<p class="is-size-7 mt-1">${result.error}</p>` : '';
+                    const statusClass = result.status === 'success' ? 'success' : result.status === 'error' ? 'error' : 'warning';
+                    const errorMessage = result.error ? `<p class="metric-secondary" style="color: var(--danger);">${result.error}</p>` : '';
                     const formattedData = result.status === 'success' ? formatApiData(result.name, result.data) : '';
                     const dataBlock = result.data
-                        ? `<details class="mt-2">
-                                <summary class="button is-small is-light is-size-7">Raw Data</summary>
-                                <pre class="mt-2" style="max-height: 150px; overflow-y: auto; font-size: 0.65rem;">${JSON.stringify(result.data, null, 2)}</pre>
+                        ? `<details class="raw-data-toggle">
+                                <summary>View Raw Data</summary>
+                                <pre>${JSON.stringify(result.data, null, 2)}</pre>
                             </details>`
                         : '';
 
                     sectionHtml += `
-                        <div class="notification ${statusClass} result-card is-size-7 p-3">
-                            <p class="has-text-weight-bold is-size-7">${statusSymbol} ${result.name}</p>
+                        <div class="result-card">
+                            <div class="card-header-title">
+                                <span class="status-dot ${statusClass}"></span>
+                                ${result.name}
+                            </div>
                             ${formattedData}
                             ${errorMessage}
                             ${dataBlock}
@@ -730,9 +1055,9 @@
                 return sectionHtml;
             };
 
-            html += renderSection('🌐 Free APIs (No API Key Required)', grouped.free, 'has-text-success');
-            html += renderSection('🔑 Freemium APIs (API Key Required)', grouped.freemium, 'has-text-warning');
-            html += renderSection('💰 Premium APIs (Paid Services)', grouped.premium, 'has-text-danger');
+            html += renderSection('Free APIs', '🌐', grouped.free);
+            html += renderSection('Freemium APIs', '🔑', grouped.freemium);
+            html += renderSection('Premium APIs', '💰', grouped.premium);
 
             targetContainer.innerHTML = html;
             if (filtered.length > 0) {
