@@ -77,11 +77,28 @@ func TestFetchBAGDataMock(t *testing.T) {
 }
 
 func TestFetchPDOKDataMock(t *testing.T) {
-	// Mock PDOK API response (minimal XML with <omschrijving> and <beperkingen>)
-	mockXML := `<root><omschrijving>Wonen</omschrijving><beperkingen>Geen</beperkingen></root>`
+	// Mock PDOK API response (GeoJSON with proper structure)
+	mockJSON := `{
+		"type": "FeatureCollection",
+		"features": [
+			{
+				"type": "Feature",
+				"properties": {
+					"naam": "Wonen",
+					"plantype": "bestemmingsplan",
+					"planstatus": "vastgesteld",
+					"beleidsmatigstatus": "Geen"
+				},
+				"geometry": {
+					"type": "Polygon",
+					"coordinates": [[[4.895, 52.370], [4.896, 52.370], [4.896, 52.371], [4.895, 52.371], [4.895, 52.370]]]
+				}
+			}
+		]
+	}`
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/xml")
-		io.Copy(w, strings.NewReader(mockXML))
+		w.Header().Set("Content-Type", "application/json")
+		io.Copy(w, strings.NewReader(mockJSON))
 	}))
 	defer ts.Close()
 	httpClient := &http.Client{Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
@@ -95,9 +112,9 @@ func TestFetchPDOKDataMock(t *testing.T) {
 		t.Fatalf("FetchPDOKData failed: %v. Check if the mock server is running and the response format matches expected PDOK API output.", err)
 	}
 	if data.ZoningInfo == "" {
-		t.Error("FetchPDOKData: ZoningInfo field is empty. Ensure mock response includes <omschrijving>.")
+		t.Error("FetchPDOKData: ZoningInfo field is empty. Ensure mock response includes proper GeoJSON features.")
 	}
 	if len(data.Restrictions) == 0 {
-		t.Error("FetchPDOKData: Restrictions field is empty. Ensure mock response includes <beperkingen>.")
+		t.Error("FetchPDOKData: Restrictions field is empty. Ensure mock response includes proper properties.")
 	}
 }
