@@ -314,7 +314,7 @@ func (h *SearchHandler) buildAPIResults(data *aggregator.ComprehensivePropertyDa
 	}
 
 	// Traffic & Mobility
-	if data.TrafficData != nil && len(data.TrafficData) > 0 {
+	if len(data.TrafficData) > 0 {
 		addResult("NDW Traffic", "success", "", "free", data.TrafficData)
 	} else {
 		addResult("NDW Traffic", "error", "No traffic data available", "free", nil)
