@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', function () {
         center: [5.3878, 52.1561], // Center on Netherlands
         zoom: 7,
         minZoom: 6,
-        maxZoom: 19,
+        maxZoom: 18, // Limit to 18 for satellite tile compatibility
         maxBounds: [
             [2.5, 50.5],   // Southwest corner (just into the sea, below Belgium)
             [8.5, 54.2]    // Northeast corner (just into Germany)
@@ -205,7 +205,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     type: 'raster',
                     tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
                     tileSize: 256,
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                    maxzoom: 19
                 }
             },
             layers: [
@@ -225,7 +226,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     type: 'raster',
                     tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
                     tileSize: 256,
-                    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+                    maxzoom: 18  // Esri satellite tiles max out at zoom 18
                 },
                 'osm-labels': {
                     type: 'raster',
@@ -239,7 +241,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     type: 'raster',
                     source: 'esri-satellite',
                     minzoom: 0,
-                    maxzoom: 19
+                    maxzoom: 18  // Match source max zoom
                 }
             ]
         }
