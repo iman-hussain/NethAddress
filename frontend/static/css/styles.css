@@ -319,7 +319,7 @@ html, body {
     border-color: var(--primary-hover);
 }
 
-/* AI Summary Card */
+/* AI Summary Card - Double wide, scrollable */
 .ai-summary-card {
     background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
     border-radius: var(--radius-lg);
@@ -327,6 +327,7 @@ html, body {
     border: 1px solid #bae6fd;
     padding: 1.25rem 1.5rem;
     margin-top: 1rem;
+    grid-column: 1 / -1; /* Span full width (double-wide) */
 }
 .ai-summary-card.ai-summary-error {
     background: linear-gradient(135deg, #fefce8 0%, #fef3c7 100%);
@@ -337,6 +338,7 @@ html, body {
     align-items: center;
     gap: 0.625rem;
     margin-bottom: 0.875rem;
+    flex-wrap: wrap;
 }
 .ai-icon {
     font-size: 1.5rem;
@@ -360,6 +362,23 @@ html, body {
     font-size: 0.9375rem;
     line-height: 1.65;
     color: var(--text-secondary);
+    max-height: 150px;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+.ai-summary-content::-webkit-scrollbar {
+    width: 6px;
+}
+.ai-summary-content::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 3px;
+}
+.ai-summary-content::-webkit-scrollbar-thumb {
+    background: rgba(14, 165, 233, 0.3);
+    border-radius: 3px;
+}
+.ai-summary-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(14, 165, 233, 0.5);
 }
 .ai-summary-content p {
     margin: 0 0 0.625rem;

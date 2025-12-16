@@ -221,10 +221,31 @@ document.addEventListener('DOMContentLoaded', function () {
             return response.text();
         })
         .then(html => {
-            if (targetContainer) {
-                targetContainer.innerHTML = html;
-                // Process any HTMX attributes in the response
-                htmx.process(targetContainer);
+            // Create a temporary container to parse the HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+
+            // Extract data from the response (same logic as htmx:afterSwap)
+            const dataHolder = tempDiv.querySelector('[data-geojson]');
+            if (dataHolder) {
+                const geojsonStr = dataHolder.getAttribute('data-geojson');
+                if (geojsonStr) {
+                    updateMap(geojsonStr);
+                }
+
+                const responseStr = dataHolder.getAttribute('data-response');
+                if (responseStr) {
+                    currentResponse = JSON.parse(responseStr);
+
+                    // Set property location for map visualisations
+                    if (currentResponse.coordinates && currentResponse.coordinates.length >= 2) {
+                        setPropertyLocation(currentResponse.coordinates);
+                        clearAllPOILayers();
+                    }
+
+                    // Render the API results using our custom renderer
+                    renderApiResults();
+                }
             }
         })
         .catch(error => {
@@ -661,7 +682,7 @@ function renderApiResults() {
             <div class="ai-summary-header">
                 <span class="ai-icon">🤖</span>
                 <span class="ai-title">AI Location Summary</span>
-                <span class="ai-badge">Gemini 2.5 Flash</span>
+                <span class="ai-badge">Gemini 2.5 Flash-Lite</span>
             </div>
             <div class="ai-summary-content">
                 ${formatAISummary(currentResponse.aiSummary.summary)}

@@ -60,10 +60,11 @@ type APIResultsGrouped struct {
 
 // ComprehensiveSearchResponse represents complete property data with all API results
 type ComprehensiveSearchResponse struct {
-	Address     string            `json:"address"`
-	Coordinates [2]float64        `json:"coordinates"`
-	GeoJSON     string            `json:"geojson"`
-	APIResults  APIResultsGrouped `json:"apiResults"`
+	Address     string                   `json:"address"`
+	Coordinates [2]float64               `json:"coordinates"`
+	GeoJSON     string                   `json:"geojson"`
+	APIResults  APIResultsGrouped        `json:"apiResults"`
+	AISummary   *apiclient.GeminiSummary `json:"aiSummary,omitempty"`
 }
 
 // HandleSearch handles the /search endpoint
@@ -145,6 +146,7 @@ func (h *SearchHandler) HandleSearch(w http.ResponseWriter, r *http.Request) {
 		Coordinates: bagData.Coordinates,
 		GeoJSON:     bagData.GeoJSON,
 		APIResults:  apiResults,
+		AISummary:   comprehensiveData.AISummary,
 	}
 
 	// Serialize to JSON for embedding in HTML
