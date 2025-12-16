@@ -5,6 +5,7 @@
 
 import { getRenderer, initializeRegistry } from './renderers/index.js';
 import { formatUnknownData } from './utils.js';
+import { setPropertyLocation, showPOIsOnMap, removePOILayer, clearAllPOILayers, isLayerActive } from './map-visualisations.js';
 
 // Application state
 let map;
@@ -106,6 +107,43 @@ document.addEventListener('DOMContentLoaded', function () {
         ]
     });
     window.map = map;
+
+    // Global helper for toggling POI layers from onclick handlers
+    window.toggleTransportLayer = function(layerId, displayName, dataId, poiType) {
+        const pois = window.getPOIData(dataId);
+        if (isLayerActive(layerId)) {
+            removePOILayer(layerId);
+            // Update button state
+            document.querySelectorAll(`[data-layer="${layerId}"]`).forEach(btn => {
+                btn.classList.remove('active');
+            });
+        } else {
+            showPOIsOnMap(layerId, displayName, pois, poiType);
+            // Update button state
+            document.querySelectorAll(`[data-layer="${layerId}"]`).forEach(btn => {
+                btn.classList.add('active');
+            });
+        }
+    };
+
+    // Global helper for showing a single POI on the map
+    window.showSinglePOI = function(name, lat, lng, poiType) {
+        if (!lat || !lng) {
+            console.warn('Invalid coordinates for POI:', name);
+            return;
+        }
+        const layerId = `single-poi-${name.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`;
+        const pois = [{ name, lat, lng, type: poiType }];
+
+        // Toggle if already showing this POI
+        if (isLayerActive(layerId)) {
+            removePOILayer(layerId);
+        } else {
+            // Clear other single POIs first to avoid clutter
+            clearAllPOILayers();
+            showPOIsOnMap(layerId, `📍 ${name}`, pois, poiType);
+        }
+    };
 
     // Apply map padding based on screen size
     const applyMapPadding = () => {
@@ -500,6 +538,14 @@ document.body.addEventListener('htmx:afterSwap', function(event) {
             const responseStr = dataHolder.getAttribute('data-response');
             if (responseStr) {
                 currentResponse = JSON.parse(responseStr);
+
+                // Set property location for map visualisations
+                if (currentResponse.coordinates && currentResponse.coordinates.length >= 2) {
+                    setPropertyLocation(currentResponse.coordinates);
+                    // Clear any existing POI layers when new search is performed
+                    clearAllPOILayers();
+                }
+
                 renderApiResults();
             }
         }

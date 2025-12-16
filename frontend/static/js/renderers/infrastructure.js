@@ -1,13 +1,33 @@
 /**
  * Infrastructure & Amenities Renderers
  * Handles Transport, Parking, Traffic, Facilities, Education, and Green Spaces data
+ * Includes interactive map visualisation capabilities
  */
 
 import { formatTimestamp } from '../utils.js';
 
+// Helper to generate unique IDs for data storage
+let dataStoreCounter = 0;
+const poiDataStore = new Map();
+
+/**
+ * Store POI data and return a reference ID
+ * This allows us to pass complex data to onclick handlers
+ */
+function storePOIData(pois) {
+    const id = `poi-data-${++dataStoreCounter}`;
+    poiDataStore.set(id, pois);
+    return id;
+}
+
+// Expose data store getter globally
+window.getPOIData = function(id) {
+    return poiDataStore.get(id) || [];
+};
+
 export function renderPublicTransport(data) {
     if (!data) return '';
-    
+
     const nearestStops = data.nearestStops || [];
     const stopCount = nearestStops.length;
     const trainStops = nearestStops.filter(s => s.type === 'Train' || s.type === 'train');
@@ -25,36 +45,54 @@ export function renderPublicTransport(data) {
     const transitScore = Math.min(100, trainStops.length * 20 + metroStops.length * 15 + tramStops.length * 10 + busStops.length * 5);
     const transitClass = transitScore >= 60 ? 'good' : transitScore >= 30 ? 'moderate' : 'poor';
 
+    // Prepare POI data for each transport type
+    const formatStops = (stops) => stops.map(s => ({
+        name: s.name,
+        lat: s.latitude || s.lat,
+        lng: s.longitude || s.lng,
+        type: s.type,
+        distance: s.distance
+    })).filter(s => s.lat && s.lng);
+
+    const busData = storePOIData(formatStops(busStops));
+    const tramData = storePOIData(formatStops(tramStops));
+    const trainData = storePOIData(formatStops(trainStops));
+    const metroData = storePOIData(formatStops(metroStops));
+    const allStopsData = storePOIData(formatStops(nearestStops));
+
     return `<div class="metric-display">
         <div class="metric-value">${stopCount}</div>
         <div class="metric-label">🚏 PT Stops (500m radius)</div>
-        <div class="metric-secondary">
-            ${busStops.length > 0 ? `🚌 Bus (<strong>${busStops.length}</strong>)` : ''}
-            ${trainStops.length > 0 ? ` &nbsp;|&nbsp; 🚆 Train (<strong>${trainStops.length}</strong>)` : ''}
-            ${tramStops.length > 0 ? ` &nbsp;|&nbsp; 🚊 Tram (<strong>${tramStops.length}</strong>)` : ''}
-            ${metroStops.length > 0 ? ` &nbsp;|&nbsp; 🚇 Metro (<strong>${metroStops.length}</strong>)` : ''}
+        <div class="metric-secondary transport-buttons">
+            ${busStops.length > 0 ? `<button class="poi-toggle-btn" data-layer="transport-bus" onclick="window.toggleTransportLayer('transport-bus', '🚌 Bus Stops', '${busData}', 'bus')">🚌 Bus (<strong>${busStops.length}</strong>)</button>` : ''}
+            ${trainStops.length > 0 ? `<button class="poi-toggle-btn" data-layer="transport-train" onclick="window.toggleTransportLayer('transport-train', '🚆 Train Stations', '${trainData}', 'train')">🚆 Train (<strong>${trainStops.length}</strong>)</button>` : ''}
+            ${tramStops.length > 0 ? `<button class="poi-toggle-btn" data-layer="transport-tram" onclick="window.toggleTransportLayer('transport-tram', '🚊 Tram Stops', '${tramData}', 'tram')">🚊 Tram (<strong>${tramStops.length}</strong>)</button>` : ''}
+            ${metroStops.length > 0 ? `<button class="poi-toggle-btn" data-layer="transport-metro" onclick="window.toggleTransportLayer('transport-metro', '🚇 Metro Stations', '${metroData}', 'metro')">🚇 Metro (<strong>${metroStops.length}</strong>)</button>` : ''}
         </div>
-        <div class="metric-secondary" style="margin-top: 0.25rem;">
+        <div class="metric-secondary" style="margin-top: 0.5rem;">
+            <button class="poi-toggle-btn show-all-btn" data-layer="transport-all" onclick="window.toggleTransportLayer('transport-all', '🚏 All PT Stops', '${allStopsData}', 'default')">📍 Show All on Map</button>
+        </div>
+        <div class="metric-secondary" style="margin-top: 0.5rem;">
             🏆 Transit score: <span class="status-badge ${transitClass}">${transitScore}/100</span>
         </div>
-        ${nearestBus ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
-            🚌 Nearest Bus: <strong>${nearestBus.name}</strong> (${Math.round(nearestBus.distance)}m)
+        ${nearestBus ? `<div class="metric-secondary clickable-poi" onclick="window.showSinglePOI('${nearestBus.name}', ${nearestBus.latitude || nearestBus.lat}, ${nearestBus.longitude || nearestBus.lng}, 'bus')" style="margin-top: 0.25rem;">
+            🚌 Nearest Bus: <strong>${nearestBus.name}</strong> (${Math.round(nearestBus.distance)}m) <span class="show-on-map-hint">🗺️</span>
         </div>` : ''}
-        ${nearestTram ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
-            🚊 Nearest Tram: <strong>${nearestTram.name}</strong> (${Math.round(nearestTram.distance)}m)
+        ${nearestTram ? `<div class="metric-secondary clickable-poi" onclick="window.showSinglePOI('${nearestTram.name}', ${nearestTram.latitude || nearestTram.lat}, ${nearestTram.longitude || nearestTram.lng}, 'tram')" style="margin-top: 0.25rem;">
+            🚊 Nearest Tram: <strong>${nearestTram.name}</strong> (${Math.round(nearestTram.distance)}m) <span class="show-on-map-hint">🗺️</span>
         </div>` : ''}
-        ${nearestTrain ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
-            🚆 Nearest Train: <strong>${nearestTrain.name}</strong> (${Math.round(nearestTrain.distance)}m)
+        ${nearestTrain ? `<div class="metric-secondary clickable-poi" onclick="window.showSinglePOI('${nearestTrain.name}', ${nearestTrain.latitude || nearestTrain.lat}, ${nearestTrain.longitude || nearestTrain.lng}, 'train')" style="margin-top: 0.25rem;">
+            🚆 Nearest Train: <strong>${nearestTrain.name}</strong> (${Math.round(nearestTrain.distance)}m) <span class="show-on-map-hint">🗺️</span>
         </div>` : ''}
-        ${nearestMetro ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
-            🚇 Nearest Metro: <strong>${nearestMetro.name}</strong> (${Math.round(nearestMetro.distance)}m)
+        ${nearestMetro ? `<div class="metric-secondary clickable-poi" onclick="window.showSinglePOI('${nearestMetro.name}', ${nearestMetro.latitude || nearestMetro.lat}, ${nearestMetro.longitude || nearestMetro.lng}, 'metro')" style="margin-top: 0.25rem;">
+            🚇 Nearest Metro: <strong>${nearestMetro.name}</strong> (${Math.round(nearestMetro.distance)}m) <span class="show-on-map-hint">🗺️</span>
         </div>` : ''}
     </div>`;
 }
 
 export function renderParkingAvailability(data) {
     if (!data) return '';
-    
+
     const totalSpaces = data.totalSpaces || 0;
     const availableSpaces = data.availableSpaces || 0;
     const occupancyRate = data.occupancyRate || 0;
@@ -64,6 +102,17 @@ export function renderParkingAvailability(data) {
 
     // Get zone types
     const zoneTypes = [...new Set(parkingZones.map(z => z.type).filter(t => t))];
+
+    // Format parking zones for map display
+    const parkingPOIs = parkingZones.map(z => ({
+        name: z.name || z.type || 'Parking Zone',
+        lat: z.latitude || z.lat || z.centroid?.lat,
+        lng: z.longitude || z.lng || z.centroid?.lng,
+        type: 'parking',
+        distance: z.distance
+    })).filter(z => z.lat && z.lng);
+
+    const parkingData = storePOIData(parkingPOIs);
 
     return `<div class="metric-display">
         <div class="metric-value">${totalSpaces > 0 ? availableSpaces : '--'}</div>
@@ -76,6 +125,9 @@ export function renderParkingAvailability(data) {
             📍 <strong>${parkingZones.length}</strong> parking zones nearby
             ${zoneTypes.length > 0 ? ` (${zoneTypes.join(', ')})` : ''}
         </div>` : ''}
+        ${parkingPOIs.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.5rem;">
+            <button class="poi-toggle-btn show-all-btn" data-layer="parking-zones" onclick="window.toggleTransportLayer('parking-zones', '🅿️ Parking Zones', '${parkingData}', 'default')">📍 Show on Map</button>
+        </div>` : ''}
         ${totalSpaces > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
             📊 Avg wait: <strong>${occupancyRate > 80 ? '10-15' : occupancyRate > 50 ? '5-10' : '< 5'}</strong> min
         </div>` : ''}
@@ -84,7 +136,7 @@ export function renderParkingAvailability(data) {
 
 export function renderTraffic(data) {
     if (!data) return '';
-    
+
     // Handle both array and object data
     const trafficData = Array.isArray(data) ? data : [data];
     const totalIncidents = trafficData.reduce((sum, t) => sum + (t.incidentCount || 0), 0);
@@ -108,7 +160,7 @@ export function renderTraffic(data) {
 
 export function renderFacilitiesAmenities(data) {
     if (!data) return '';
-    
+
     const topFacilities = data.topFacilities || [];
     const amenitiesScore = data.amenitiesScore || 0;
     const catCounts = data.categoryCounts || {};
@@ -128,6 +180,15 @@ export function renderFacilitiesAmenities(data) {
     };
     const getCatEmoji = (cat) => catEmojis[cat] || '📍';
 
+    // Category to POI type mapping for colours
+    const catToPoiType = {
+        'Dining': 'dining', 'Restaurant': 'dining', 'Food': 'dining', 'Cafe': 'dining',
+        'Healthcare': 'healthcare', 'Medical': 'healthcare', 'Health': 'healthcare',
+        'Leisure': 'leisure', 'Entertainment': 'leisure', 'Recreation': 'leisure', 'Culture': 'leisure',
+        'Retail': 'retail', 'Shopping': 'retail', 'Shop': 'retail', 'Supermarket': 'retail',
+        'Sport': 'sport', 'Sports': 'sport', 'Fitness': 'sport'
+    };
+
     // Find nearest facility of each category type
     const nearestByCategory = {};
     topFacilities.forEach(f => {
@@ -137,34 +198,74 @@ export function renderFacilitiesAmenities(data) {
         }
     });
 
+    // Group facilities by category for map display
+    const facilitiesByCategory = {};
+    topFacilities.forEach(f => {
+        const cat = f.category || f.type || 'Other';
+        if (!facilitiesByCategory[cat]) {
+            facilitiesByCategory[cat] = [];
+        }
+        facilitiesByCategory[cat].push({
+            name: f.name,
+            lat: f.latitude || f.lat,
+            lng: f.longitude || f.lng,
+            type: cat,
+            distance: f.distance
+        });
+    });
+
+    // Store all facilities data
+    const allFacilitiesData = storePOIData(topFacilities.map(f => ({
+        name: f.name,
+        lat: f.latitude || f.lat,
+        lng: f.longitude || f.lng,
+        type: f.category || f.type,
+        distance: f.distance
+    })).filter(f => f.lat && f.lng));
+
+    // Generate category buttons
+    const categoryButtons = categoryNames.slice(0, 6).map(cat => {
+        const catFacilities = facilitiesByCategory[cat] || [];
+        const dataId = storePOIData(catFacilities.filter(f => f.lat && f.lng));
+        const poiType = catToPoiType[cat] || 'default';
+        return `<button class="poi-toggle-btn" data-layer="amenity-${cat.toLowerCase()}" onclick="window.toggleTransportLayer('amenity-${cat.toLowerCase()}', '${getCatEmoji(cat)} ${cat}', '${dataId}', '${poiType}')">${getCatEmoji(cat)} ${cat}: <strong>${catCounts[cat]}</strong></button>`;
+    }).join(' ');
+
     return `<div class="metric-display">
         <div class="metric-value">${totalFacilities}</div>
         <div class="metric-label">🏪 Amenities (500m radius)</div>
         <div class="metric-secondary">
             🏆 Score: <span class="status-badge ${scoreClass}">${amenitiesScore.toFixed(0)}/100</span>
         </div>
-        ${categoryNames.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
-            ${categoryNames.slice(0, 6).map(c => `${getCatEmoji(c)} ${c}: <strong>${catCounts[c]}</strong>`).join(' &nbsp;|&nbsp; ')}
+        ${categoryNames.length > 0 ? `<div class="metric-secondary amenity-buttons" style="margin-top: 0.5rem;">
+            ${categoryButtons}
         </div>` : ''}
-        ${Object.keys(nearestByCategory).length > 0 ? Object.entries(nearestByCategory).slice(0, 4).map(([cat, f]) =>
-            `<div class="metric-secondary" style="margin-top: 0.25rem;">
-                ${getCatEmoji(cat)} Nearest ${cat}: <strong>${f.name}</strong> (${Math.round(f.distance)}m)
-            </div>`
-        ).join('') : ''}
+        <div class="metric-secondary" style="margin-top: 0.5rem;">
+            <button class="poi-toggle-btn show-all-btn" data-layer="amenities-all" onclick="window.toggleTransportLayer('amenities-all', '🏪 All Amenities', '${allFacilitiesData}', 'default')">📍 Show All on Map</button>
+        </div>
+        ${Object.keys(nearestByCategory).length > 0 ? Object.entries(nearestByCategory).slice(0, 4).map(([cat, f]) => {
+            const poiType = catToPoiType[cat] || 'default';
+            return `<div class="metric-secondary clickable-poi" onclick="window.showSinglePOI('${f.name.replace(/'/g, "\\'")}', ${f.latitude || f.lat}, ${f.longitude || f.lng}, '${poiType}')" style="margin-top: 0.25rem;">
+                ${getCatEmoji(cat)} Nearest ${cat}: <strong>${f.name}</strong> (${Math.round(f.distance)}m) <span class="show-on-map-hint">🗺️</span>
+            </div>`;
+        }).join('') : ''}
     </div>`;
 }
 
 export function renderEducationFacilities(data) {
     if (!data) return '';
-    
+
     const allSchools = data.allSchools || [];
     const nearestPrimary = data.nearestPrimarySchool;
     const nearestSecondary = data.nearestSecondarySchool;
     const avgQuality = data.averageQuality || 0;
     const schoolCount = allSchools.length;
-    const primaryCount = allSchools.filter(s => s.type === 'Primary' || s.type === 'primary').length;
-    const secondaryCount = allSchools.filter(s => s.type === 'Secondary' || s.type === 'secondary').length;
-    const otherCount = schoolCount - primaryCount - secondaryCount;
+    const primarySchools = allSchools.filter(s => s.type === 'Primary' || s.type === 'primary');
+    const secondarySchools = allSchools.filter(s => s.type === 'Secondary' || s.type === 'secondary');
+    const otherSchools = allSchools.filter(s => s.type !== 'Primary' && s.type !== 'primary' && s.type !== 'Secondary' && s.type !== 'secondary');
+    const primaryCount = primarySchools.length;
+    const secondaryCount = secondarySchools.length;
+    const otherCount = otherSchools.length;
     const publicSchools = allSchools.filter(s => s.sector === 'Public' || s.sector === 'public' || s.isPublic).length;
     const privateSchools = allSchools.filter(s => s.sector === 'Private' || s.sector === 'private' || s.isPrivate).length;
 
@@ -172,33 +273,50 @@ export function renderEducationFacilities(data) {
     const primaryQualityClass = nearestPrimary?.quality >= 7 ? 'good' : nearestPrimary?.quality >= 5 ? 'moderate' : 'poor';
     const secondaryQualityClass = nearestSecondary?.quality >= 7 ? 'good' : nearestSecondary?.quality >= 5 ? 'moderate' : 'poor';
 
+    // Format schools for map display
+    const formatSchools = (schools) => schools.map(s => ({
+        name: s.name,
+        lat: s.latitude || s.lat,
+        lng: s.longitude || s.lng,
+        type: s.type,
+        distance: s.distance
+    })).filter(s => s.lat && s.lng);
+
+    const primaryData = storePOIData(formatSchools(primarySchools));
+    const secondaryData = storePOIData(formatSchools(secondarySchools));
+    const otherData = storePOIData(formatSchools(otherSchools));
+    const allSchoolsData = storePOIData(formatSchools(allSchools));
+
     return `<div class="metric-display">
         <div class="metric-value">${schoolCount}</div>
         <div class="metric-label">🎒 Schools (1km radius)</div>
-        <div class="metric-secondary">
-            🏫 Primary: <strong>${primaryCount}</strong> &nbsp;|&nbsp;
-            🎓 Secondary: <strong>${secondaryCount}</strong>
-            ${otherCount > 0 ? ` &nbsp;|&nbsp; 📚 Other: <strong>${otherCount}</strong>` : ''}
+        <div class="metric-secondary education-buttons">
+            ${primaryCount > 0 ? `<button class="poi-toggle-btn" data-layer="edu-primary" onclick="window.toggleTransportLayer('edu-primary', '🏫 Primary Schools', '${primaryData}', 'primary')">🏫 Primary: <strong>${primaryCount}</strong></button>` : ''}
+            ${secondaryCount > 0 ? `<button class="poi-toggle-btn" data-layer="edu-secondary" onclick="window.toggleTransportLayer('edu-secondary', '🎓 Secondary Schools', '${secondaryData}', 'secondary')">🎓 Secondary: <strong>${secondaryCount}</strong></button>` : ''}
+            ${otherCount > 0 ? `<button class="poi-toggle-btn" data-layer="edu-other" onclick="window.toggleTransportLayer('edu-other', '📚 Other Education', '${otherData}', 'other-education')">📚 Other: <strong>${otherCount}</strong></button>` : ''}
+        </div>
+        <div class="metric-secondary" style="margin-top: 0.5rem;">
+            <button class="poi-toggle-btn show-all-btn" data-layer="edu-all" onclick="window.toggleTransportLayer('edu-all', '🎒 All Schools', '${allSchoolsData}', 'default')">📍 Show All on Map</button>
         </div>
         ${publicSchools > 0 || privateSchools > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
             🏛️ Public: <strong>${publicSchools}</strong> &nbsp;|&nbsp;
             🏢 Private: <strong>${privateSchools}</strong> &nbsp;|&nbsp;
             ⭐ Avg quality: <strong>${avgQuality.toFixed(1)}</strong>/10
         </div>` : `<div class="metric-secondary" style="margin-top: 0.25rem;">⭐ Avg quality: <strong>${avgQuality.toFixed(1)}</strong>/10</div>`}
-        ${nearestPrimary ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+        ${nearestPrimary ? `<div class="metric-secondary clickable-poi" onclick="window.showSinglePOI('${nearestPrimary.name.replace(/'/g, "\\'")}', ${nearestPrimary.latitude || nearestPrimary.lat}, ${nearestPrimary.longitude || nearestPrimary.lng}, 'primary')" style="margin-top: 0.25rem;">
             🏫 Nearest primary: <strong>${nearestPrimary.name}</strong> (${Math.round(nearestPrimary.distance)}m)
-            ${nearestPrimary.quality ? ` <span class="status-badge ${primaryQualityClass}" style="font-size: 0.7rem; padding: 2px 6px;">⭐ ${nearestPrimary.quality.toFixed(1)}</span>` : ''}
+            ${nearestPrimary.quality ? ` <span class="status-badge ${primaryQualityClass}" style="font-size: 0.7rem; padding: 2px 6px;">⭐ ${nearestPrimary.quality.toFixed(1)}</span>` : ''} <span class="show-on-map-hint">🗺️</span>
         </div>` : ''}
-        ${nearestSecondary ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
+        ${nearestSecondary ? `<div class="metric-secondary clickable-poi" onclick="window.showSinglePOI('${nearestSecondary.name.replace(/'/g, "\\'")}', ${nearestSecondary.latitude || nearestSecondary.lat}, ${nearestSecondary.longitude || nearestSecondary.lng}, 'secondary')" style="margin-top: 0.25rem;">
             🎓 Nearest secondary: <strong>${nearestSecondary.name}</strong> (${Math.round(nearestSecondary.distance)}m)
-            ${nearestSecondary.quality ? ` <span class="status-badge ${secondaryQualityClass}" style="font-size: 0.7rem; padding: 2px 6px;">⭐ ${nearestSecondary.quality.toFixed(1)}</span>` : ''}
+            ${nearestSecondary.quality ? ` <span class="status-badge ${secondaryQualityClass}" style="font-size: 0.7rem; padding: 2px 6px;">⭐ ${nearestSecondary.quality.toFixed(1)}</span>` : ''} <span class="show-on-map-hint">🗺️</span>
         </div>` : ''}
     </div>`;
 }
 
 export function renderGreenSpaces(data) {
     if (!data) return '';
-    
+
     const greenSpacesArr = data.greenSpaces || [];
     const totalGreenArea = data.totalGreenArea || 0;
     const greenPct = data.greenPercentage || 0;
@@ -211,6 +329,17 @@ export function renderGreenSpaces(data) {
     // Calculate green score
     const greenScore = Math.min(100, Math.round(greenPct * 10 + treeCanopy * 10));
 
+    // Format green spaces for map display
+    const greenPOIs = greenSpacesArr.map(s => ({
+        name: s.name || s.type || 'Green Space',
+        lat: s.latitude || s.lat || s.centroid?.lat,
+        lng: s.longitude || s.lng || s.centroid?.lng,
+        type: s.type,
+        distance: s.distance
+    })).filter(s => s.lat && s.lng);
+
+    const greenData = storePOIData(greenPOIs);
+
     return `<div class="metric-display">
         <div class="metric-value">${totalGreenArea.toLocaleString()} <span style="font-size: 1rem; font-weight: 500;">m²</span></div>
         <div class="metric-label">🌿 Green Space (500m radius)</div>
@@ -219,6 +348,9 @@ export function renderGreenSpaces(data) {
             📊 <strong>${(greenPct * 100).toFixed(1)}%</strong> coverage &nbsp;|&nbsp;
             🏆 Score: <strong>${greenScore}</strong>/100
         </div>
+        ${greenPOIs.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.5rem;">
+            <button class="poi-toggle-btn show-all-btn" data-layer="green-spaces" onclick="window.toggleTransportLayer('green-spaces', '🌳 Green Spaces', '${greenData}', 'default')">📍 Show Parks on Map</button>
+        </div>` : ''}
         <div class="metric-secondary" style="margin-top: 0.25rem;">
             🌲 Tree canopy: <strong>${(treeCanopy * 100).toFixed(1)}%</strong>
             ${nearestPark && parkDist > 0 ? ` &nbsp;|&nbsp; 🏞️ ${nearestPark}: <strong>${Math.round(parkDist)}m</strong>` : ''}

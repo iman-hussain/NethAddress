@@ -796,3 +796,220 @@ body:not(.has-results) .desktop-results { display: none; }
     }
     .metric-value { font-size: 2.25rem; }
 }
+
+/* ===========================================
+   Interactive Map POI Styles
+   =========================================== */
+
+/* POI Toggle Buttons */
+.poi-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.375rem 0.625rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    margin: 0.125rem;
+}
+
+.poi-toggle-btn:hover {
+    background: var(--bg-section);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+.poi-toggle-btn.active {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: white;
+}
+
+.poi-toggle-btn.active:hover {
+    background: var(--primary-hover);
+}
+
+.poi-toggle-btn.show-all-btn {
+    background: var(--primary-light);
+    border-color: var(--primary);
+    color: white;
+    font-weight: 600;
+}
+
+.poi-toggle-btn.show-all-btn:hover {
+    background: var(--primary);
+}
+
+.poi-toggle-btn.show-all-btn.active {
+    background: var(--primary-hover);
+}
+
+/* Transport/Education/Amenity Button Groups */
+.transport-buttons,
+.education-buttons,
+.amenity-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin-top: 0.375rem;
+}
+
+/* Clickable POI Items */
+.clickable-poi {
+    cursor: pointer;
+    padding: 0.25rem 0.375rem;
+    margin: 0.125rem -0.375rem;
+    border-radius: var(--radius-sm);
+    transition: all 0.15s ease;
+}
+
+.clickable-poi:hover {
+    background: var(--primary-light);
+    background: rgba(13, 148, 136, 0.1);
+}
+
+.clickable-poi:hover .show-on-map-hint {
+    opacity: 1;
+}
+
+.show-on-map-hint {
+    opacity: 0.3;
+    font-size: 0.75rem;
+    margin-left: 0.25rem;
+    transition: opacity 0.15s ease;
+}
+
+/* Active Layers Panel */
+.active-layers-panel {
+    position: fixed;
+    bottom: 1.25rem;
+    right: 1.25rem;
+    background: var(--bg-card);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border);
+    min-width: 220px;
+    max-width: 300px;
+    z-index: 1000;
+    overflow: hidden;
+}
+
+.active-layers-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.625rem 0.875rem;
+    background: var(--bg-section);
+    border-bottom: 1px solid var(--border);
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+}
+
+.clear-all-btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--danger);
+    background: var(--danger-bg);
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.clear-all-btn:hover {
+    background: var(--danger);
+    color: white;
+}
+
+.active-layers-list {
+    padding: 0.5rem;
+}
+
+.active-layer-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.625rem;
+    background: var(--bg-section);
+    border-radius: var(--radius-sm);
+    margin-bottom: 0.375rem;
+}
+
+.active-layer-item:last-child {
+    margin-bottom: 0;
+}
+
+.layer-name {
+    flex: 1;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.layer-count {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    background: var(--bg-card);
+    padding: 0.125rem 0.375rem;
+    border-radius: 3px;
+}
+
+.layer-remove-btn {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.layer-remove-btn:hover {
+    background: var(--danger-bg);
+    color: var(--danger);
+}
+
+/* MapLibre Popup Styles */
+.maplibregl-popup-content {
+    padding: 0.625rem 0.875rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    box-shadow: var(--shadow-md);
+}
+
+/* Mobile responsive adjustments for layers panel */
+@media (max-width: 768px) {
+    .active-layers-panel {
+        bottom: auto;
+        top: 60px;
+        right: 0.75rem;
+        min-width: 180px;
+    }
+
+    .poi-toggle-btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+
+    .transport-buttons,
+    .education-buttons,
+    .amenity-buttons {
+        gap: 0.125rem;
+    }
+}
