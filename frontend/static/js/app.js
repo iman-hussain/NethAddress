@@ -251,11 +251,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
                     maxzoom: 18
                 },
-                'osm-labels': {
+                'carto-labels': {
                     type: 'raster',
-                    tiles: ['https://stamen-tiles.a.ssl.fastly.net/toner-labels/{z}/{x}/{y}.png'],
+                    tiles: ['https://a.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png'],
                     tileSize: 256,
-                    attribution: 'Labels &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                    attribution: 'Labels &copy; <a href="https://carto.com/attributions">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
                     maxzoom: 18
                 }
             },
@@ -270,12 +270,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 {
                     id: 'labels-overlay',
                     type: 'raster',
-                    source: 'osm-labels',
+                    source: 'carto-labels',
                     minzoom: 0,
-                    maxzoom: 18,
-                    paint: {
-                        'raster-opacity': 0.9
-                    }
+                    maxzoom: 18
                 }
             ]
         }
