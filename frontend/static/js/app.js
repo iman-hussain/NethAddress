@@ -70,14 +70,34 @@ document.addEventListener('DOMContentLoaded', function () {
     // Populate build info dynamically from API
     fetchBuildInfo();
 
-    // Initialize MapLibre map
+    // Initialize MapLibre map with detailed OpenStreetMap style
+    // Using OpenFreeMap - completely free OSM tiles with building details
     map = new maplibregl.Map({
         container: 'map',
-        style: 'https://demotiles.maplibre.org/style.json',
+        style: {
+            version: 8,
+            sources: {
+                osm: {
+                    type: 'raster',
+                    tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                    tileSize: 256,
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }
+            },
+            layers: [
+                {
+                    id: 'osm',
+                    type: 'raster',
+                    source: 'osm',
+                    minzoom: 0,
+                    maxzoom: 19
+                }
+            ]
+        },
         center: [5.3878, 52.1561], // Center on Netherlands
         zoom: 7,
         minZoom: 6,
-        maxZoom: 18,
+        maxZoom: 19,
         maxBounds: [
             [2.5, 50.5],   // Southwest corner (just into the sea, below Belgium)
             [8.5, 54.2]    // Northeast corner (just into Germany)
@@ -111,18 +131,18 @@ document.addEventListener('DOMContentLoaded', function () {
         const form = document.getElementById('search-form');
         const postcode = form.querySelector('[name="postcode"]').value;
         const houseNumber = form.querySelector('[name="houseNumber"]').value;
-        
+
         if (!postcode || !houseNumber) {
             alert('Please enter postcode and house number first');
             return;
         }
-        
+
         // Create a temporary form with bypass cache parameter
         const formData = new FormData();
         formData.append('postcode', postcode);
         formData.append('houseNumber', houseNumber);
         formData.append('bypassCache', 'true');
-        
+
         // Trigger loading state manually
         document.body.classList.remove('has-results');
         const isMobile = window.innerWidth <= 768;
@@ -136,7 +156,7 @@ document.addEventListener('DOMContentLoaded', function () {
             `;
             document.body.classList.add('has-results');
         }
-        
+
         // Make the request
         fetch(apiHost + '/search', {
             method: 'POST',
@@ -157,6 +177,96 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     };
+
+    // Map style definitions (all free/open-source)
+    const mapStyles = {
+        osm: {
+            version: 8,
+            sources: {
+                osm: {
+                    type: 'raster',
+                    tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                    tileSize: 256,
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                }
+            },
+            layers: [
+                {
+                    id: 'osm',
+                    type: 'raster',
+                    source: 'osm',
+                    minzoom: 0,
+                    maxzoom: 19
+                }
+            ]
+        },
+        satellite: {
+            version: 8,
+            sources: {
+                'esri-satellite': {
+                    type: 'raster',
+                    tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+                    tileSize: 256,
+                    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                },
+                'osm-labels': {
+                    type: 'raster',
+                    tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+                    tileSize: 256
+                }
+            },
+            layers: [
+                {
+                    id: 'satellite',
+                    type: 'raster',
+                    source: 'esri-satellite',
+                    minzoom: 0,
+                    maxzoom: 19
+                }
+            ]
+        }
+    };
+
+    // Switch map style function
+    window.switchMapStyle = function(styleId) {
+        if (!map || !mapStyles[styleId]) return;
+        
+        // Store current map state
+        const center = map.getCenter();
+        const zoom = map.getZoom();
+        
+        // Update button states
+        document.querySelectorAll('.map-style-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+        
+        // Switch style
+        map.setStyle(mapStyles[styleId]);
+        
+        // Restore map state after style loads
+        map.once('styledata', () => {
+            map.setCenter(center);
+            map.setZoom(zoom);
+            
+            // Redraw any existing layers (parcel, location marker)
+            if (currentResponse && currentResponse.geoJSON) {
+                setTimeout(() => {
+                    updateMap(currentResponse.geoJSON);
+                }, 100);
+            }
+        });
+        
+        // Save preference
+        localStorage.setItem('mapStyle', styleId);
+    };
+
+    // Load saved map style preference
+    const savedStyle = localStorage.getItem('mapStyle') || 'osm';
+    setTimeout(() => {
+        const btn = document.querySelector(`.map-style-btn[onclick*="${savedStyle}"]`);
+        if (btn) btn.classList.add('active');
+    }, 100);
 
     // Load API preferences from localStorage
     const savedAPIs = localStorage.getItem('enabledAPIs');

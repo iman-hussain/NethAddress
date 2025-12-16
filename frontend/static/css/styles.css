@@ -106,6 +106,44 @@ html, body {
     position: absolute;
     top: 0; left: 0; right: 0; bottom: 0;
 }
+
+/* Map Style Switcher */
+.map-style-switcher {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 10;
+    display: flex;
+    gap: 0.5rem;
+    background: var(--bg-card);
+    padding: 0.5rem;
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border);
+}
+.map-style-btn {
+    width: 44px;
+    height: 44px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+.map-style-btn:hover {
+    background: var(--bg-card-alt);
+    border-color: var(--primary);
+    transform: scale(1.05);
+}
+.map-style-btn.active {
+    background: var(--primary-light);
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.2);
+}
 .sidebar-overlay {
     position: absolute;
     top: 0;
