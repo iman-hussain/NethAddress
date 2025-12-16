@@ -12,20 +12,6 @@ let currentResponse = null;
 let enabledAPIs = new Set();
 let apiHost = '';
 
-// Loading status messages
-let loadingInterval = null;
-const loadingSteps = [
-    'Validating address...',
-    'Fetching BAG registration...',
-    'Querying property valuations...',
-    'Checking environmental data...',
-    'Analysing demographics...',
-    'Gathering transport links...',
-    'Assessing flood risk...',
-    'Retrieving energy labels...',
-    'Compiling results...'
-];
-
 // Fetch build info from API
 async function fetchBuildInfo() {
     const buildInfoEl = document.getElementById('build-info');
@@ -139,29 +125,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
-// Loading animation functions
-function startLoadingAnimation(container) {
-    let stepIndex = 0;
-    const statusEl = container.querySelector('.loading-status');
-    if (!statusEl) return;
-
-    // Update status immediately
-    statusEl.textContent = loadingSteps[0];
-
-    // Cycle through steps
-    loadingInterval = setInterval(() => {
-        stepIndex = (stepIndex + 1) % loadingSteps.length;
-        statusEl.textContent = loadingSteps[stepIndex];
-    }, 800);
-}
-
-function stopLoadingAnimation() {
-    if (loadingInterval) {
-        clearInterval(loadingInterval);
-        loadingInterval = null;
-    }
-}
-
 // HTMX event listeners
 document.body.addEventListener('htmx:beforeRequest', function (event) {
     const trigger = event.target;
@@ -174,17 +137,16 @@ document.body.addEventListener('htmx:beforeRequest', function (event) {
             targetContainer.innerHTML = `
                 <div class="loading-container">
                     <div class="loading-spinner"></div>
-                    <div class="loading-status">Validating address...</div>
+                    <div class="loading-status">Fetching property data...</div>
                 </div>
             `;
             document.body.classList.add('has-results');
-            startLoadingAnimation(targetContainer);
         }
     }
 });
 
 document.body.addEventListener('htmx:afterRequest', function (event) {
-    stopLoadingAnimation();
+    // Loading complete - content will be replaced by HTMX
 });
 
 // Update the map with new GeoJSON and zoom/circle location
