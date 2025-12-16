@@ -59,7 +59,7 @@ async function fetchBuildInfo() {
 document.addEventListener('DOMContentLoaded', function () {
     // Initialize the renderer registry with access to currentResponse
     initializeRegistry(() => currentResponse);
-    
+
     // Define apiHost based on hostname
     if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
         apiHost = 'http://localhost:8080';
@@ -278,7 +278,7 @@ function formatApiData(apiName, data) {
 
     // Get the renderer from the registry
     const renderer = getRenderer(apiName);
-    
+
     if (renderer) {
         // All renderers now have consistent signatures
         return renderer(data, apiName);
@@ -483,7 +483,7 @@ window.openSettings = function() {
         if (tier.apis.length > 0) {
             html += `<div class="api-tier-group">`;
             html += `<div class="api-tier-label">${tier.name} (${tier.apis.length})</div>`;
-            
+
             tier.apis.forEach(result => {
                 const apiName = result.name;
                 const checked = enabledAPIs.has(apiName) ? 'checked' : '';
@@ -494,7 +494,7 @@ window.openSettings = function() {
                     </label>
                 `;
             });
-            
+
             html += `</div>`;
         }
     });
