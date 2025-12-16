@@ -712,43 +712,43 @@ body:not(.has-results) .desktop-results { display: none; }
 
 /* Mobile Layout */
 @media screen and (max-width: 768px) {
-    html, body { 
+    html, body {
         font-size: 16px;
         overflow-x: hidden;
         overflow-y: auto;
         height: auto;
         min-height: 100%;
     }
-    
-    .navbar { 
-        position: fixed; 
-        top: 0; 
-        left: 0; 
-        right: 0; 
-        z-index: 40; 
-        min-height: 48px; 
+
+    .navbar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 40;
+        min-height: 48px;
     }
     .navbar-brand .navbar-item { font-size: 1.25rem; }
-    
-    .full-height-columns { 
+
+    .full-height-columns {
         height: auto;
         min-height: 100vh;
         display: flex;
         flex-direction: column;
         padding-top: 48px; /* Space for fixed navbar */
     }
-    .full-height-columns .columns { 
+    .full-height-columns .columns {
         position: static;
         display: flex;
         flex-direction: column;
         flex: 1;
     }
-    
+
     /* Map scrolls with content, not fixed */
     #map-container {
         position: relative;
         top: auto;
-        left: auto; 
+        left: auto;
         right: auto;
         height: 50vh;
         min-height: 250px;
@@ -756,18 +756,18 @@ body:not(.has-results) .desktop-results { display: none; }
         z-index: 1;
         flex-shrink: 0;
     }
-    
+
     #map {
         height: 100% !important;
     }
-    
+
     /* Map style switcher repositioned for mobile */
     .map-style-switcher {
         top: auto;
         bottom: 0.75rem;
         right: 0.75rem;
     }
-    
+
     /* Sidebar flows after map */
     .sidebar-overlay {
         position: relative;
@@ -780,7 +780,7 @@ body:not(.has-results) .desktop-results { display: none; }
         margin-top: 0;
         background: var(--bg-page);
     }
-    
+
     .sidebar-content {
         direction: ltr;
         padding: 0;
@@ -794,7 +794,7 @@ body:not(.has-results) .desktop-results { display: none; }
         padding-top: 0;
         padding-bottom: 2rem;
     }
-    
+
     /* Search panel at top of scrollable area */
     .search-panel {
         pointer-events: auto;
@@ -802,23 +802,23 @@ body:not(.has-results) .desktop-results { display: none; }
         flex-shrink: 0;
         border-radius: 0;
     }
-    
+
     .search-panel .box {
         border-radius: 0;
         margin: 0;
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
-    
+
     body:not(.has-results) .search-panel {
         margin-top: 0;
         margin-bottom: 0;
     }
-    
+
     body.has-results .search-panel {
         margin-top: 0;
         margin-bottom: 0;
     }
-    
+
     .search-form-row {
         flex-direction: column;
         gap: 0.75rem;
@@ -829,20 +829,20 @@ body:not(.has-results) .desktop-results { display: none; }
     .search-panel .button.is-primary {
         width: 100%;
     }
-    
+
     .desktop-results { display: none !important; }
-    
+
     .mobile-results {
         margin: 0 0.875rem;
         pointer-events: auto;
         display: block;
         flex-shrink: 0;
     }
-    
+
     body:not(.has-results) .mobile-results { display: none; }
-    
+
     .mobile-results .api-results-grid { grid-template-columns: 1fr !important; }
-    
+
     .mobile-results .address-header-card {
         flex-direction: column;
         align-items: flex-start;
@@ -859,7 +859,7 @@ body:not(.has-results) .desktop-results { display: none; }
         justify-content: center;
     }
     .metric-value { font-size: 2.25rem; }
-    
+
     /* Active layers panel at bottom on mobile for easy access while scrolling */
     .active-layers-panel {
         top: auto;
@@ -868,7 +868,7 @@ body:not(.has-results) .desktop-results { display: none; }
         min-width: 180px;
         max-width: 200px;
     }
-    
+
     /* POI buttons smaller on mobile */
     .poi-toggle-btn {
         padding: 0.25rem 0.5rem;
