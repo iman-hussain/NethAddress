@@ -17,6 +17,64 @@ const (
 	defaultNatura2000URL = "https://api.pdok.nl/rvo/natura2000/ogc/v1"
 )
 
+// extractPolygonCentroid extracts an approximate centroid from GeoJSON polygon coordinates
+// Returns the centroid lat/lon and calculated area
+func extractPolygonCentroid(coordsRaw json.RawMessage, geomType string) (float64, float64, float64) {
+	// Parse coordinates based on geometry type
+	// Polygon: [[[lon, lat], [lon, lat], ...]]
+	// MultiPolygon: [[[[lon, lat], [lon, lat], ...]]]
+	var coords [][][]float64
+
+	if geomType == "MultiPolygon" {
+		var multiCoords [][][][]float64
+		if err := json.Unmarshal(coordsRaw, &multiCoords); err != nil || len(multiCoords) == 0 {
+			return 0, 0, 0
+		}
+		// Use the first polygon of the multipolygon
+		if len(multiCoords[0]) > 0 {
+			coords = multiCoords[0]
+		}
+	} else {
+		if err := json.Unmarshal(coordsRaw, &coords); err != nil || len(coords) == 0 {
+			return 0, 0, 0
+		}
+	}
+
+	if len(coords) == 0 || len(coords[0]) == 0 {
+		return 0, 0, 0
+	}
+
+	// Calculate centroid and area using the outer ring (first array)
+	ring := coords[0]
+	var sumLat, sumLon float64
+	var area float64
+	n := len(ring)
+
+	for i, point := range ring {
+		if len(point) < 2 {
+			continue
+		}
+		lon, lat := point[0], point[1]
+		sumLon += lon
+		sumLat += lat
+
+		// Shoelace formula for area calculation
+		if i < n-1 && len(ring[i+1]) >= 2 {
+			nextLon, nextLat := ring[i+1][0], ring[i+1][1]
+			area += (lon * nextLat) - (nextLon * lat)
+		}
+	}
+
+	if n > 0 {
+		centroidLon := sumLon / float64(n)
+		centroidLat := sumLat / float64(n)
+		// Area in square degrees - convert roughly to m² (very approximate)
+		areaM2 := math.Abs(area/2) * 111000 * 111000
+		return centroidLat, centroidLon, areaM2
+	}
+	return 0, 0, 0
+}
+
 // GreenSpacesData represents parks and green areas
 type GreenSpacesData struct {
 	TotalGreenArea  float64      `json:"totalGreenArea"`  // m² within radius
@@ -34,6 +92,8 @@ type GreenSpace struct {
 	Area       float64  `json:"area"`       // m²
 	Distance   float64  `json:"distance"`   // meters
 	Facilities []string `json:"facilities"` // Playground, Sports, etc.
+	Lat        float64  `json:"lat"`
+	Lon        float64  `json:"lon"`
 }
 
 // bgtGreenResponse represents PDOK BGT begroeidterreindeel API response
@@ -127,11 +187,22 @@ func (c *ApiClient) FetchGreenSpacesData(cfg *config.Config, lat, lon float64, r
 			name = greenType
 		}
 
-		// Estimate area (simplified - would need proper geometry calculation)
-		area := 500.0 // Default estimate
+		// Extract centroid and area from polygon geometry
+		centroidLat, centroidLon, area := extractPolygonCentroid(
+			feature.Geometry.Coordinates,
+			feature.Geometry.Type,
+		)
 
-		// Estimate distance from center (simplified)
-		distance := float64(radius) / 2 // Placeholder
+		// Use default if extraction failed
+		if area == 0 {
+			area = 500.0
+		}
+
+		// Calculate actual distance from property to centroid using Haversine
+		distance := float64(radius) / 2 // Default fallback
+		if centroidLat != 0 && centroidLon != 0 {
+			distance = haversineDistance(lat, lon, centroidLat, centroidLon)
+		}
 
 		if distance < nearestDistance && (greenType == "Park" || greenType == "Garden") {
 			nearestDistance = distance
@@ -145,6 +216,8 @@ func (c *ApiClient) FetchGreenSpacesData(cfg *config.Config, lat, lon float64, r
 			Type:     greenType,
 			Area:     area,
 			Distance: distance,
+			Lat:      centroidLat,
+			Lon:      centroidLon,
 		})
 	}
 
@@ -267,6 +340,8 @@ type School struct {
 	Students     int     `json:"students"`
 	Address      string  `json:"address"`
 	Denomination string  `json:"denomination"` // Public, Catholic, etc.
+	Lat          float64 `json:"lat"`
+	Lon          float64 `json:"lon"`
 }
 
 // overpassResponse represents OSM Overpass API response
@@ -364,6 +439,8 @@ out center body qt 20;`, radius, lat, lon, radius, lat, lon)
 			QualityScore: 7.0, // Default quality score (would need separate data source)
 			Address:      address,
 			Denomination: denomination,
+			Lat:          elem.Lat,
+			Lon:          elem.Lon,
 		}
 
 		allSchools = append(allSchools, school)
@@ -553,6 +630,8 @@ type Facility struct {
 	DriveTime int     `json:"driveTime"` // minutes
 	Rating    float64 `json:"rating"`    // 0-5 stars
 	Address   string  `json:"address"`
+	Lat       float64 `json:"lat"`
+	Lon       float64 `json:"lon"`
 }
 
 // overpassFacilitiesResponse for OSM amenities query
@@ -650,6 +729,8 @@ out body qt 50;`, radius, lat, lon, radius, lat, lon, radius, lat, lon, radius, 
 			WalkTime:  walkTime,
 			DriveTime: driveTime,
 			Rating:    4.0, // Default - would need external API
+			Lat:       elem.Lat,
+			Lon:       elem.Lon,
 		}
 
 		facilities = append(facilities, facility)

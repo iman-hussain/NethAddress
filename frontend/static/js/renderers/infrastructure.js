@@ -46,10 +46,11 @@ export function renderPublicTransport(data) {
     const transitClass = transitScore >= 60 ? 'good' : transitScore >= 30 ? 'moderate' : 'poor';
 
     // Prepare POI data for each transport type
+    // Backend returns coordinates as nested object: { coordinates: { lat, lon } }
     const formatStops = (stops) => stops.map(s => ({
         name: s.name,
-        lat: s.latitude || s.lat,
-        lng: s.longitude || s.lng,
+        lat: s.coordinates?.lat || s.latitude || s.lat,
+        lng: s.coordinates?.lon || s.coordinates?.lng || s.longitude || s.lng,
         type: s.type,
         distance: s.distance
     })).filter(s => s.lat && s.lng);
@@ -59,6 +60,18 @@ export function renderPublicTransport(data) {
     const trainData = storePOIData(formatStops(trainStops));
     const metroData = storePOIData(formatStops(metroStops));
     const allStopsData = storePOIData(formatStops(nearestStops));
+
+    // Helper to get coordinates for single POI clicks
+    const getCoords = (stop) => {
+        const lat = stop?.coordinates?.lat || stop?.latitude || stop?.lat;
+        const lng = stop?.coordinates?.lon || stop?.coordinates?.lng || stop?.longitude || stop?.lng;
+        return { lat, lng };
+    };
+
+    const nearestBusCoords = nearestBus ? getCoords(nearestBus) : null;
+    const nearestTramCoords = nearestTram ? getCoords(nearestTram) : null;
+    const nearestTrainCoords = nearestTrain ? getCoords(nearestTrain) : null;
+    const nearestMetroCoords = nearestMetro ? getCoords(nearestMetro) : null;
 
     return `<div class="metric-display">
         <div class="metric-value">${stopCount}</div>
@@ -75,16 +88,16 @@ export function renderPublicTransport(data) {
         <div class="metric-secondary" style="margin-top: 0.5rem;">
             🏆 Transit score: <span class="status-badge ${transitClass}">${transitScore}/100</span>
         </div>
-        ${nearestBus ? `<div class="metric-secondary clickable-poi" onclick="window.showSinglePOI('${nearestBus.name}', ${nearestBus.latitude || nearestBus.lat}, ${nearestBus.longitude || nearestBus.lng}, 'bus')" style="margin-top: 0.25rem;">
+        ${nearestBus && nearestBusCoords?.lat ? `<div class="metric-secondary clickable-poi" onclick="window.showSinglePOI('${nearestBus.name}', ${nearestBusCoords.lat}, ${nearestBusCoords.lng}, 'bus')" style="margin-top: 0.25rem;">
             🚌 Nearest Bus: <strong>${nearestBus.name}</strong> (${Math.round(nearestBus.distance)}m) <span class="show-on-map-hint">🗺️</span>
         </div>` : ''}
-        ${nearestTram ? `<div class="metric-secondary clickable-poi" onclick="window.showSinglePOI('${nearestTram.name}', ${nearestTram.latitude || nearestTram.lat}, ${nearestTram.longitude || nearestTram.lng}, 'tram')" style="margin-top: 0.25rem;">
+        ${nearestTram && nearestTramCoords?.lat ? `<div class="metric-secondary clickable-poi" onclick="window.showSinglePOI('${nearestTram.name}', ${nearestTramCoords.lat}, ${nearestTramCoords.lng}, 'tram')" style="margin-top: 0.25rem;">
             🚊 Nearest Tram: <strong>${nearestTram.name}</strong> (${Math.round(nearestTram.distance)}m) <span class="show-on-map-hint">🗺️</span>
         </div>` : ''}
-        ${nearestTrain ? `<div class="metric-secondary clickable-poi" onclick="window.showSinglePOI('${nearestTrain.name}', ${nearestTrain.latitude || nearestTrain.lat}, ${nearestTrain.longitude || nearestTrain.lng}, 'train')" style="margin-top: 0.25rem;">
+        ${nearestTrain && nearestTrainCoords?.lat ? `<div class="metric-secondary clickable-poi" onclick="window.showSinglePOI('${nearestTrain.name}', ${nearestTrainCoords.lat}, ${nearestTrainCoords.lng}, 'train')" style="margin-top: 0.25rem;">
             🚆 Nearest Train: <strong>${nearestTrain.name}</strong> (${Math.round(nearestTrain.distance)}m) <span class="show-on-map-hint">🗺️</span>
         </div>` : ''}
-        ${nearestMetro ? `<div class="metric-secondary clickable-poi" onclick="window.showSinglePOI('${nearestMetro.name}', ${nearestMetro.latitude || nearestMetro.lat}, ${nearestMetro.longitude || nearestMetro.lng}, 'metro')" style="margin-top: 0.25rem;">
+        ${nearestMetro && nearestMetroCoords?.lat ? `<div class="metric-secondary clickable-poi" onclick="window.showSinglePOI('${nearestMetro.name}', ${nearestMetroCoords.lat}, ${nearestMetroCoords.lng}, 'metro')" style="margin-top: 0.25rem;">
             🚇 Nearest Metro: <strong>${nearestMetro.name}</strong> (${Math.round(nearestMetro.distance)}m) <span class="show-on-map-hint">🗺️</span>
         </div>` : ''}
     </div>`;
@@ -104,10 +117,11 @@ export function renderParkingAvailability(data) {
     const zoneTypes = [...new Set(parkingZones.map(z => z.type).filter(t => t))];
 
     // Format parking zones for map display
+    // Backend ParkingZone uses nested coordinates: { coordinates: { lat, lon } }
     const parkingPOIs = parkingZones.map(z => ({
         name: z.name || z.type || 'Parking Zone',
-        lat: z.latitude || z.lat || z.centroid?.lat,
-        lng: z.longitude || z.lng || z.centroid?.lng,
+        lat: z.coordinates?.lat || z.lat || z.latitude,
+        lng: z.coordinates?.lon || z.coordinates?.lng || z.lon || z.lng || z.longitude,
         type: 'parking',
         distance: z.distance
     })).filter(z => z.lat && z.lng);
@@ -199,6 +213,7 @@ export function renderFacilitiesAmenities(data) {
     });
 
     // Group facilities by category for map display
+    // Backend uses lat/lon fields directly
     const facilitiesByCategory = {};
     topFacilities.forEach(f => {
         const cat = f.category || f.type || 'Other';
@@ -207,8 +222,8 @@ export function renderFacilitiesAmenities(data) {
         }
         facilitiesByCategory[cat].push({
             name: f.name,
-            lat: f.latitude || f.lat,
-            lng: f.longitude || f.lng,
+            lat: f.lat || f.latitude,
+            lng: f.lon || f.lng || f.longitude,
             type: cat,
             distance: f.distance
         });
@@ -217,8 +232,8 @@ export function renderFacilitiesAmenities(data) {
     // Store all facilities data
     const allFacilitiesData = storePOIData(topFacilities.map(f => ({
         name: f.name,
-        lat: f.latitude || f.lat,
-        lng: f.longitude || f.lng,
+        lat: f.lat || f.latitude,
+        lng: f.lon || f.lng || f.longitude,
         type: f.category || f.type,
         distance: f.distance
     })).filter(f => f.lat && f.lng));
@@ -274,10 +289,11 @@ export function renderEducationFacilities(data) {
     const secondaryQualityClass = nearestSecondary?.quality >= 7 ? 'good' : nearestSecondary?.quality >= 5 ? 'moderate' : 'poor';
 
     // Format schools for map display
+    // Backend uses lat/lon fields directly
     const formatSchools = (schools) => schools.map(s => ({
         name: s.name,
-        lat: s.latitude || s.lat,
-        lng: s.longitude || s.lng,
+        lat: s.lat || s.latitude,
+        lng: s.lon || s.lng || s.longitude,
         type: s.type,
         distance: s.distance
     })).filter(s => s.lat && s.lng);
@@ -286,6 +302,16 @@ export function renderEducationFacilities(data) {
     const secondaryData = storePOIData(formatSchools(secondarySchools));
     const otherData = storePOIData(formatSchools(otherSchools));
     const allSchoolsData = storePOIData(formatSchools(allSchools));
+
+    // Helper for getting school coordinates
+    const getSchoolCoords = (school) => {
+        const lat = school?.lat || school?.latitude;
+        const lng = school?.lon || school?.lng || school?.longitude;
+        return { lat, lng };
+    };
+
+    const nearestPrimaryCoords = nearestPrimary ? getSchoolCoords(nearestPrimary) : null;
+    const nearestSecondaryCoords = nearestSecondary ? getSchoolCoords(nearestSecondary) : null;
 
     return `<div class="metric-display">
         <div class="metric-value">${schoolCount}</div>
@@ -303,11 +329,11 @@ export function renderEducationFacilities(data) {
             🏢 Private: <strong>${privateSchools}</strong> &nbsp;|&nbsp;
             ⭐ Avg quality: <strong>${avgQuality.toFixed(1)}</strong>/10
         </div>` : `<div class="metric-secondary" style="margin-top: 0.25rem;">⭐ Avg quality: <strong>${avgQuality.toFixed(1)}</strong>/10</div>`}
-        ${nearestPrimary ? `<div class="metric-secondary clickable-poi" onclick="window.showSinglePOI('${nearestPrimary.name.replace(/'/g, "\\'")}', ${nearestPrimary.latitude || nearestPrimary.lat}, ${nearestPrimary.longitude || nearestPrimary.lng}, 'primary')" style="margin-top: 0.25rem;">
+        ${nearestPrimary && nearestPrimaryCoords?.lat ? `<div class="metric-secondary clickable-poi" onclick="window.showSinglePOI('${nearestPrimary.name.replace(/'/g, "\\'")}', ${nearestPrimaryCoords.lat}, ${nearestPrimaryCoords.lng}, 'primary')" style="margin-top: 0.25rem;">
             🏫 Nearest primary: <strong>${nearestPrimary.name}</strong> (${Math.round(nearestPrimary.distance)}m)
             ${nearestPrimary.quality ? ` <span class="status-badge ${primaryQualityClass}" style="font-size: 0.7rem; padding: 2px 6px;">⭐ ${nearestPrimary.quality.toFixed(1)}</span>` : ''} <span class="show-on-map-hint">🗺️</span>
         </div>` : ''}
-        ${nearestSecondary ? `<div class="metric-secondary clickable-poi" onclick="window.showSinglePOI('${nearestSecondary.name.replace(/'/g, "\\'")}', ${nearestSecondary.latitude || nearestSecondary.lat}, ${nearestSecondary.longitude || nearestSecondary.lng}, 'secondary')" style="margin-top: 0.25rem;">
+        ${nearestSecondary && nearestSecondaryCoords?.lat ? `<div class="metric-secondary clickable-poi" onclick="window.showSinglePOI('${nearestSecondary.name.replace(/'/g, "\\'")}', ${nearestSecondaryCoords.lat}, ${nearestSecondaryCoords.lng}, 'secondary')" style="margin-top: 0.25rem;">
             🎓 Nearest secondary: <strong>${nearestSecondary.name}</strong> (${Math.round(nearestSecondary.distance)}m)
             ${nearestSecondary.quality ? ` <span class="status-badge ${secondaryQualityClass}" style="font-size: 0.7rem; padding: 2px 6px;">⭐ ${nearestSecondary.quality.toFixed(1)}</span>` : ''} <span class="show-on-map-hint">🗺️</span>
         </div>` : ''}
@@ -330,10 +356,11 @@ export function renderGreenSpaces(data) {
     const greenScore = Math.min(100, Math.round(greenPct * 10 + treeCanopy * 10));
 
     // Format green spaces for map display
+    // Backend GreenSpace uses flat lat/lon fields
     const greenPOIs = greenSpacesArr.map(s => ({
         name: s.name || s.type || 'Green Space',
-        lat: s.latitude || s.lat || s.centroid?.lat,
-        lng: s.longitude || s.lng || s.centroid?.lng,
+        lat: s.lat || s.latitude,
+        lng: s.lon || s.lng || s.longitude,
         type: s.type,
         distance: s.distance
     })).filter(s => s.lat && s.lng);
