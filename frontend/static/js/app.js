@@ -181,7 +181,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             return response.text();
         })
-        })
         .then(html => {
             if (targetContainer) {
                 targetContainer.innerHTML = html;
