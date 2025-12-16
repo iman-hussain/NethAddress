@@ -83,7 +83,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     type: 'raster',
                     tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
                     tileSize: 256,
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                    maxzoom: 18
                 }
             },
             layers: [
@@ -92,14 +93,14 @@ document.addEventListener('DOMContentLoaded', function () {
                     type: 'raster',
                     source: 'osm',
                     minzoom: 0,
-                    maxzoom: 19
+                    maxzoom: 18
                 }
             ]
         },
         center: [5.3878, 52.1561], // Center on Netherlands
         zoom: 7,
         minZoom: 6,
-        maxZoom: 18, // Limit to 18 for satellite tile compatibility
+        maxZoom: 18, // Consistent across all styles
         maxBounds: [
             [2.5, 50.5],   // Southwest corner (just into the sea, below Belgium)
             [8.5, 54.2]    // Northeast corner (just into Germany)
@@ -133,7 +134,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const form = document.getElementById('search-form');
         const postcodeInput = form.querySelector('[name="postcode"]');
         const houseNumberInput = form.querySelector('[name="houseNumber"]');
-        
+
         const postcode = postcodeInput ? postcodeInput.value.trim() : '';
         const houseNumber = houseNumberInput ? houseNumberInput.value.trim() : '';
 
@@ -207,7 +208,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
                     tileSize: 256,
                     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                    maxzoom: 19
+                    maxzoom: 18
                 }
             },
             layers: [
@@ -216,7 +217,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     type: 'raster',
                     source: 'osm',
                     minzoom: 0,
-                    maxzoom: 19
+                    maxzoom: 18
                 }
             ]
         },
@@ -526,7 +527,7 @@ function renderApiResults() {
 
     const grouped = currentResponse.apiResults;
     const allResults = [...grouped.free, ...grouped.freemium, ...grouped.premium];
-    
+
     // Apply both filters: enabled APIs and hide unconfigured
     let filtered = allResults.filter(result => enabledAPIs.has(result.name));
     if (hideUnconfigured) {
@@ -581,12 +582,12 @@ function renderApiResults() {
     const renderSection = (title, icon, results) => {
         if (results.length === 0) return '';
         let sectionResults = results.filter(result => enabledAPIs.has(result.name));
-        
+
         // Apply hide unconfigured filter
         if (hideUnconfigured) {
             sectionResults = sectionResults.filter(result => result.status !== 'not_configured');
         }
-        
+
         if (sectionResults.length === 0) return '';
 
         // Sort results: success first, then error, then not_configured
