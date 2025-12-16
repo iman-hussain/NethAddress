@@ -228,11 +228,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     tileSize: 256,
                     attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
                     maxzoom: 18  // Esri satellite tiles max out at zoom 18
-                },
-                'osm-labels': {
-                    type: 'raster',
-                    tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-                    tileSize: 256
                 }
             },
             layers: [
@@ -242,6 +237,44 @@ document.addEventListener('DOMContentLoaded', function () {
                     source: 'esri-satellite',
                     minzoom: 0,
                     maxzoom: 18  // Match source max zoom
+                }
+            ]
+        },
+        hybrid: {
+            version: 8,
+            sources: {
+                'esri-satellite': {
+                    type: 'raster',
+                    tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+                    tileSize: 256,
+                    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+                    maxzoom: 18
+                },
+                'osm-labels': {
+                    type: 'raster',
+                    tiles: ['https://stamen-tiles.a.ssl.fastly.net/toner-labels/{z}/{x}/{y}.png'],
+                    tileSize: 256,
+                    attribution: 'Labels &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                    maxzoom: 18
+                }
+            },
+            layers: [
+                {
+                    id: 'satellite-base',
+                    type: 'raster',
+                    source: 'esri-satellite',
+                    minzoom: 0,
+                    maxzoom: 18
+                },
+                {
+                    id: 'labels-overlay',
+                    type: 'raster',
+                    source: 'osm-labels',
+                    minzoom: 0,
+                    maxzoom: 18,
+                    paint: {
+                        'raster-opacity': 0.9
+                    }
                 }
             ]
         }
