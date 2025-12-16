@@ -83,8 +83,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     type: 'raster',
                     tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
                     tileSize: 256,
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                    maxzoom: 17
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 }
             },
             layers: [
@@ -93,14 +92,14 @@ document.addEventListener('DOMContentLoaded', function () {
                     type: 'raster',
                     source: 'osm',
                     minzoom: 0,
-                    maxzoom: 17
+                    maxzoom: 19
                 }
             ]
         },
         center: [5.3878, 52.1561], // Center on Netherlands
         zoom: 7,
         minZoom: 6,
-        maxZoom: 17, // Consistent across all styles
+        maxZoom: 17, // Hard limit to prevent white screen
         maxBounds: [
             [2.5, 50.5],   // Southwest corner (just into the sea, below Belgium)
             [8.5, 54.2]    // Northeast corner (just into Germany)
@@ -207,8 +206,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     type: 'raster',
                     tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
                     tileSize: 256,
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                    maxzoom: 18
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                 }
             },
             layers: [
@@ -217,7 +215,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     type: 'raster',
                     source: 'osm',
                     minzoom: 0,
-                    maxzoom: 18
+                    maxzoom: 19
                 }
             ]
         },
@@ -228,8 +226,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     type: 'raster',
                     tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
                     tileSize: 256,
-                    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
-                    maxzoom: 18  // Esri satellite tiles max out at zoom 18
+                    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
                 }
             },
             layers: [
@@ -238,7 +235,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     type: 'raster',
                     source: 'esri-satellite',
                     minzoom: 0,
-                    maxzoom: 18  // Match source max zoom
+                    maxzoom: 19
                 }
             ]
         },
@@ -249,15 +246,19 @@ document.addEventListener('DOMContentLoaded', function () {
                     type: 'raster',
                     tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
                     tileSize: 256,
-                    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
-                    maxzoom: 18
+                    attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+                },
+                'carto-roads': {
+                    type: 'raster',
+                    tiles: ['https://a.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}.png'],
+                    tileSize: 256,
+                    attribution: 'Roads &copy; <a href="https://carto.com/attributions">CARTO</a>'
                 },
                 'carto-labels': {
                     type: 'raster',
                     tiles: ['https://a.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png'],
                     tileSize: 256,
-                    attribution: 'Labels &copy; <a href="https://carto.com/attributions">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-                    maxzoom: 18
+                    attribution: 'Labels &copy; <a href="https://carto.com/attributions">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                 }
             },
             layers: [
@@ -266,14 +267,21 @@ document.addEventListener('DOMContentLoaded', function () {
                     type: 'raster',
                     source: 'esri-satellite',
                     minzoom: 0,
-                    maxzoom: 18
+                    maxzoom: 19
+                },
+                {
+                    id: 'roads-overlay',
+                    type: 'raster',
+                    source: 'carto-roads',
+                    minzoom: 0,
+                    maxzoom: 19
                 },
                 {
                     id: 'labels-overlay',
                     type: 'raster',
                     source: 'carto-labels',
                     minzoom: 0,
-                    maxzoom: 18
+                    maxzoom: 19
                 }
             ]
         }
@@ -295,11 +303,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Switch style
         map.setStyle(mapStyles[styleId]);
+        
+        // Enforce maxZoom limit to prevent white screen
+        map.setMaxZoom(17);
 
         // Restore map state after style loads
         map.once('styledata', () => {
             map.setCenter(center);
-            map.setZoom(zoom);
+            // Ensure zoom doesn't exceed limit
+            map.setZoom(Math.min(zoom, 17));
 
             // Redraw any existing layers (parcel, location marker)
             if (currentGeoJSON) {
