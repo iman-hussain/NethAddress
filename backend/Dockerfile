@@ -5,17 +5,27 @@ FROM golang:1.23-alpine AS builder
 ARG COMMIT_SHA
 ARG BUILD_DATE
 
-RUN apk add --no-cache git
+# Install build dependencies in a single layer
+RUN apk add --no-cache git ca-certificates
+
 WORKDIR /app
 
+# Copy go mod files first for better layer caching
+# This layer is cached unless go.mod/go.sum changes
 COPY go.mod go.sum ./
-RUN go mod download
 
+# Download dependencies with cache mount for faster rebuilds
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
+
+# Copy source code
 COPY . .
 
+# Build with cache mounts for faster compilation
 # Use build args if provided, otherwise fallback to git commands
-# Only run git commands if COMMIT_SHA or BUILD_DATE are not provided
-RUN set -ex; \
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    set -ex; \
     if [ -z "$COMMIT_SHA" ]; then \
         COMMIT_HASH=$(git rev-parse HEAD 2>/dev/null || echo "unknown"); \
     else \
@@ -29,19 +39,22 @@ RUN set -ex; \
     echo "Building with commit: $COMMIT_HASH"; \
     echo "Building with date: $BUILD_TIMESTAMP"; \
     CGO_ENABLED=0 GOOS=linux go build \
-    -ldflags "-X 'main.BuildCommit=$COMMIT_HASH' -X 'main.BuildDate=$BUILD_TIMESTAMP'" \
+    -ldflags "-s -w -X 'main.BuildCommit=$COMMIT_HASH' -X 'main.BuildDate=$BUILD_TIMESTAMP'" \
+    -trimpath \
     -o addressiq .
 
-# Final stage
-FROM alpine:3.18
+# Final stage - use latest Alpine for security patches
+FROM alpine:3.19
 
-RUN apk --no-cache add ca-certificates curl wget
+# Install runtime dependencies in a single layer
+RUN apk --no-cache add ca-certificates tzdata && \
+    addgroup -S appgroup && \
+    adduser -S appuser -G appgroup
 
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 WORKDIR /home/appuser
 
-COPY --from=builder /app/addressiq ./addressiq
-RUN chown appuser:appgroup ./addressiq && chmod +x ./addressiq
+# Copy binary with correct permissions from builder
+COPY --from=builder --chown=appuser:appgroup /app/addressiq ./addressiq
 
 USER appuser
 

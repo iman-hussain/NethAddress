@@ -1,0 +1,36 @@
+# Ignore git files
+.git
+.gitignore
+.github
+
+# Ignore local development files
+docker-compose.local.yml
+start_localwebapp.bat
+start_localwebapp.command
+start_localwebapp.sh
+end_localwebapp.bat
+end_localwebapp.command
+end_localwebapp.sh
+
+# Ignore documentation
+../docs/
+README.md
+*.md
+
+# Ignore IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Ignore build artifacts
+node_modules/
+dist/
+build/
+.cache/
+
+# Ignore environment files
+.env
+.env.local
+.env.*.local

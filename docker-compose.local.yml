@@ -32,6 +32,8 @@ services:
   backend:
     build:
       context: ./backend
+      cache_from:
+        - addressiq-backend:latest
     container_name: addressiq-backend-dev
     ports:
       - "8080:8080"
@@ -39,6 +41,9 @@ services:
       - .env
     environment:
       REDIS_URL: ${REDIS_URL}
+    depends_on:
+      cache:
+        condition: service_healthy
 
 volumes:
   postgres_data:

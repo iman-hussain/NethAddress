@@ -10,13 +10,40 @@ end_localwebapp.sh
 # Ignore git files
 .git
 .gitignore
+.github
 
 # Ignore local tooling and artifacts
-addressiq-backend.exe~
-addressiq.exe
+*.exe
+*.exe~
+addressiq
+backend
 test-api.ps1
 test-endpoints.ps1
+test-build-hash.sh
+*.txt
+output.txt
+error.txt
+
+# Ignore environment files (use .env.template instead)
+.env
+.env.local
+.env.*.local
 
 # Ignore documentation
 ../docs/
 README.md
+
+# Ignore test files
+*_test.go
+cmd/test-free-apis/
+
+# Ignore IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Ignore build artifacts
+vendor/
+__debug_bin
