@@ -9,6 +9,7 @@ import { formatUnknownData } from './utils.js';
 // Application state
 let map;
 let currentResponse = null;
+let currentGeoJSON = null; // Store GeoJSON separately for map redrawing
 let enabledAPIs = new Set();
 let apiHost = '';
 
@@ -129,11 +130,14 @@ document.addEventListener('DOMContentLoaded', function () {
     // Make refreshData available globally
     window.refreshData = function() {
         const form = document.getElementById('search-form');
-        const postcode = form.querySelector('[name="postcode"]').value;
-        const houseNumber = form.querySelector('[name="houseNumber"]').value;
+        const postcodeInput = form.querySelector('[name="postcode"]');
+        const houseNumberInput = form.querySelector('[name="houseNumber"]');
+        
+        const postcode = postcodeInput ? postcodeInput.value.trim() : '';
+        const houseNumber = houseNumberInput ? houseNumberInput.value.trim() : '';
 
         if (!postcode || !houseNumber) {
-            alert('Please enter postcode and house number first');
+            alert('Please search for an address first before refreshing');
             return;
         }
 
@@ -162,7 +166,14 @@ document.addEventListener('DOMContentLoaded', function () {
             method: 'POST',
             body: formData
         })
-        .then(response => response.text())
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => {
+                    throw new Error(err.error || 'Server error');
+                });
+            }
+            return response.text();
+        })
         .then(html => {
             if (targetContainer) {
                 targetContainer.innerHTML = html;
@@ -250,9 +261,9 @@ document.addEventListener('DOMContentLoaded', function () {
             map.setZoom(zoom);
 
             // Redraw any existing layers (parcel, location marker)
-            if (currentResponse && currentResponse.geoJSON) {
+            if (currentGeoJSON) {
                 setTimeout(() => {
-                    updateMap(currentResponse.geoJSON);
+                    updateMap(currentGeoJSON);
                 }, 100);
             }
         });
@@ -317,6 +328,8 @@ function updateMap(geojsonString) {
     let geojson;
     try {
         geojson = JSON.parse(geojsonString);
+        // Store the GeoJSON for later use when switching map styles
+        currentGeoJSON = geojsonString;
     } catch (e) {
         console.error('Invalid GeoJSON:', e);
         return;
