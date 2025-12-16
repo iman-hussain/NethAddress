@@ -11,6 +11,7 @@ let map;
 let currentResponse = null;
 let currentGeoJSON = null; // Store GeoJSON separately for map redrawing
 let enabledAPIs = new Set();
+let hideUnconfigured = false; // Hide APIs requiring configuration/keys
 let apiHost = '';
 
 // Fetch build info from API
@@ -338,6 +339,12 @@ document.addEventListener('DOMContentLoaded', function () {
             'AHN Height Model', 'Monument Status', 'PDOK Platform', 'Stratopo Environment', 'Land Use & Zoning'
         ]);
     }
+
+    // Load hide unconfigured preference
+    const savedHideUnconfigured = localStorage.getItem('hideUnconfigured');
+    if (savedHideUnconfigured !== null) {
+        hideUnconfigured = savedHideUnconfigured === 'true';
+    }
 });
 
 // HTMX event listeners
@@ -522,10 +529,16 @@ function renderApiResults() {
 
     const grouped = currentResponse.apiResults;
     const allResults = [...grouped.free, ...grouped.freemium, ...grouped.premium];
-    const filtered = allResults.filter(result => enabledAPIs.has(result.name));
+    
+    // Apply both filters: enabled APIs and hide unconfigured
+    let filtered = allResults.filter(result => enabledAPIs.has(result.name));
+    if (hideUnconfigured) {
+        filtered = filtered.filter(result => result.status !== 'not_configured');
+    }
 
     const successCount = filtered.filter(r => r.status === 'success').length;
     const errorCount = filtered.filter(r => r.status === 'error').length;
+    const notConfiguredCount = allResults.filter(r => r.status === 'not_configured' && enabledAPIs.has(r.name)).length;
 
     // Extract postcode and house number from address
     const address = currentResponse.address || 'Unknown Address';
@@ -551,7 +564,15 @@ function renderApiResults() {
                 ${city ? `<span class="address-tag">🏙️ <strong>${city}</strong></span>` : ''}
                 <span class="address-tag">✓ <strong>${successCount}</strong> APIs</span>
                 ${errorCount > 0 ? `<span class="address-tag" style="color: var(--danger);">✗ <strong>${errorCount}</strong> errors</span>` : ''}
+                ${notConfiguredCount > 0 ? `<span class="address-tag" style="color: var(--warning);">🔑 <strong>${notConfiguredCount}</strong> need keys</span>` : ''}
             </div>
+            ${notConfiguredCount > 0 ? `
+            <div class="address-filter" style="margin-top: 0.75rem;">
+                <label class="checkbox" style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: 0.9375rem; color: var(--text-secondary);">
+                    <input type="checkbox" ${hideUnconfigured ? 'checked' : ''} onchange="toggleHideUnconfigured()" style="width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary);">
+                    Hide APIs requiring configuration
+                </label>
+            </div>` : ''}
         </div>
         <div class="address-actions">
             <button class="btn btn-primary" onclick="exportCSV()">📥 Export CSV</button>
@@ -562,7 +583,13 @@ function renderApiResults() {
     // Helper function to render a section
     const renderSection = (title, icon, results) => {
         if (results.length === 0) return '';
-        const sectionResults = results.filter(result => enabledAPIs.has(result.name));
+        let sectionResults = results.filter(result => enabledAPIs.has(result.name));
+        
+        // Apply hide unconfigured filter
+        if (hideUnconfigured) {
+            sectionResults = sectionResults.filter(result => result.status !== 'not_configured');
+        }
+        
         if (sectionResults.length === 0) return '';
 
         // Sort results: success first, then error, then not_configured
@@ -763,4 +790,10 @@ window.saveSettings = function() {
     closeSettings();
     renderApiResults();
     alert('Settings saved! Enabled APIs: ' + enabledAPIs.size);
+};
+
+window.toggleHideUnconfigured = function() {
+    hideUnconfigured = !hideUnconfigured;
+    localStorage.setItem('hideUnconfigured', hideUnconfigured.toString());
+    renderApiResults();
 };
