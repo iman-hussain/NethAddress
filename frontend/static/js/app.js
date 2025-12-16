@@ -682,7 +682,6 @@ function renderApiResults() {
             <div class="ai-summary-header">
                 <span class="ai-icon">🤖</span>
                 <span class="ai-title">AI Location Summary</span>
-                <span class="ai-badge">Gemini 2.5 Flash-Lite</span>
             </div>
             <div class="ai-summary-content">
                 ${formatAISummary(currentResponse.aiSummary.summary)}

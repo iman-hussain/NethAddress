@@ -208,6 +208,10 @@ html, body {
     height: auto;
     transition: border-color 0.15s ease, box-shadow 0.15s ease;
     background: var(--bg-card);
+    color: var(--text-primary);
+}
+.search-panel .input::placeholder {
+    color: var(--text-muted);
 }
 .search-panel .input:focus {
     border-color: var(--primary);
@@ -362,7 +366,7 @@ html, body {
     font-size: 0.9375rem;
     line-height: 1.65;
     color: var(--text-secondary);
-    max-height: 150px;
+    max-height: 300px;
     overflow-y: auto;
     padding-right: 0.5rem;
 }
