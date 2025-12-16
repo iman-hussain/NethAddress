@@ -471,6 +471,193 @@ body:not(.has-results) .desktop-results { display: none; }
 .tier-section { margin-bottom: 1.5rem; }
 .tier-section:last-child { margin-bottom: 0; }
 
+/* Modal Styling */
+.modal {
+    z-index: 50;
+}
+.modal-background {
+    background-color: rgba(10, 10, 10, 0.7);
+}
+.modal-card {
+    max-width: 540px;
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border);
+}
+.modal-card-head {
+    background: var(--bg-card);
+    border-bottom: 2px solid var(--border);
+    padding: 1.25rem 1.5rem;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+.modal-card-title {
+    font-size: 1.375rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    margin: 0;
+}
+.modal-card-head .delete {
+    background: var(--bg-card-alt);
+    border: 1px solid var(--border);
+    transition: all 0.15s ease;
+}
+.modal-card-head .delete:hover {
+    background: var(--danger-bg);
+    border-color: var(--danger);
+}
+.modal-card-head .delete::before,
+.modal-card-head .delete::after {
+    background-color: var(--text-muted);
+}
+.modal-card-head .delete:hover::before,
+.modal-card-head .delete:hover::after {
+    background-color: var(--danger);
+}
+.modal-card-body {
+    background: var(--bg-card);
+    padding: 1.5rem;
+    max-height: calc(100vh - 240px);
+    overflow-y: auto;
+}
+.modal-card-foot {
+    background: var(--bg-card);
+    border-top: 2px solid var(--border);
+    padding: 1.25rem 1.5rem;
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+}
+.modal-card-foot .button {
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 0.9375rem;
+    padding: 0.625rem 1.25rem;
+    transition: all 0.15s ease;
+}
+.modal-card-foot .button.is-success {
+    background: var(--success);
+    border-color: var(--success);
+    color: white;
+}
+.modal-card-foot .button.is-success:hover {
+    background: #047857;
+    border-color: #047857;
+}
+.modal-card-foot .button:not(.is-success) {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+}
+.modal-card-foot .button:not(.is-success):hover {
+    background: var(--bg-card-alt);
+    border-color: var(--border-strong);
+    color: var(--text-primary);
+}
+
+/* Settings Modal - API Checkboxes */
+#api-checkboxes {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    margin-top: 0.75rem;
+}
+.api-tier-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+}
+.api-tier-label {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-section);
+    border-left: 3px solid var(--primary);
+    border-radius: var(--radius-sm);
+    margin-bottom: 0.375rem;
+}
+#api-checkboxes .checkbox {
+    display: flex;
+    align-items: center;
+    padding: 0.875rem 1rem;
+    background: var(--bg-card-alt);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    color: var(--text-primary);
+    font-weight: 500;
+    font-size: 0.9375rem;
+}
+#api-checkboxes .checkbox:hover {
+    background: var(--bg-section);
+    border-color: var(--border-strong);
+}
+#api-checkboxes .checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin-right: 0.75rem;
+    cursor: pointer;
+    accent-color: var(--primary);
+    flex-shrink: 0;
+}
+#api-checkboxes .checkbox input[type="checkbox"]:checked {
+    accent-color: var(--success);
+}
+
+/* Settings Modal - Action Buttons */
+.modal-card-body .buttons {
+    display: flex;
+    gap: 0.625rem;
+    margin-bottom: 1rem;
+}
+.modal-card-body .buttons .button {
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 0.875rem;
+    padding: 0.5rem 1rem;
+    transition: all 0.15s ease;
+}
+.modal-card-body .buttons .button.is-success {
+    background: var(--success);
+    border-color: var(--success);
+    color: white;
+}
+.modal-card-body .buttons .button.is-success:hover {
+    background: #047857;
+    border-color: #047857;
+}
+.modal-card-body .buttons .button.is-danger {
+    background: var(--danger);
+    border-color: var(--danger);
+    color: white;
+}
+.modal-card-body .buttons .button.is-danger:hover {
+    background: #b91c1c;
+    border-color: #b91c1c;
+}
+
+/* Modal Body Scrollbar */
+.modal-card-body::-webkit-scrollbar {
+    width: 8px;
+}
+.modal-card-body::-webkit-scrollbar-track {
+    background: var(--bg-card-alt);
+    border-radius: 4px;
+}
+.modal-card-body::-webkit-scrollbar-thumb {
+    background: var(--border-strong);
+    border-radius: 4px;
+}
+.modal-card-body::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+
 /* Mobile Layout */
 @media screen and (max-width: 768px) {
     html, body { font-size: 16px; }

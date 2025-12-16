@@ -455,39 +455,55 @@ window.openSettings = function() {
     }
 
     const grouped = currentResponse.apiResults;
-    const allAPIs = [...grouped.free, ...grouped.freemium, ...grouped.premium].map(r => r.name);
 
     let html = `
         <div class="modal is-active" id="settings-modal">
             <div class="modal-background" onclick="closeSettings()"></div>
             <div class="modal-card">
                 <header class="modal-card-head">
-                    <p class="modal-card-title">API Settings</p>
+                    <p class="modal-card-title">⚙️ API Data Sources</p>
                     <button class="delete" onclick="closeSettings()"></button>
                 </header>
                 <section class="modal-card-body">
                     <div class="buttons mb-3">
-                        <button class="button is-success is-small" onclick="selectAllAPIs()">Select All</button>
-                        <button class="button is-danger is-small" onclick="deselectAllAPIs()">Deselect All</button>
+                        <button class="button is-success is-small" onclick="selectAllAPIs()">✓ Select All</button>
+                        <button class="button is-danger is-small" onclick="deselectAllAPIs()">✗ Deselect All</button>
                     </div>
                     <div id="api-checkboxes">
         `;
 
-    allAPIs.forEach(apiName => {
-        const checked = enabledAPIs.has(apiName) ? 'checked' : '';
-        html += `
-            <label class="checkbox is-block mb-2">
-                <input type="checkbox" value="${apiName}" ${checked} onchange="toggleAPI('${apiName}')">
-                ${apiName}
-            </label>
-        `;
+    // Group by tier with visual separators
+    const tiers = [
+        { name: '🆓 Free APIs', apis: grouped.free, tier: 'free' },
+        { name: '💎 Freemium APIs', apis: grouped.freemium, tier: 'freemium' },
+        { name: '👑 Premium APIs', apis: grouped.premium, tier: 'premium' }
+    ];
+
+    tiers.forEach((tier, idx) => {
+        if (tier.apis.length > 0) {
+            html += `<div class="api-tier-group">`;
+            html += `<div class="api-tier-label">${tier.name} (${tier.apis.length})</div>`;
+            
+            tier.apis.forEach(result => {
+                const apiName = result.name;
+                const checked = enabledAPIs.has(apiName) ? 'checked' : '';
+                html += `
+                    <label class="checkbox is-block mb-2">
+                        <input type="checkbox" value="${apiName}" ${checked} onchange="toggleAPI('${apiName}')">
+                        ${apiName}
+                    </label>
+                `;
+            });
+            
+            html += `</div>`;
+        }
     });
 
     html += `
                     </div>
                 </section>
                 <footer class="modal-card-foot">
-                    <button class="button is-success" onclick="saveSettings()">Save</button>
+                    <button class="button is-success" onclick="saveSettings()">💾 Save Changes</button>
                     <button class="button" onclick="closeSettings()">Cancel</button>
                 </footer>
             </div>
