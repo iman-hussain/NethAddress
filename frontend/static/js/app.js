@@ -230,25 +230,25 @@ document.addEventListener('DOMContentLoaded', function () {
     // Switch map style function
     window.switchMapStyle = function(styleId) {
         if (!map || !mapStyles[styleId]) return;
-        
+
         // Store current map state
         const center = map.getCenter();
         const zoom = map.getZoom();
-        
+
         // Update button states
         document.querySelectorAll('.map-style-btn').forEach(btn => {
             btn.classList.remove('active');
         });
         event.target.classList.add('active');
-        
+
         // Switch style
         map.setStyle(mapStyles[styleId]);
-        
+
         // Restore map state after style loads
         map.once('styledata', () => {
             map.setCenter(center);
             map.setZoom(zoom);
-            
+
             // Redraw any existing layers (parcel, location marker)
             if (currentResponse && currentResponse.geoJSON) {
                 setTimeout(() => {
@@ -256,7 +256,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 }, 100);
             }
         });
-        
+
         // Save preference
         localStorage.setItem('mapStyle', styleId);
     };
