@@ -85,6 +85,9 @@ type ComprehensivePropertyData struct {
 	// Aviation
 	SchipholFlights *apiclient.SchipholFlightData `json:"schipholFlights,omitempty"`
 
+	// AI Summary
+	AISummary *apiclient.GeminiSummary `json:"aiSummary,omitempty"`
+
 	// Metadata
 	AggregatedAt time.Time         `json:"aggregatedAt"`
 	DataSources  []string          `json:"dataSources"`
@@ -178,6 +181,19 @@ func (pa *PropertyAggregator) AggregatePropertyDataWithOptions(postcode, houseNu
 
 	// Comprehensive Platforms
 	pa.fetchPlatformData(data, lat, lon)
+
+	// AI Summary (Gemini) - called after all data is collected
+	if aiSummary, err := pa.apiClient.GenerateLocationSummary(pa.config, data); err == nil {
+		data.AISummary = aiSummary
+		if aiSummary.Generated {
+			data.DataSources = append(data.DataSources, "Gemini AI")
+		}
+	} else {
+		logutil.Debugf("[AGGREGATOR] Gemini AI summary failed: %v", err)
+		if data.Errors != nil {
+			data.Errors["Gemini AI"] = err.Error()
+		}
+	}
 
 	// Cache the aggregated result (if caching is available)
 	if pa.cache != nil {

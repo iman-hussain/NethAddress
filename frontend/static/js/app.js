@@ -552,6 +552,25 @@ document.body.addEventListener('htmx:afterSwap', function(event) {
     }
 });
 
+// Format AI summary text with basic markdown-like formatting
+function formatAISummary(text) {
+    if (!text) return '';
+
+    // Convert **bold** to <strong>
+    let formatted = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+    // Convert line breaks to proper HTML
+    formatted = formatted.replace(/\n\n/g, '</p><p>');
+    formatted = formatted.replace(/\n/g, '<br>');
+
+    // Wrap in paragraph if not already
+    if (!formatted.startsWith('<p>')) {
+        formatted = '<p>' + formatted + '</p>';
+    }
+
+    return formatted;
+}
+
 // Format API data using the renderer registry
 function formatApiData(apiName, data) {
     if (!data) return '';
@@ -635,6 +654,30 @@ function renderApiResults() {
             <button class="btn" onclick="openSettings()">⚙️ Settings</button>
         </div>
     </div>`;
+
+    // AI Summary Card (if available)
+    if (currentResponse.aiSummary && currentResponse.aiSummary.generated) {
+        html += `<div class="ai-summary-card">
+            <div class="ai-summary-header">
+                <span class="ai-icon">🤖</span>
+                <span class="ai-title">AI Location Summary</span>
+                <span class="ai-badge">Gemini 2.5 Flash</span>
+            </div>
+            <div class="ai-summary-content">
+                ${formatAISummary(currentResponse.aiSummary.summary)}
+            </div>
+        </div>`;
+    } else if (currentResponse.aiSummary && currentResponse.aiSummary.error) {
+        html += `<div class="ai-summary-card ai-summary-error">
+            <div class="ai-summary-header">
+                <span class="ai-icon">🤖</span>
+                <span class="ai-title">AI Summary Unavailable</span>
+            </div>
+            <div class="ai-summary-content">
+                <p style="color: var(--text-secondary); font-style: italic;">${currentResponse.aiSummary.error}</p>
+            </div>
+        </div>`;
+    }
 
     // Helper function to render a section
     const renderSection = (title, icon, results) => {
@@ -725,6 +768,16 @@ window.exportCSV = function() {
     const allResults = [...grouped.free, ...grouped.freemium, ...grouped.premium];
 
     rows.push(['API Name', 'Category', 'Status', 'Data']);
+
+    // Add AI Summary as first row if available
+    if (currentResponse.aiSummary) {
+        const aiStatus = currentResponse.aiSummary.generated ? 'success' : 'error';
+        const aiData = currentResponse.aiSummary.generated
+            ? currentResponse.aiSummary.summary
+            : currentResponse.aiSummary.error || 'Not available';
+        rows.push(['Google AI Studio', 'Free', aiStatus, aiData]);
+    }
+
     allResults
         .filter(r => enabledAPIs.has(r.name))
         .forEach(result => {

@@ -88,6 +88,9 @@ type Config struct {
 	ZoningApiURL     string `envconfig:"ZONING_API_URL"`
 	BodemloketApiURL string `envconfig:"BODEMLOKET_API_URL"`
 	MonumentenApiURL string `envconfig:"MONUMENTEN_API_URL"`
+
+	// AI Summary
+	GeminiApiKey string `envconfig:"GEMINI_API_KEY"`
 }
 
 func LoadConfig() (*Config, error) {
