@@ -303,7 +303,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Switch style
         map.setStyle(mapStyles[styleId]);
-        
+
         // Enforce maxZoom limit to prevent white screen
         map.setMaxZoom(17);
 
