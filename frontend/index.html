@@ -63,8 +63,9 @@
                                     </div>
                                     <div class="field">
                                         <label class="label">&nbsp;</label>
-                                        <div class="control">
+                                        <div class="control" style="display: flex; gap: 0.5rem;">
                                             <button type="submit" class="button is-primary" hx-disabled-elt="this">Search</button>
+                                            <button type="button" class="button is-info" onclick="refreshData()" hx-disabled-elt="this" title="Bypass cache and fetch fresh data">🔄 Refresh</button>
                                         </div>
                                     </div>
                                 </div>

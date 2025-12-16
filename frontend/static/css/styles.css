@@ -189,6 +189,20 @@ html, body {
 .search-panel .button.is-primary:hover {
     background: var(--primary-hover);
 }
+.search-panel .button.is-info {
+    background: var(--info);
+    border: none;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    font-size: 1.0625rem;
+    padding: 0.75rem 1.5rem;
+    height: auto;
+    transition: background 0.15s ease;
+    color: white;
+}
+.search-panel .button.is-info:hover {
+    background: #0e7490;
+}
 
 /* Address Header Card */
 .address-header-card {

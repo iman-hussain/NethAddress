@@ -106,6 +106,58 @@ document.addEventListener('DOMContentLoaded', function () {
     // Process with HTMX
     htmx.process(searchForm);
 
+    // Make refreshData available globally
+    window.refreshData = function() {
+        const form = document.getElementById('search-form');
+        const postcode = form.querySelector('[name="postcode"]').value;
+        const houseNumber = form.querySelector('[name="houseNumber"]').value;
+        
+        if (!postcode || !houseNumber) {
+            alert('Please enter postcode and house number first');
+            return;
+        }
+        
+        // Create a temporary form with bypass cache parameter
+        const formData = new FormData();
+        formData.append('postcode', postcode);
+        formData.append('houseNumber', houseNumber);
+        formData.append('bypassCache', 'true');
+        
+        // Trigger loading state manually
+        document.body.classList.remove('has-results');
+        const isMobile = window.innerWidth <= 768;
+        const targetContainer = isMobile ? document.getElementById('results-mobile') : document.getElementById('results-desktop');
+        if (targetContainer) {
+            targetContainer.innerHTML = `
+                <div class="loading-container">
+                    <div class="loading-spinner"></div>
+                    <div class="loading-status">Refreshing property data (bypassing cache)...</div>
+                </div>
+            `;
+            document.body.classList.add('has-results');
+        }
+        
+        // Make the request
+        fetch(apiHost + '/search', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.text())
+        .then(html => {
+            if (targetContainer) {
+                targetContainer.innerHTML = html;
+                // Process any HTMX attributes in the response
+                htmx.process(targetContainer);
+            }
+        })
+        .catch(error => {
+            console.error('Refresh failed:', error);
+            if (targetContainer) {
+                targetContainer.innerHTML = `<div class="notification is-danger">Failed to refresh data: ${error.message}</div>`;
+            }
+        });
+    };
+
     // Load API preferences from localStorage
     const savedAPIs = localStorage.getItem('enabledAPIs');
     if (savedAPIs) {
@@ -337,8 +389,8 @@ function renderApiResults() {
             </div>
         </div>
         <div class="address-actions">
-            <button class="btn" onclick="openSettings()">⚙️ Settings</button>
             <button class="btn btn-primary" onclick="exportCSV()">📥 Export CSV</button>
+            <button class="btn" onclick="openSettings()">⚙️ Settings</button>
         </div>
     </div>`;
 

@@ -71,6 +71,7 @@ type ComprehensiveSearchResponse struct {
 // POST /search with form fields postcode and houseNumber
 func (h *SearchHandler) HandleSearch(w http.ResponseWriter, r *http.Request) {
 	var postcode, houseNumber string
+	var bypassCache bool
 
 	// Support both GET with ?address= and POST with form fields
 	if r.Method == http.MethodPost {
@@ -80,6 +81,7 @@ func (h *SearchHandler) HandleSearch(w http.ResponseWriter, r *http.Request) {
 		}
 		postcode = r.FormValue("postcode")
 		houseNumber = r.FormValue("houseNumber")
+		bypassCache = r.FormValue("bypassCache") == "true"
 		if postcode == "" || houseNumber == "" {
 			respondWithError(w, http.StatusBadRequest, "missing postcode or houseNumber")
 			return
@@ -87,6 +89,7 @@ func (h *SearchHandler) HandleSearch(w http.ResponseWriter, r *http.Request) {
 	} else {
 		// GET request with address parameter
 		addressParam := r.URL.Query().Get("address")
+		bypassCache = r.URL.Query().Get("bypassCache") == "true" || r.URL.Query().Get("refresh") == "true"
 		if addressParam == "" {
 			respondWithError(w, http.StatusBadRequest, "missing address parameter")
 			return
@@ -104,6 +107,9 @@ func (h *SearchHandler) HandleSearch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("Comprehensive search for %s %s", postcode, houseNumber)
+	if bypassCache {
+		log.Printf("Bypassing cache for %s %s - fetching fresh data", postcode, houseNumber)
+	}
 
 	// Fetch basic BAG data first
 	bagData, err := h.apiClient.FetchBAGData(postcode, houseNumber)
@@ -120,7 +126,7 @@ func (h *SearchHandler) HandleSearch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Aggregate all API data
-	comprehensiveData, err := h.aggregator.AggregatePropertyData(postcode, houseNumber)
+	comprehensiveData, err := h.aggregator.AggregatePropertyDataWithOptions(postcode, houseNumber, bypassCache)
 	if err != nil {
 		log.Printf("Error aggregating property data: %v", err)
 		// Continue with basic BAG data only
