@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
                     tileSize: 256,
                     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                    maxzoom: 18
+                    maxzoom: 17
                 }
             },
             layers: [
@@ -93,14 +93,14 @@ document.addEventListener('DOMContentLoaded', function () {
                     type: 'raster',
                     source: 'osm',
                     minzoom: 0,
-                    maxzoom: 18
+                    maxzoom: 17
                 }
             ]
         },
         center: [5.3878, 52.1561], // Center on Netherlands
         zoom: 7,
         minZoom: 6,
-        maxZoom: 18, // Consistent across all styles
+        maxZoom: 17, // Consistent across all styles
         maxBounds: [
             [2.5, 50.5],   // Southwest corner (just into the sea, below Belgium)
             [8.5, 54.2]    // Northeast corner (just into Germany)
