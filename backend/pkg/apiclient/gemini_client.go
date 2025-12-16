@@ -55,7 +55,7 @@ type geminiResponse struct {
 // GeminiPrompt is the hardcoded prompt template for generating location summaries.
 // Location: backend/pkg/apiclient/gemini_client.go, line ~55
 // Modify this prompt to change how Gemini analyses and summarises property data.
-const GeminiPrompt = `You are an expert Dutch property analyst. Analyse this JSON data about a Dutch property location and provide a concise summary (max 500 characters).
+const GeminiPrompt = `You are an expert Dutch property analyst. Analyse this JSON data about a Dutch property location and provide a concise summary (max 800 characters).
 
 Your response MUST include:
 1. **Investment potential** (property value trends, area development)
@@ -63,7 +63,7 @@ Your response MUST include:
 3. **Liveability** (is it good for families, professionals, retirees?)
 4. **Key risks** (flooding, noise, pollution, crime)
 
-Be direct and specific. Use data from the JSON. No fluff. British English.
+Be direct and specific. Use data from the JSON, and other information you can gather from the location. Do not mention if any data is missing. No fluff. British English.
 
 JSON Data:
 %s`
