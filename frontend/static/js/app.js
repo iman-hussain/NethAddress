@@ -136,13 +136,15 @@ document.addEventListener('DOMContentLoaded', function () {
         const postcode = postcodeInput ? postcodeInput.value.trim() : '';
         const houseNumber = houseNumberInput ? houseNumberInput.value.trim() : '';
 
+        console.log('Refresh data - postcode:', postcode, 'houseNumber:', houseNumber);
+
         if (!postcode || !houseNumber) {
             alert('Please search for an address first before refreshing');
             return;
         }
 
-        // Create a temporary form with bypass cache parameter
-        const formData = new FormData();
+        // Create URLSearchParams for proper form encoding
+        const formData = new URLSearchParams();
         formData.append('postcode', postcode);
         formData.append('houseNumber', houseNumber);
         formData.append('bypassCache', 'true');
@@ -161,18 +163,24 @@ document.addEventListener('DOMContentLoaded', function () {
             document.body.classList.add('has-results');
         }
 
-        // Make the request
+        // Make the request with proper content type
         fetch(apiHost + '/search', {
             method: 'POST',
-            body: formData
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: formData.toString()
         })
         .then(response => {
             if (!response.ok) {
                 return response.json().then(err => {
                     throw new Error(err.error || 'Server error');
+                }).catch(() => {
+                    throw new Error(`Server returned ${response.status}`);
                 });
             }
             return response.text();
+        })
         })
         .then(html => {
             if (targetContainer) {
