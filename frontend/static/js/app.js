@@ -307,15 +307,15 @@ document.addEventListener('DOMContentLoaded', function () {
                     tileSize: 256,
                     attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
                 },
-                'carto-roads': {
+                'carto-street-detail': {
                     type: 'raster',
-                    tiles: ['https://a.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}.png'],
+                    tiles: ['https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'],
                     tileSize: 256,
-                    attribution: 'Roads &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                    attribution: 'Map &copy; <a href="https://carto.com/attributions">CARTO</a>'
                 },
                 'carto-labels': {
                     type: 'raster',
-                    tiles: ['https://a.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png'],
+                    tiles: ['https://a.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}.png'],
                     tileSize: 256,
                     attribution: 'Labels &copy; <a href="https://carto.com/attributions">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                 }
@@ -329,11 +329,14 @@ document.addEventListener('DOMContentLoaded', function () {
                     maxzoom: 19
                 },
                 {
-                    id: 'roads-overlay',
+                    id: 'street-detail',
                     type: 'raster',
-                    source: 'carto-roads',
+                    source: 'carto-street-detail',
                     minzoom: 0,
-                    maxzoom: 19
+                    maxzoom: 19,
+                    paint: {
+                        'raster-opacity': 0.85
+                    }
                 },
                 {
                     id: 'labels-overlay',
