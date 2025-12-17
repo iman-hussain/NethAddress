@@ -307,17 +307,17 @@ document.addEventListener('DOMContentLoaded', function () {
                     tileSize: 256,
                     attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
                 },
-                'carto-street-detail': {
+                'stamen-labels': {
                     type: 'raster',
-                    tiles: ['https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'],
+                    tiles: ['https://tiles.stadiamaps.com/tiles/stamen_terrain_labels/{z}/{x}/{y}.png'],
                     tileSize: 256,
-                    attribution: 'Map &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                    attribution: 'Labels &copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://stamen.com/">Stamen Design</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                 },
-                'carto-labels': {
+                'carto-roads': {
                     type: 'raster',
-                    tiles: ['https://a.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}.png'],
+                    tiles: ['https://a.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png'],
                     tileSize: 256,
-                    attribution: 'Labels &copy; <a href="https://carto.com/attributions">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                    attribution: 'Roads &copy; <a href="https://carto.com/attributions">CARTO</a>'
                 }
             },
             layers: [
@@ -329,19 +329,19 @@ document.addEventListener('DOMContentLoaded', function () {
                     maxzoom: 19
                 },
                 {
-                    id: 'street-detail',
+                    id: 'roads-overlay',
                     type: 'raster',
-                    source: 'carto-street-detail',
+                    source: 'carto-roads',
                     minzoom: 0,
                     maxzoom: 19,
                     paint: {
-                        'raster-opacity': 0.85
+                        'raster-opacity': 0.5
                     }
                 },
                 {
                     id: 'labels-overlay',
                     type: 'raster',
-                    source: 'carto-labels',
+                    source: 'stamen-labels',
                     minzoom: 0,
                     maxzoom: 19
                 }
