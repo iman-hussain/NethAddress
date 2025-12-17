@@ -63,7 +63,7 @@ Your response MUST include:
 3. **Liveability** (is it good for families, professionals, retirees?)
 4. **Key risks** (flooding, noise, pollution, crime)
 
-Be direct and specific. Use data from the JSON, and other information you can gather from the location. Refer to key figures and facts from the JSON. Do not mention if any data is missing. No fluff. British English.
+Be direct and specific. Use data from the JSON, and other information you can gather from the location. Refer to key figures and facts from the JSON. Do not mention if any data is missing or unavailable. No fluff. British English.
 
 JSON Data:
 %s`
