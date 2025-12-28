@@ -210,7 +210,7 @@ document.addEventListener('DOMContentLoaded', function () {
 		if (targetContainer) {
 			// Show progress UI
 			targetContainer.innerHTML = `
-                <div class="progress-container box" style="text-align: center; padding: 3rem 2rem;">
+                <div class="progress-container box" style="text-align: center; padding: 3rem 2rem; background-color: white;">
                     <h4 class="title is-4 mb-4">Searching AddressIQ...</h4>
                     <div class="is-flex is-justify-content-space-between mb-1" style="font-size: 0.85rem;">
                         <span id="progress-status-text">Connecting...</span>
@@ -307,7 +307,9 @@ document.addEventListener('DOMContentLoaded', function () {
 		const detailText = document.getElementById('progress-detail');
 
 		if (progressBar && data.total > 0) {
-			const percent = Math.round((data.completed / data.total) * 100);
+			// Cap completed at total to avoid going over 100%
+			const completed = Math.min(data.completed, data.total);
+			const percent = Math.min(100, Math.round((completed / data.total) * 100));
 			progressBar.value = percent;
 			if (percentText) percentText.textContent = `${percent}%`;
 
@@ -318,7 +320,7 @@ document.addEventListener('DOMContentLoaded', function () {
 				if (detailText) detailText.classList.add('has-text-danger');
 			}
 
-			if (statusText) statusText.textContent = `Loading data... (${data.completed}/${data.total})`;
+			if (statusText) statusText.textContent = `Loading data... (${completed}/${data.total})`;
 		}
 	}
 
