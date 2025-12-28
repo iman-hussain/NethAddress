@@ -1,6 +1,7 @@
 package apiclient
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -8,40 +9,15 @@ import (
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/logutil"
+	"github.com/iman-hussain/AddressIQ/backend/pkg/models"
 )
 
 // Default PDOK flood risk API endpoint (free, no auth required)
 const defaultFloodRiskApiURL = "https://api.pdok.nl/rws/overstromingen-risicogebied/ogc/v1"
 
-// FloodRiskData represents flood risk assessment
-type FloodRiskData struct {
-	RiskLevel        string  `json:"riskLevel"`        // Low, Medium, High, Very High
-	FloodProbability float64 `json:"floodProbability"` // percentage per year
-	WaterDepth       float64 `json:"waterDepth"`       // meters in worst-case scenario
-	NearestDike      float64 `json:"nearestDike"`      // meters
-	DikeQuality      string  `json:"dikeQuality"`      // Excellent, Good, Fair, Poor
-	FloodZone        string  `json:"floodZone"`        // Zone classification
-}
-
-// floodRiskResponse represents PDOK flood risk API response (INSPIRE format)
-type floodRiskResponse struct {
-	Type     string `json:"type"`
-	Features []struct {
-		Type       string `json:"type"`
-		ID         string `json:"id"`
-		Properties struct {
-			// INSPIRE format fields
-			QualitativeValue string `json:"qualitative_value"` // e.g., "Area of Potential Significant Flood Risk"
-			Description      string `json:"description"`       // e.g., "Rijn type B - beschermd langs hoofdwatersysteem"
-			LocalID          string `json:"local_id"`
-		} `json:"properties"`
-	} `json:"features"`
-	NumberReturned int `json:"numberReturned"`
-}
-
 // FetchFloodRiskData retrieves flood risk assessment using PDOK Rijkswaterstaat API
 // Documentation: https://api.pdok.nl/rws/overstromingen-risicogebied/ogc/v1
-func (c *ApiClient) FetchFloodRiskData(cfg *config.Config, lat, lon float64) (*FloodRiskData, error) {
+func (c *ApiClient) FetchFloodRiskData(ctx context.Context, cfg *config.Config, lat, lon float64) (*models.FloodRiskData, error) {
 	// Always use PDOK API default (free, no auth) - ignore config overrides which may have bad URLs
 	baseURL := defaultFloodRiskApiURL
 
@@ -52,7 +28,7 @@ func (c *ApiClient) FetchFloodRiskData(cfg *config.Config, lat, lon float64) (*F
 	url := fmt.Sprintf("%s/collections/risk_zone/items?bbox=%s&f=json&limit=5", baseURL, bbox)
 	logutil.Debugf("[FloodRisk] Request URL: %s", url)
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		logutil.Debugf("[FloodRisk] Request error: %v", err)
 		return defaultFloodRiskData("Unknown"), nil
@@ -72,7 +48,7 @@ func (c *ApiClient) FetchFloodRiskData(cfg *config.Config, lat, lon float64) (*F
 		return defaultFloodRiskData("Low"), nil
 	}
 
-	var apiResp floodRiskResponse
+	var apiResp models.FloodRiskResponse
 	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
 		logutil.Debugf("[FloodRisk] Decode error: %v", err)
 		return defaultFloodRiskData("Low"), nil
@@ -82,7 +58,7 @@ func (c *ApiClient) FetchFloodRiskData(cfg *config.Config, lat, lon float64) (*F
 
 	if len(apiResp.Features) == 0 {
 		// No flood risk areas found - location is likely safe
-		return &FloodRiskData{
+		return &models.FloodRiskData{
 			RiskLevel:        "Low",
 			FloodProbability: 0.01,
 			WaterDepth:       0,
@@ -127,7 +103,7 @@ func (c *ApiClient) FetchFloodRiskData(cfg *config.Config, lat, lon float64) (*F
 		floodZone = feature.Properties.QualitativeValue
 	}
 
-	result := &FloodRiskData{
+	result := &models.FloodRiskData{
 		RiskLevel:        riskLevel,
 		FloodProbability: probability,
 		WaterDepth:       0, // Not provided in this API
@@ -139,8 +115,8 @@ func (c *ApiClient) FetchFloodRiskData(cfg *config.Config, lat, lon float64) (*F
 	return result, nil
 }
 
-func defaultFloodRiskData(level string) *FloodRiskData {
-	return &FloodRiskData{
+func defaultFloodRiskData(level string) *models.FloodRiskData {
+	return &models.FloodRiskData{
 		RiskLevel:        level,
 		FloodProbability: 0,
 		WaterDepth:       0,
@@ -150,25 +126,15 @@ func defaultFloodRiskData(level string) *FloodRiskData {
 	}
 }
 
-// WaterQualityData represents water quality and levels
-type WaterQualityData struct {
-	WaterLevel   float64            `json:"waterLevel"`   // meters above NAP
-	WaterQuality string             `json:"waterQuality"` // Excellent, Good, Fair, Poor
-	Parameters   map[string]float64 `json:"parameters"`   // pH, dissolved oxygen, etc.
-	NearestWater string             `json:"nearestWater"` // Name of nearest water body
-	Distance     float64            `json:"distance"`     // meters
-	LastMeasured string             `json:"lastMeasured"`
-}
-
 // FetchWaterQualityData retrieves water quality and management data
 // Documentation: https://www.dutchwatersector.com (Digital Delta)
-func (c *ApiClient) FetchWaterQualityData(cfg *config.Config, lat, lon float64) (*WaterQualityData, error) {
+func (c *ApiClient) FetchWaterQualityData(ctx context.Context, cfg *config.Config, lat, lon float64) (*models.WaterQualityData, error) {
 	if cfg.DigitalDeltaApiURL == "" {
 		return nil, fmt.Errorf("DigitalDeltaApiURL not configured")
 	}
 
 	url := fmt.Sprintf("%s/water-quality?lat=%f&lon=%f", cfg.DigitalDeltaApiURL, lat, lon)
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -183,7 +149,7 @@ func (c *ApiClient) FetchWaterQualityData(cfg *config.Config, lat, lon float64) 
 
 	if resp.StatusCode == 404 {
 		// No nearby water body
-		return &WaterQualityData{
+		return &models.WaterQualityData{
 			WaterQuality: "N/A",
 			Distance:     9999,
 			Parameters:   make(map[string]float64),
@@ -194,7 +160,7 @@ func (c *ApiClient) FetchWaterQualityData(cfg *config.Config, lat, lon float64) 
 		return nil, fmt.Errorf("water quality API returned status %d", resp.StatusCode)
 	}
 
-	var result WaterQualityData
+	var result models.WaterQualityData
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("failed to decode water quality response: %w", err)
 	}
@@ -202,25 +168,15 @@ func (c *ApiClient) FetchWaterQualityData(cfg *config.Config, lat, lon float64) 
 	return &result, nil
 }
 
-// SafetyData represents safety perception and crime statistics
-type SafetyData struct {
-	SafetyScore        float64        `json:"safetyScore"`        // 0-100
-	SafetyPerception   string         `json:"safetyPerception"`   // Very Safe, Safe, Moderate, Unsafe
-	CrimeRate          float64        `json:"crimeRate"`          // per 1000 residents
-	CrimeTypes         map[string]int `json:"crimeTypes"`         // Burglary, theft, etc.
-	PoliceResponse     float64        `json:"policeResponse"`     // minutes average
-	YearOverYearChange float64        `json:"yearOverYearChange"` // percentage change
-}
-
 // FetchSafetyData retrieves safety perception and crime statistics
 // Documentation: https://api.store (CBS Safety Experience)
-func (c *ApiClient) FetchSafetyData(cfg *config.Config, neighborhoodCode string) (*SafetyData, error) {
+func (c *ApiClient) FetchSafetyData(ctx context.Context, cfg *config.Config, neighborhoodCode string) (*models.SafetyData, error) {
 	if cfg.SafetyExperienceApiURL == "" {
 		return nil, fmt.Errorf("SafetyExperienceApiURL not configured")
 	}
 
 	url := fmt.Sprintf("%s/safety?neighborhood=%s", cfg.SafetyExperienceApiURL, neighborhoodCode)
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -235,7 +191,7 @@ func (c *ApiClient) FetchSafetyData(cfg *config.Config, neighborhoodCode string)
 
 	if resp.StatusCode == 404 {
 		// No safety data available
-		return &SafetyData{
+		return &models.SafetyData{
 			SafetyScore:      70.0, // Neutral default
 			SafetyPerception: "Moderate",
 			CrimeTypes:       make(map[string]int),
@@ -246,7 +202,7 @@ func (c *ApiClient) FetchSafetyData(cfg *config.Config, neighborhoodCode string)
 		return nil, fmt.Errorf("safety API returned status %d", resp.StatusCode)
 	}
 
-	var result SafetyData
+	var result models.SafetyData
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("failed to decode safety response: %w", err)
 	}
@@ -265,33 +221,15 @@ func (c *ApiClient) FetchSafetyData(cfg *config.Config, neighborhoodCode string)
 	return &result, nil
 }
 
-// SchipholFlightData represents aviation noise data
-type SchipholFlightData struct {
-	DailyFlights int          `json:"dailyFlights"`
-	NoiseLevel   float64      `json:"noiseLevel"` // dB(A) average
-	PeakHours    []string     `json:"peakHours"`
-	FlightPaths  []FlightPath `json:"flightPaths"`
-	NightFlights int          `json:"nightFlights"` // 23:00-07:00
-	NoiseContour string       `json:"noiseContour"` // Ke zone (35, 40, 45, etc.)
-}
-
-// FlightPath represents a flight route
-type FlightPath struct {
-	RouteID       string  `json:"routeId"`
-	Altitude      float64 `json:"altitude"` // meters
-	Distance      float64 `json:"distance"` // meters from property
-	FlightsPerDay int     `json:"flightsPerDay"`
-}
-
 // FetchSchipholFlightData retrieves flight path and noise data
 // Documentation: https://developer.schiphol.nl
-func (c *ApiClient) FetchSchipholFlightData(cfg *config.Config, lat, lon float64) (*SchipholFlightData, error) {
+func (c *ApiClient) FetchSchipholFlightData(ctx context.Context, cfg *config.Config, lat, lon float64) (*models.SchipholFlightData, error) {
 	if cfg.SchipholApiURL == "" {
 		return nil, fmt.Errorf("SchipholApiURL not configured")
 	}
 
 	url := fmt.Sprintf("%s/noise-impact?lat=%f&lon=%f", cfg.SchipholApiURL, lat, lon)
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -312,10 +250,10 @@ func (c *ApiClient) FetchSchipholFlightData(cfg *config.Config, lat, lon float64
 
 	if resp.StatusCode == 404 {
 		// Location not affected by Schiphol noise
-		return &SchipholFlightData{
+		return &models.SchipholFlightData{
 			DailyFlights: 0,
 			NoiseLevel:   0,
-			FlightPaths:  []FlightPath{},
+			FlightPaths:  []models.FlightPath{},
 			NightFlights: 0,
 			NoiseContour: "None",
 		}, nil
@@ -325,7 +263,7 @@ func (c *ApiClient) FetchSchipholFlightData(cfg *config.Config, lat, lon float64
 		return nil, fmt.Errorf("schiphol API returned status %d", resp.StatusCode)
 	}
 
-	var result SchipholFlightData
+	var result models.SchipholFlightData
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("failed to decode schiphol response: %w", err)
 	}

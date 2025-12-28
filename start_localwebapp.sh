@@ -22,13 +22,34 @@ fi
 echo ""
 
 # Step 2: Run docker-compose
-echo -e "${YELLOW}[2/3] Starting Docker services (PostgreSQL, Redis, Backend)...${NC}"
-docker-compose -f docker-compose.local.yml up --build -d
+echo -e "${YELLOW}[2/3] Starting Docker services (PostgreSQL, Redis)...${NC}"
+docker-compose -f docker-compose.local.yml stop backend
+docker-compose -f docker-compose.local.yml up -d db cache
 echo -e "${GREEN}      Docker services started in background.${NC}"
 echo ""
 
+# Step 2.5: Start Backend Locally
+echo -e "${YELLOW}[2.5/3] Starting Backend locally...${NC}"
+export POSTGRES_DB=addressiq_db
+export POSTGRES_USER=addressiq_user
+export POSTGRES_PASSWORD=addressiq_password
+export DATABASE_URL=postgres://addressiq_user:addressiq_password@localhost:5432/addressiq_db?sslmode=disable
+export REDIS_URL=redis://localhost:6379
+# Build backend to ensure binary exists
+cd backend && go build -o backend main.go && cd ..
+./backend/backend &
+echo -e "${GREEN}      Backend started in background (using localhost for DB/Redis).${NC}"
+echo ""
+
 # Step 3: Start frontend server
-echo -e "${YELLOW}[3/3] Starting frontend server on port 3000...${NC}"
+echo -e "${YELLOW}[3/3] Checking for existing process on port 3000...${NC}"
+# Kill any process listening on port 3000
+if lsof -Pi :3000 -sTCP:LISTEN -t >/dev/null ; then
+    echo -e "${YELLOW}      Killing existing process on port 3000...${NC}"
+    lsof -Pi :3000 -sTCP:LISTEN -t | xargs kill -9
+fi
+
+echo -e "${YELLOW}      Starting frontend server on port 3000...${NC}"
 cd frontend && python3 -m http.server 3000 &
 echo -e "${GREEN}      Frontend server started in background.${NC}"
 echo ""

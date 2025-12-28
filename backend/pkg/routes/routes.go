@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/cache"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/handlers"
@@ -98,6 +99,22 @@ func (router *Router) handleCacheFlush(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]string{
 			"error": "method not allowed, use POST",
 		})
+		return
+	}
+	// Check for strict admin secret
+	adminSecret := os.Getenv("ADMIN_SECRET")
+	authHeader := r.Header.Get("X-Admin-Secret")
+
+	// If ADMIN_SECRET is not set in env, fail secure (deny all)
+	if adminSecret == "" {
+		log.Println("⚠️  Admin flush attempted but ADMIN_SECRET not configured")
+		http.Error(w, "Endpoint configuration error", http.StatusForbidden)
+		return
+	}
+
+	if authHeader != adminSecret {
+		log.Printf("⚠️  Unauthorized cache flush attempt from %s", r.RemoteAddr)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 

@@ -1,13 +1,17 @@
 package aggregator
 
 import (
+	"context"
 	"fmt"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/apiclient"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/cache"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/logutil"
+	"github.com/iman-hussain/AddressIQ/backend/pkg/models"
 )
 
 // PropertyAggregator combines data from multiple API sources
@@ -34,59 +38,62 @@ type ComprehensivePropertyData struct {
 	BAGID       string     `json:"bagId"`
 
 	// Property Details
-	KadasterInfo       *apiclient.KadasterObjectInfo     `json:"kadasterInfo,omitempty"`
-	WOZData            *apiclient.AltumWOZData           `json:"wozData,omitempty"`
-	MarketValuation    *apiclient.MatrixianPropertyValue `json:"marketValuation,omitempty"`
-	TransactionHistory *apiclient.TransactionHistory     `json:"transactionHistory,omitempty"`
-	MonumentStatus     *apiclient.MonumentData           `json:"monumentStatus,omitempty"`
+	KadasterInfo       *models.KadasterObjectInfo     `json:"kadasterInfo,omitempty"`
+	WOZData            *models.AltumWOZData           `json:"wozData,omitempty"`
+	MarketValuation    *models.MatrixianPropertyValue `json:"marketValuation,omitempty"`
+	TransactionHistory *models.TransactionHistory     `json:"transactionHistory,omitempty"`
+	MonumentStatus     *models.MonumentData           `json:"monumentStatus,omitempty"`
 
 	// Environmental Data
-	Weather        *apiclient.KNMIWeatherData    `json:"weather,omitempty"`
-	SolarPotential *apiclient.KNMISolarData      `json:"solarPotential,omitempty"`
-	SoilData       *apiclient.WURSoilData        `json:"soilData,omitempty"`
-	Subsidence     *apiclient.SubsidenceData     `json:"subsidence,omitempty"`
-	SoilQuality    *apiclient.SoilQualityData    `json:"soilQuality,omitempty"`
-	BROSoilMap     *apiclient.BROSoilMapData     `json:"broSoilMap,omitempty"`
-	AirQuality     *apiclient.AirQualityData     `json:"airQuality,omitempty"`
-	NoisePollution *apiclient.NoisePollutionData `json:"noisePollution,omitempty"`
+	// Environmental Data
+	Weather        *models.KNMIWeatherData    `json:"weather,omitempty"`
+	SolarPotential *models.KNMISolarData      `json:"solarPotential,omitempty"`
+	SoilData       *models.WURSoilData        `json:"soilData,omitempty"`
+	Subsidence     *models.SubsidenceData     `json:"subsidence,omitempty"`
+	SoilQuality    *models.SoilQualityData    `json:"soilQuality,omitempty"`
+	BROSoilMap     *models.BROSoilMapData     `json:"broSoilMap,omitempty"`
+	AirQuality     *models.AirQualityData     `json:"airQuality,omitempty"`
+	NoisePollution *models.NoisePollutionData `json:"noisePollution,omitempty"`
 
 	// Energy & Sustainability
-	EnergyClimate  *apiclient.EnergyClimateData  `json:"energyClimate,omitempty"`
-	Sustainability *apiclient.SustainabilityData `json:"sustainability,omitempty"`
+	EnergyClimate  *models.EnergyClimateData  `json:"energyClimate,omitempty"`
+	Sustainability *models.SustainabilityData `json:"sustainability,omitempty"`
 
 	// Risk Assessment
-	FloodRisk    *apiclient.FloodRiskData    `json:"floodRisk,omitempty"`
-	WaterQuality *apiclient.WaterQualityData `json:"waterQuality,omitempty"`
-	Safety       *apiclient.SafetyData       `json:"safety,omitempty"`
+	FloodRisk    *models.FloodRiskData    `json:"floodRisk,omitempty"`
+	WaterQuality *models.WaterQualityData `json:"waterQuality,omitempty"`
+	Safety       *models.SafetyData       `json:"safety,omitempty"`
 
 	// Mobility & Accessibility
-	TrafficData     []apiclient.NDWTrafficData     `json:"trafficData,omitempty"`
-	PublicTransport *apiclient.OpenOVTransportData `json:"publicTransport,omitempty"`
-	ParkingData     *apiclient.ParkingData         `json:"parkingData,omitempty"`
+	TrafficData     []models.NDWTrafficData     `json:"trafficData,omitempty"`
+	PublicTransport *models.OpenOVTransportData `json:"publicTransport,omitempty"`
+	ParkingData     *models.ParkingData         `json:"parkingData,omitempty"`
 
 	// Demographics & Neighborhood
-	Population   *apiclient.CBSPopulationData  `json:"population,omitempty"`
-	StatLineData *apiclient.CBSStatLineData    `json:"statLineData,omitempty"`
-	SquareStats  *apiclient.CBSSquareStatsData `json:"squareStats,omitempty"`
-	CBSData      *apiclient.CBSData            `json:"cbsData,omitempty"`
+	Population   *models.CBSPopulationData  `json:"population,omitempty"`
+	StatLineData *models.CBSStatLineData    `json:"statLineData,omitempty"`
+	SquareStats  *models.CBSSquareStatsData `json:"squareStats,omitempty"`
+	CBSData      *models.CBSData            `json:"cbsData,omitempty"`
 
 	// Infrastructure
-	GreenSpaces     *apiclient.GreenSpacesData     `json:"greenSpaces,omitempty"`
-	Education       *apiclient.EducationData       `json:"education,omitempty"`
-	BuildingPermits *apiclient.BuildingPermitsData `json:"buildingPermits,omitempty"`
-	Facilities      *apiclient.FacilitiesData      `json:"facilities,omitempty"`
-	Elevation       *apiclient.AHNHeightData       `json:"elevation,omitempty"`
+	// Infrastructure
+	GreenSpaces     *models.GreenSpacesData     `json:"greenSpaces,omitempty"`
+	Education       *models.EducationData       `json:"education,omitempty"`
+	BuildingPermits *models.BuildingPermitsData `json:"buildingPermits,omitempty"`
+	Facilities      *models.FacilitiesData      `json:"facilities,omitempty"`
+	Elevation       *models.AHNHeightData       `json:"elevation,omitempty"`
 
 	// Comprehensive Platforms
-	PDOKData            *apiclient.PDOKPlatformData        `json:"pdokData,omitempty"`
-	StratopoEnvironment *apiclient.StratopoEnvironmentData `json:"stratopoEnvironment,omitempty"`
-	LandUse             *apiclient.LandUseData             `json:"landUse,omitempty"`
+	PDOKData            *models.PDOKPlatformData        `json:"pdokData,omitempty"`
+	StratopoEnvironment *models.StratopoEnvironmentData `json:"stratopoEnvironment,omitempty"`
+	LandUse             *models.LandUseData             `json:"landUse,omitempty"`
 
 	// Aviation
-	SchipholFlights *apiclient.SchipholFlightData `json:"schipholFlights,omitempty"`
+	SchipholFlights *models.SchipholFlightData `json:"schipholFlights,omitempty"`
 
 	// AI Summary
-	AISummary *apiclient.GeminiSummary `json:"aiSummary,omitempty"`
+	// AI Summary
+	AISummary *models.GeminiSummary `json:"aiSummary,omitempty"`
 
 	// Metadata
 	AggregatedAt time.Time         `json:"aggregatedAt"`
@@ -94,13 +101,22 @@ type ComprehensivePropertyData struct {
 	Errors       map[string]string `json:"errors,omitempty"`
 }
 
-// AggregatePropertyData fetches and combines data from all available sources
-func (pa *PropertyAggregator) AggregatePropertyData(postcode, houseNumber string) (*ComprehensivePropertyData, error) {
-	return pa.AggregatePropertyDataWithOptions(postcode, houseNumber, false)
+// ProgressEvent represents a progress update during aggregation
+type ProgressEvent struct {
+	Source        string `json:"source"`
+	Status        string `json:"status"` // "success", "error", "skipped"
+	Completed     int    `json:"completed"`
+	Total         int    `json:"total"`
+	LastCompleted string `json:"lastCompleted"`
 }
 
-// AggregatePropertyDataWithOptions fetches and combines data from all available sources with cache bypass option
-func (pa *PropertyAggregator) AggregatePropertyDataWithOptions(postcode, houseNumber string, bypassCache bool) (*ComprehensivePropertyData, error) {
+// AggregatePropertyData fetches and combines data from all available sources
+func (pa *PropertyAggregator) AggregatePropertyData(ctx context.Context, postcode, houseNumber string) (*ComprehensivePropertyData, error) {
+	return pa.AggregatePropertyDataWithOptions(ctx, postcode, houseNumber, false, nil)
+}
+
+// AggregatePropertyDataWithOptions fetches and combines data from all available sources with cache bypass option and progress reporting
+func (pa *PropertyAggregator) AggregatePropertyDataWithOptions(ctx context.Context, postcode, houseNumber string, bypassCache bool, progressCh chan<- ProgressEvent) (*ComprehensivePropertyData, error) {
 	logutil.Debugf("[AGGREGATOR] Starting aggregation for %s %s", postcode, houseNumber)
 
 	// Check cache first (if available and not bypassed)
@@ -116,8 +132,8 @@ func (pa *PropertyAggregator) AggregatePropertyDataWithOptions(postcode, houseNu
 		logutil.Debugf("[AGGREGATOR] Cache bypass requested for %s %s - fetching fresh data", postcode, houseNumber)
 	}
 
-	// Start with BAG data (essential)
-	bagData, err := pa.apiClient.FetchBAGData(postcode, houseNumber)
+	// Start with BAG data (essential) - this must be done sequentially as other data depends on it
+	bagData, err := pa.apiClient.FetchBAGData(ctx, postcode, houseNumber)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch BAG data: %w", err)
 	}
@@ -127,22 +143,23 @@ func (pa *PropertyAggregator) AggregatePropertyDataWithOptions(postcode, houseNu
 
 	logutil.Debugf("[AGGREGATOR] Coordinates from BAG: lat=%.6f, lon=%.6f", lat, lon)
 
-	// Extract BAG ID from response (prefer verblijfsobject_id, fallback to id)
+	// Extract BAG ID from response
 	bagID := bagData.ID
 	if bagID == "" {
 		logutil.Debugf("[AGGREGATOR] Warning: No BAG ID found in response, some APIs may fail")
 	}
 
 	// Lookup neighborhood and region codes dynamically
+	// This is also fast and essential for other calls, so we do it synchronously (or could be parallel, but simpler here)
+	// Actually, let's keep it sync for simplicity of dependency management
 	var neighborhoodCode, regionCode string
-	regionCodes, err := pa.apiClient.LookupNeighborhoodCode(pa.config, lat, lon)
+	regionCodes, err := pa.apiClient.LookupNeighborhoodCode(ctx, pa.config, lat, lon)
 	if err == nil && regionCodes != nil {
 		neighborhoodCode = regionCodes.NeighborhoodCode
 		regionCode = regionCodes.MunicipalityCode
 		logutil.Debugf("[AGGREGATOR] Resolved neighborhood=%s, region=%s", neighborhoodCode, regionCode)
 	} else {
 		logutil.Debugf("[AGGREGATOR] Warning: Could not resolve neighborhood codes: %v", err)
-		// Fallback to municipality code from BAG data if available
 		if bagData.MunicipalityCode != "" {
 			regionCode = bagData.MunicipalityCode
 			logutil.Debugf("[AGGREGATOR] Using municipality code from BAG: %s", regionCode)
@@ -158,41 +175,95 @@ func (pa *PropertyAggregator) AggregatePropertyDataWithOptions(postcode, houseNu
 		Errors:       make(map[string]string),
 	}
 
-	// Property & Valuation Data (parallel fetches where possible)
-	pa.fetchPropertyData(data, bagID, lat, lon)
+	// Total expected sources (approximate)
+	const totalSources = 33
+	var completedSources atomic.Int32
 
-	// Environmental Data
-	pa.fetchEnvironmentalData(data, lat, lon)
+	// Progress callback
+	reportProgress := func(source, status string) {
+		newCompleted := completedSources.Add(1)
+		logutil.Debugf("[AGGREGATOR] Progress: %s (%s) - %d/%d", source, status, newCompleted, totalSources)
 
-	// Energy & Sustainability
-	pa.fetchEnergyData(data, bagID)
+		if progressCh != nil {
+			// Non-blocking send to avoid stalling if channel is full/slow
+			select {
+			case progressCh <- ProgressEvent{
+				Source:        source,
+				Status:        status,
+				Completed:     int(newCompleted),
+				Total:         totalSources,
+				LastCompleted: source,
+			}:
+			default:
+				logutil.Debugf("[AGGREGATOR] Progress channel full, dropping event for %s", source)
+			}
+		}
+	}
 
-	// Risk Assessment
-	pa.fetchRiskData(data, lat, lon, neighborhoodCode)
+	// Mutex for thread-safe writes to DataSources and Errors
+	var mu sync.Mutex
+	var wg sync.WaitGroup
 
-	// Mobility & Accessibility
-	pa.fetchMobilityData(data, lat, lon)
+	// Helper to handle panic recovery in goroutines
+	safeGo := func(fn func()) {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					logutil.Debugf("[AGGREGATOR] Panic recovered in goroutine: %v", r)
+				}
+			}()
+			fn()
+		}()
+	}
 
-	// Demographics & Neighborhood
-	pa.fetchDemographicsData(data, lat, lon, neighborhoodCode, regionCode)
+	// Launch parallel fetchers
 
-	// Infrastructure
-	pa.fetchInfrastructureData(data, lat, lon)
+	// Group 1: Property Data
+	safeGo(func() { pa.fetchPropertyData(ctx, &mu, data, bagID, lat, lon, reportProgress) })
 
-	// Comprehensive Platforms
-	pa.fetchPlatformData(data, lat, lon)
+	// Group 2: Environmental Data
+	safeGo(func() { pa.fetchEnvironmentalData(ctx, &mu, data, lat, lon, reportProgress) })
 
-	// AI Summary (Gemini) - called after all data is collected
-	if aiSummary, err := pa.apiClient.GenerateLocationSummary(pa.config, data); err == nil {
+	// Group 3: Energy Data
+	safeGo(func() { pa.fetchEnergyData(ctx, &mu, data, bagID, reportProgress) })
+
+	// Group 4: Risk Data
+	safeGo(func() { pa.fetchRiskData(ctx, &mu, data, lat, lon, neighborhoodCode, reportProgress) })
+
+	// Group 5: Mobility Data
+	safeGo(func() { pa.fetchMobilityData(ctx, &mu, data, lat, lon, reportProgress) })
+
+	// Group 6: Demographics Data
+	safeGo(func() {
+		pa.fetchDemographicsData(ctx, &mu, data, lat, lon, neighborhoodCode, regionCode, reportProgress)
+	})
+
+	// Group 7: Infrastructure Data
+	safeGo(func() { pa.fetchInfrastructureData(ctx, &mu, data, lat, lon, reportProgress) })
+
+	// Group 8: Platform Data
+	safeGo(func() { pa.fetchPlatformData(ctx, &mu, data, lat, lon, reportProgress) })
+
+	// Wait for all data fetching to complete
+	wg.Wait()
+
+	// AI Summary (Gemini) - called after all data is collected (as it summarizes the data)
+	// We pass the context here too
+	if aiSummary, err := pa.apiClient.GenerateLocationSummary(ctx, pa.config, data); err == nil {
 		data.AISummary = aiSummary
 		if aiSummary.Generated {
+			// No need for mutex here as we are back to single thread (after wait)
 			data.DataSources = append(data.DataSources, "Gemini AI")
+			reportProgress("Gemini AI", "success")
 		}
 	} else {
 		logutil.Debugf("[AGGREGATOR] Gemini AI summary failed: %v", err)
 		if data.Errors != nil {
 			data.Errors["Gemini AI"] = err.Error()
 		}
+		reportProgress("Gemini AI", "error")
 	}
 
 	// Cache the aggregated result (if caching is available)
@@ -204,423 +275,595 @@ func (pa *PropertyAggregator) AggregatePropertyDataWithOptions(postcode, houseNu
 	return data, nil
 }
 
-func (pa *PropertyAggregator) fetchPropertyData(data *ComprehensivePropertyData, bagID string, lat, lon float64) {
-	// Kadaster Object Info
-	if kadasterInfo, err := pa.apiClient.FetchKadasterObjectInfo(pa.config, bagID); err == nil {
-		data.KadasterInfo = kadasterInfo
-		data.DataSources = append(data.DataSources, "Kadaster")
-	} else {
-		logutil.Debugf("[AGGREGATOR] Kadaster fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["Kadaster"] = err.Error()
-		}
+// safeAppend adds a source to DataSources in a thread-safe way
+func safeAppendSource(mu *sync.Mutex, data *ComprehensivePropertyData, source string) {
+	mu.Lock()
+	defer mu.Unlock()
+	data.DataSources = append(data.DataSources, source)
+}
+
+// safeRecordError records an error in a thread-safe way
+func safeRecordError(mu *sync.Mutex, data *ComprehensivePropertyData, source, err string) {
+	mu.Lock()
+	defer mu.Unlock()
+	if data.Errors == nil {
+		data.Errors = make(map[string]string)
 	}
+	data.Errors[source] = err
+}
+
+func (pa *PropertyAggregator) fetchPropertyData(ctx context.Context, mu *sync.Mutex, data *ComprehensivePropertyData, bagID string, lat, lon float64, onProgress func(string, string)) {
+	var wg sync.WaitGroup
+
+	// Helper for this sub-group
+	run := func(fn func()) {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					logutil.Debugf("[AGGREGATOR] Panic in fetchPropertyData: %v", r)
+				}
+			}()
+			fn()
+		}()
+	}
+
+	// Kadaster Object Info
+	run(func() {
+		if kadasterInfo, err := pa.apiClient.FetchKadasterObjectInfo(ctx, pa.config, bagID); err == nil {
+			data.KadasterInfo = kadasterInfo
+			safeAppendSource(mu, data, "Kadaster")
+			onProgress("Kadaster", "success")
+		} else {
+			logutil.Debugf("[AGGREGATOR] Kadaster fetch failed: %v", err)
+			safeRecordError(mu, data, "Kadaster", err.Error())
+			onProgress("Kadaster", "error")
+		}
+	})
 
 	// WOZ Data
-	if wozData, err := pa.apiClient.FetchAltumWOZData(pa.config, bagID); err == nil {
-		data.WOZData = wozData
-		data.DataSources = append(data.DataSources, "Altum WOZ")
-	} else {
-		logutil.Debugf("[AGGREGATOR] Altum WOZ fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["Altum WOZ"] = err.Error()
+	run(func() {
+		if wozData, err := pa.apiClient.FetchAltumWOZData(ctx, pa.config, bagID); err == nil {
+			data.WOZData = wozData
+			safeAppendSource(mu, data, "Altum WOZ")
+			onProgress("Altum WOZ", "success")
+		} else {
+			logutil.Debugf("[AGGREGATOR] Altum WOZ fetch failed: %v", err)
+			safeRecordError(mu, data, "Altum WOZ", err.Error())
+			onProgress("Altum WOZ", "error")
 		}
-	}
+	})
 
 	// Market Valuation
-	if valuation, err := pa.apiClient.FetchPropertyValuePlus(pa.config, bagID, lat, lon); err == nil {
-		data.MarketValuation = valuation
-		data.DataSources = append(data.DataSources, "Matrixian")
-	} else {
-		logutil.Debugf("[AGGREGATOR] Matrixian fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["Matrixian"] = err.Error()
+	run(func() {
+		if valuation, err := pa.apiClient.FetchPropertyValuePlus(ctx, pa.config, bagID, lat, lon); err == nil {
+			data.MarketValuation = valuation
+			safeAppendSource(mu, data, "Matrixian")
+			onProgress("Matrixian", "success")
+		} else {
+			logutil.Debugf("[AGGREGATOR] Matrixian fetch failed: %v", err)
+			safeRecordError(mu, data, "Matrixian", err.Error())
+			onProgress("Matrixian", "error")
 		}
-	}
+	})
 
 	// Transaction History
-	if transactions, err := pa.apiClient.FetchTransactionHistory(pa.config, bagID); err == nil {
-		data.TransactionHistory = transactions
-		data.DataSources = append(data.DataSources, "Altum Transactions")
-	} else {
-		logutil.Debugf("[AGGREGATOR] Altum Transactions fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["Altum Transactions"] = err.Error()
+	run(func() {
+		if transactions, err := pa.apiClient.FetchTransactionHistory(ctx, pa.config, bagID); err == nil {
+			data.TransactionHistory = transactions
+			safeAppendSource(mu, data, "Altum Transactions")
+			onProgress("Altum Transactions", "success")
+		} else {
+			logutil.Debugf("[AGGREGATOR] Altum Transactions fetch failed: %v", err)
+			safeRecordError(mu, data, "Altum Transactions", err.Error())
+			onProgress("Altum Transactions", "error")
 		}
-	}
+	})
 
-	// Monument Status - use coordinate-based lookup for national coverage
-	if monument, err := pa.apiClient.FetchMonumentDataByCoords(pa.config, lat, lon); err == nil {
-		data.MonumentStatus = monument
-		data.DataSources = append(data.DataSources, "Monument Register")
-	} else {
-		logutil.Debugf("[AGGREGATOR] Monument fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["Monument Register"] = err.Error()
+	// Monument Status
+	run(func() {
+		if monument, err := pa.apiClient.FetchMonumentDataByCoords(ctx, pa.config, lat, lon); err == nil {
+			data.MonumentStatus = monument
+			safeAppendSource(mu, data, "Monument Register")
+			onProgress("Monument Register", "success")
+		} else {
+			logutil.Debugf("[AGGREGATOR] Monument fetch failed: %v", err)
+			safeRecordError(mu, data, "Monument Register", err.Error())
+			onProgress("Monument Register", "error")
 		}
-	}
+	})
+
+	wg.Wait()
 }
 
-func (pa *PropertyAggregator) fetchEnvironmentalData(data *ComprehensivePropertyData, lat, lon float64) {
-	logutil.Debugf("[AGGREGATOR] fetchEnvironmentalData called with lat=%.6f, lon=%.6f", lat, lon)
+func (pa *PropertyAggregator) fetchEnvironmentalData(ctx context.Context, mu *sync.Mutex, data *ComprehensivePropertyData, lat, lon float64, onProgress func(string, string)) {
+	var wg sync.WaitGroup
+	run := func(fn func()) {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					logutil.Debugf("[AGGREGATOR] Panic in fetchEnvironmentalData: %v", r)
+				}
+			}()
+			fn()
+		}()
+	}
 
 	// Weather
-
-	logutil.Debugf("[AGGREGATOR] Calling FetchKNMIWeatherData...")
-	weather, weatherErr := pa.apiClient.FetchKNMIWeatherData(pa.config, lat, lon)
-	if weatherErr == nil && weather != nil {
-		data.Weather = weather
-		data.DataSources = append(data.DataSources, "KNMI Weather")
-		logutil.Debugf("[AGGREGATOR] ✓ Weather data fetched successfully: %+v", weather)
-	} else {
-		logutil.Debugf("[AGGREGATOR] ✗ Weather fetch failed: %v", weatherErr)
-		if data.Errors != nil && weatherErr != nil {
-			data.Errors["KNMI Weather"] = weatherErr.Error()
+	run(func() {
+		weather, weatherErr := pa.apiClient.FetchKNMIWeatherData(ctx, pa.config, lat, lon)
+		if weatherErr == nil && weather != nil {
+			data.Weather = weather
+			safeAppendSource(mu, data, "KNMI Weather")
+			onProgress("KNMI Weather", "success")
+		} else {
+			safeRecordError(mu, data, "KNMI Weather", weatherErr.Error())
+			onProgress("KNMI Weather", "error")
 		}
-	}
+	})
 
-	logutil.Debugf("[AGGREGATOR] Calling FetchKNMISolarData...")
-	solar, solarErr := pa.apiClient.FetchKNMISolarData(pa.config, lat, lon)
-	if solarErr == nil && solar != nil {
-		data.SolarPotential = solar
-		data.DataSources = append(data.DataSources, "KNMI Solar")
-		logutil.Debugf("[AGGREGATOR] ✓ Solar data fetched successfully: %+v", solar)
-	} else {
-		logutil.Debugf("[AGGREGATOR] ✗ Solar fetch failed: %v", solarErr)
-		if data.Errors != nil && solarErr != nil {
-			data.Errors["KNMI Solar"] = solarErr.Error()
+	// Solar
+	run(func() {
+		solar, solarErr := pa.apiClient.FetchKNMISolarData(ctx, pa.config, lat, lon)
+		if solarErr == nil && solar != nil {
+			data.SolarPotential = solar
+			safeAppendSource(mu, data, "KNMI Solar")
+			onProgress("KNMI Solar", "success")
+		} else {
+			safeRecordError(mu, data, "KNMI Solar", solarErr.Error())
+			onProgress("KNMI Solar", "error")
 		}
-	}
+	})
 
 	// Soil Data
-	if soil, err := pa.apiClient.FetchWURSoilData(pa.config, lat, lon); err == nil {
-		data.SoilData = soil
-		data.DataSources = append(data.DataSources, "WUR Soil")
-	} else {
-		logutil.Debugf("[AGGREGATOR] WUR Soil fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["WUR Soil"] = err.Error()
+	run(func() {
+		if soil, err := pa.apiClient.FetchWURSoilData(ctx, pa.config, lat, lon); err == nil {
+			data.SoilData = soil
+			safeAppendSource(mu, data, "WUR Soil")
+			onProgress("WUR Soil", "success")
+		} else {
+			safeRecordError(mu, data, "WUR Soil", err.Error())
+			onProgress("WUR Soil", "error")
 		}
-	}
+	})
 
 	// Subsidence
-	if subsidence, err := pa.apiClient.FetchSubsidenceData(pa.config, lat, lon); err == nil {
-		data.Subsidence = subsidence
-		data.DataSources = append(data.DataSources, "SkyGeo")
-	} else {
-		logutil.Debugf("[AGGREGATOR] SkyGeo fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["SkyGeo Subsidence"] = err.Error()
+	run(func() {
+		if subsidence, err := pa.apiClient.FetchSubsidenceData(ctx, pa.config, lat, lon); err == nil {
+			data.Subsidence = subsidence
+			safeAppendSource(mu, data, "SkyGeo")
+			onProgress("SkyGeo", "success")
+		} else {
+			safeRecordError(mu, data, "SkyGeo Subsidence", err.Error())
+			onProgress("SkyGeo", "error")
 		}
-	}
+	})
 
 	// Soil Quality
-	if soilQuality, err := pa.apiClient.FetchSoilQualityData(pa.config, lat, lon); err == nil {
-		data.SoilQuality = soilQuality
-		data.DataSources = append(data.DataSources, "Soil Quality")
-	} else {
-		logutil.Debugf("[AGGREGATOR] Soil Quality fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["Soil Quality"] = err.Error()
+	run(func() {
+		if soilQuality, err := pa.apiClient.FetchSoilQualityData(ctx, pa.config, lat, lon); err == nil {
+			data.SoilQuality = soilQuality
+			safeAppendSource(mu, data, "Soil Quality")
+			onProgress("Soil Quality", "success")
+		} else {
+			safeRecordError(mu, data, "Soil Quality", err.Error())
+			onProgress("Soil Quality", "error")
 		}
-	}
+	})
 
 	// BRO Soil Map
-	if broSoil, err := pa.apiClient.FetchBROSoilMapData(pa.config, lat, lon); err == nil {
-		data.BROSoilMap = broSoil
-		data.DataSources = append(data.DataSources, "BRO")
-	} else {
-		logutil.Debugf("[AGGREGATOR] BRO Soil fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["BRO Soil Map"] = err.Error()
+	run(func() {
+		if broSoil, err := pa.apiClient.FetchBROSoilMapData(ctx, pa.config, lat, lon); err == nil {
+			data.BROSoilMap = broSoil
+			safeAppendSource(mu, data, "BRO")
+			onProgress("BRO", "success")
+		} else {
+			safeRecordError(mu, data, "BRO Soil Map", err.Error())
+			onProgress("BRO", "error")
 		}
-	}
+	})
 
 	// Air Quality
-	logutil.Debugf("[AGGREGATOR] Calling FetchAirQualityData...")
-	if airQuality, err := pa.apiClient.FetchAirQualityData(pa.config, lat, lon); err == nil {
-		data.AirQuality = airQuality
-		data.DataSources = append(data.DataSources, "Air Quality")
-		logutil.Debugf("[AGGREGATOR] ✓ Air quality data fetched successfully")
-	} else {
-		logutil.Debugf("[AGGREGATOR] ✗ Air quality fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["Luchtmeetnet Air Quality"] = err.Error()
+	run(func() {
+		if airQuality, err := pa.apiClient.FetchAirQualityData(ctx, pa.config, lat, lon); err == nil {
+			data.AirQuality = airQuality
+			safeAppendSource(mu, data, "Air Quality")
+			onProgress("Air Quality", "success")
+		} else {
+			safeRecordError(mu, data, "Luchtmeetnet Air Quality", err.Error())
+			onProgress("Air Quality", "error")
 		}
-	}
+	})
 
 	// Noise Pollution
-	if noise, err := pa.apiClient.FetchNoisePollutionData(pa.config, lat, lon); err == nil {
-		data.NoisePollution = noise
-		data.DataSources = append(data.DataSources, "Noise Register")
-	} else {
-		logutil.Debugf("[AGGREGATOR] Noise Pollution fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["Noise Pollution"] = err.Error()
+	run(func() {
+		if noise, err := pa.apiClient.FetchNoisePollutionData(ctx, pa.config, lat, lon); err == nil {
+			data.NoisePollution = noise
+			safeAppendSource(mu, data, "Noise Register")
+			onProgress("Noise Register", "success")
+		} else {
+			safeRecordError(mu, data, "Noise Pollution", err.Error())
+			onProgress("Noise Register", "error")
 		}
-	}
+	})
+
+	wg.Wait()
 }
 
-func (pa *PropertyAggregator) fetchEnergyData(data *ComprehensivePropertyData, bagID string) {
-	// Energy & Climate
-	if energy, err := pa.apiClient.FetchEnergyClimateData(pa.config, bagID); err == nil {
-		data.EnergyClimate = energy
-		data.DataSources = append(data.DataSources, "Altum Energy")
-	} else {
-		logutil.Debugf("[AGGREGATOR] Altum Energy fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["Altum Energy"] = err.Error()
-		}
+func (pa *PropertyAggregator) fetchEnergyData(ctx context.Context, mu *sync.Mutex, data *ComprehensivePropertyData, bagID string, onProgress func(string, string)) {
+	var wg sync.WaitGroup
+	run := func(fn func()) {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					logutil.Debugf("[AGGREGATOR] Panic in fetchEnergyData: %v", r)
+				}
+			}()
+			fn()
+		}()
 	}
+
+	// Energy & Climate
+	run(func() {
+		if energy, err := pa.apiClient.FetchEnergyClimateData(ctx, pa.config, bagID); err == nil {
+			data.EnergyClimate = energy
+			safeAppendSource(mu, data, "Altum Energy")
+			onProgress("Altum Energy", "success")
+		} else {
+			safeRecordError(mu, data, "Altum Energy", err.Error())
+			onProgress("Altum Energy", "error")
+		}
+	})
 
 	// Sustainability
-	if sustainability, err := pa.apiClient.FetchSustainabilityData(pa.config, bagID); err == nil {
-		data.Sustainability = sustainability
-		data.DataSources = append(data.DataSources, "Altum Sustainability")
-	} else {
-		logutil.Debugf("[AGGREGATOR] Altum Sustainability fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["Altum Sustainability"] = err.Error()
+	run(func() {
+		if sustainability, err := pa.apiClient.FetchSustainabilityData(ctx, pa.config, bagID); err == nil {
+			data.Sustainability = sustainability
+			safeAppendSource(mu, data, "Altum Sustainability")
+			onProgress("Altum Sustainability", "success")
+		} else {
+			safeRecordError(mu, data, "Altum Sustainability", err.Error())
+			onProgress("Altum Sustainability", "error")
 		}
-	}
+	})
+
+	wg.Wait()
 }
 
-func (pa *PropertyAggregator) fetchRiskData(data *ComprehensivePropertyData, lat, lon float64, neighborhoodCode string) {
-	// Flood Risk
-	if flood, err := pa.apiClient.FetchFloodRiskData(pa.config, lat, lon); err == nil {
-		data.FloodRisk = flood
-		data.DataSources = append(data.DataSources, "Flood Risk")
-	} else {
-		logutil.Debugf("[AGGREGATOR] Flood risk fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["Flood Risk"] = err.Error()
-		}
+func (pa *PropertyAggregator) fetchRiskData(ctx context.Context, mu *sync.Mutex, data *ComprehensivePropertyData, lat, lon float64, neighborhoodCode string, onProgress func(string, string)) {
+	var wg sync.WaitGroup
+	run := func(fn func()) {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					logutil.Debugf("[AGGREGATOR] Panic in fetchRiskData: %v", r)
+				}
+			}()
+			fn()
+		}()
 	}
+
+	// Flood Risk
+	run(func() {
+		if flood, err := pa.apiClient.FetchFloodRiskData(ctx, pa.config, lat, lon); err == nil {
+			data.FloodRisk = flood
+			safeAppendSource(mu, data, "Flood Risk")
+			onProgress("Flood Risk", "success")
+		} else {
+			safeRecordError(mu, data, "Flood Risk", err.Error())
+			onProgress("Flood Risk", "error")
+		}
+	})
 
 	// Water Quality
-	if water, err := pa.apiClient.FetchWaterQualityData(pa.config, lat, lon); err == nil {
-		data.WaterQuality = water
-		data.DataSources = append(data.DataSources, "Digital Delta")
-	} else {
-		logutil.Debugf("[AGGREGATOR] Water quality fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["Water Quality"] = err.Error()
-		}
-	}
-
-	// Safety (uses neighborhood code if available)
-	if neighborhoodCode != "" {
-		if safety, err := pa.apiClient.FetchSafetyData(pa.config, neighborhoodCode); err == nil {
-			data.Safety = safety
-			data.DataSources = append(data.DataSources, "CBS Safety")
+	run(func() {
+		if water, err := pa.apiClient.FetchWaterQualityData(ctx, pa.config, lat, lon); err == nil {
+			data.WaterQuality = water
+			safeAppendSource(mu, data, "Digital Delta")
+			onProgress("Digital Delta", "success")
 		} else {
-			logutil.Debugf("[AGGREGATOR] Safety fetch failed: %v", err)
-			if data.Errors != nil {
-				data.Errors["CBS Safety"] = err.Error()
+			safeRecordError(mu, data, "Water Quality", err.Error())
+			onProgress("Digital Delta", "error")
+		}
+	})
+
+	// Safety
+	run(func() {
+		if neighborhoodCode != "" {
+			if safety, err := pa.apiClient.FetchSafetyData(ctx, pa.config, neighborhoodCode); err == nil {
+				data.Safety = safety
+				safeAppendSource(mu, data, "CBS Safety")
+				onProgress("CBS Safety", "success")
+			} else {
+				safeRecordError(mu, data, "CBS Safety", err.Error())
+				onProgress("CBS Safety", "error")
 			}
+		} else {
+			safeRecordError(mu, data, "CBS Safety", "neighborhood code not available")
+			onProgress("CBS Safety", "skipped")
 		}
-	} else {
-		logutil.Debugf("[AGGREGATOR] Skipping safety data: no neighborhood code available")
-		if data.Errors != nil {
-			data.Errors["CBS Safety"] = "neighborhood code not available"
-		}
-	}
+	})
 
 	// Schiphol Flights
-	if flights, err := pa.apiClient.FetchSchipholFlightData(pa.config, lat, lon); err == nil {
-		data.SchipholFlights = flights
-		data.DataSources = append(data.DataSources, "Schiphol")
-	} else {
-		logutil.Debugf("[AGGREGATOR] Schiphol flight data fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["Schiphol"] = err.Error()
+	run(func() {
+		if flights, err := pa.apiClient.FetchSchipholFlightData(ctx, pa.config, lat, lon); err == nil {
+			data.SchipholFlights = flights
+			safeAppendSource(mu, data, "Schiphol")
+			onProgress("Schiphol", "success")
+		} else {
+			safeRecordError(mu, data, "Schiphol", err.Error())
+			onProgress("Schiphol", "error")
 		}
-	}
+	})
+
+	wg.Wait()
 }
 
-func (pa *PropertyAggregator) fetchMobilityData(data *ComprehensivePropertyData, lat, lon float64) {
-	// Traffic Data
-	if traffic, err := pa.apiClient.FetchNDWTrafficData(pa.config, lat, lon, 1000); err == nil {
-		data.TrafficData = traffic
-		data.DataSources = append(data.DataSources, "NDW Traffic")
-	} else {
-		logutil.Debugf("[AGGREGATOR] NDW Traffic fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["NDW Traffic"] = err.Error()
-		}
+func (pa *PropertyAggregator) fetchMobilityData(ctx context.Context, mu *sync.Mutex, data *ComprehensivePropertyData, lat, lon float64, onProgress func(string, string)) {
+	var wg sync.WaitGroup
+	run := func(fn func()) {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					logutil.Debugf("[AGGREGATOR] Panic in fetchMobilityData: %v", r)
+				}
+			}()
+			fn()
+		}()
 	}
+
+	// Traffic Data
+	run(func() {
+		if traffic, err := pa.apiClient.FetchNDWTrafficData(ctx, pa.config, lat, lon, 1000); err == nil {
+			data.TrafficData = traffic
+			safeAppendSource(mu, data, "NDW Traffic")
+			onProgress("NDW Traffic", "success")
+		} else {
+			safeRecordError(mu, data, "NDW Traffic", err.Error())
+			onProgress("NDW Traffic", "error")
+		}
+	})
 
 	// Public Transport
-	if transport, err := pa.apiClient.FetchOpenOVData(pa.config, lat, lon); err == nil {
-		data.PublicTransport = transport
-		data.DataSources = append(data.DataSources, "OpenOV")
-	} else {
-		logutil.Debugf("[AGGREGATOR] OpenOV fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["OpenOV"] = err.Error()
+	run(func() {
+		if transport, err := pa.apiClient.FetchOpenOVData(ctx, pa.config, lat, lon); err == nil {
+			data.PublicTransport = transport
+			safeAppendSource(mu, data, "OpenOV")
+			onProgress("OpenOV", "success")
+		} else {
+			safeRecordError(mu, data, "OpenOV", err.Error())
+			onProgress("OpenOV", "error")
 		}
-	}
+	})
 
 	// Parking
-	if parking, err := pa.apiClient.FetchParkingData(pa.config, lat, lon, 500); err == nil {
-		data.ParkingData = parking
-		data.DataSources = append(data.DataSources, "Parking")
-	} else {
-		logutil.Debugf("[AGGREGATOR] Parking fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["Parking"] = err.Error()
+	run(func() {
+		if parking, err := pa.apiClient.FetchParkingData(ctx, pa.config, lat, lon, 500); err == nil {
+			data.ParkingData = parking
+			safeAppendSource(mu, data, "Parking")
+			onProgress("Parking", "success")
+		} else {
+			safeRecordError(mu, data, "Parking", err.Error())
+			onProgress("Parking", "error")
 		}
-	}
+	})
+
+	wg.Wait()
 }
 
-func (pa *PropertyAggregator) fetchDemographicsData(data *ComprehensivePropertyData, lat, lon float64, neighborhoodCode, regionCode string) {
-	// Population
-	if population, err := pa.apiClient.FetchCBSPopulationData(pa.config, lat, lon); err == nil {
-		data.Population = population
-		data.DataSources = append(data.DataSources, "CBS Population")
-	} else {
-		logutil.Debugf("[AGGREGATOR] Population fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["CBS Population"] = err.Error()
-		}
+func (pa *PropertyAggregator) fetchDemographicsData(ctx context.Context, mu *sync.Mutex, data *ComprehensivePropertyData, lat, lon float64, neighborhoodCode, regionCode string, onProgress func(string, string)) {
+	var wg sync.WaitGroup
+	run := func(fn func()) {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					logutil.Debugf("[AGGREGATOR] Panic in fetchDemographicsData: %v", r)
+				}
+			}()
+			fn()
+		}()
 	}
+
+	// Population
+	run(func() {
+		if population, err := pa.apiClient.FetchCBSPopulationData(ctx, pa.config, lat, lon); err == nil {
+			data.Population = population
+			safeAppendSource(mu, data, "CBS Population")
+			onProgress("CBS Population", "success")
+		} else {
+			safeRecordError(mu, data, "CBS Population", err.Error())
+			onProgress("CBS Population", "error")
+		}
+	})
 
 	// Square Stats
-	if squareStats, err := pa.apiClient.FetchCBSSquareStats(pa.config, lat, lon); err == nil {
-		data.SquareStats = squareStats
-		data.DataSources = append(data.DataSources, "CBS Square Stats")
-	} else {
-		logutil.Debugf("[AGGREGATOR] Square stats fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["CBS Square Stats"] = err.Error()
-		}
-	}
-
-	// StatLine (uses region/municipality code if available)
-	if regionCode != "" {
-		if statLine, err := pa.apiClient.FetchCBSStatLineData(pa.config, regionCode); err == nil {
-			data.StatLineData = statLine
-			data.DataSources = append(data.DataSources, "CBS StatLine")
+	run(func() {
+		if squareStats, err := pa.apiClient.FetchCBSSquareStats(ctx, pa.config, lat, lon); err == nil {
+			data.SquareStats = squareStats
+			safeAppendSource(mu, data, "CBS Square Stats")
+			onProgress("CBS Square Stats", "success")
 		} else {
-			logutil.Debugf("[AGGREGATOR] StatLine fetch failed: %v", err)
-			if data.Errors != nil {
-				data.Errors["CBS StatLine"] = err.Error()
-			}
+			safeRecordError(mu, data, "CBS Square Stats", err.Error())
+			onProgress("CBS Square Stats", "error")
 		}
-	} else {
-		logutil.Debugf("[AGGREGATOR] Skipping StatLine data: no region code available")
-		if data.Errors != nil {
-			data.Errors["CBS StatLine"] = "region code not available"
-		}
-	}
+	})
 
-	// Legacy CBS Data (uses neighborhood code if available)
-	if neighborhoodCode != "" {
-		if cbsData, err := pa.apiClient.FetchCBSData(pa.config, neighborhoodCode); err == nil {
-			data.CBSData = cbsData
-			data.DataSources = append(data.DataSources, "CBS")
-		} else {
-			logutil.Debugf("[AGGREGATOR] CBS data fetch failed: %v", err)
-			if data.Errors != nil {
-				data.Errors["CBS"] = err.Error()
+	// StatLine
+	run(func() {
+		if regionCode != "" {
+			if statLine, err := pa.apiClient.FetchCBSStatLineData(ctx, pa.config, regionCode); err == nil {
+				data.StatLineData = statLine
+				safeAppendSource(mu, data, "CBS StatLine")
+				onProgress("CBS StatLine", "success")
+			} else {
+				safeRecordError(mu, data, "CBS StatLine", err.Error())
+				onProgress("CBS StatLine", "error")
 			}
+		} else {
+			safeRecordError(mu, data, "CBS StatLine", "region code not available")
+			onProgress("CBS StatLine", "skipped")
 		}
-	} else {
-		logutil.Debugf("[AGGREGATOR] Skipping CBS data: no neighborhood code available")
-		if data.Errors != nil {
-			data.Errors["CBS"] = "neighborhood code not available"
+	})
+
+	// Legacy CBS Data
+	run(func() {
+		if neighborhoodCode != "" {
+			if cbsData, err := pa.apiClient.FetchCBSData(ctx, pa.config, neighborhoodCode); err == nil {
+				data.CBSData = cbsData
+				safeAppendSource(mu, data, "CBS")
+				onProgress("CBS", "success")
+			} else {
+				safeRecordError(mu, data, "CBS", err.Error())
+				onProgress("CBS", "error")
+			}
+		} else {
+			safeRecordError(mu, data, "CBS", "neighborhood code not available")
+			onProgress("CBS", "skipped")
 		}
-	}
+	})
+
+	wg.Wait()
 }
 
-func (pa *PropertyAggregator) fetchInfrastructureData(data *ComprehensivePropertyData, lat, lon float64) {
-	// Green Spaces
-	if greenSpaces, err := pa.apiClient.FetchGreenSpacesData(pa.config, lat, lon, 1000); err == nil {
-		data.GreenSpaces = greenSpaces
-		data.DataSources = append(data.DataSources, "Green Spaces")
-	} else {
-		logutil.Debugf("[AGGREGATOR] Green Spaces fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["Green Spaces"] = err.Error()
-		}
+func (pa *PropertyAggregator) fetchInfrastructureData(ctx context.Context, mu *sync.Mutex, data *ComprehensivePropertyData, lat, lon float64, onProgress func(string, string)) {
+	var wg sync.WaitGroup
+	run := func(fn func()) {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					logutil.Debugf("[AGGREGATOR] Panic in fetchInfrastructureData: %v", r)
+				}
+			}()
+			fn()
+		}()
 	}
+
+	// Green Spaces
+	run(func() {
+		if greenSpaces, err := pa.apiClient.FetchGreenSpacesData(ctx, pa.config, lat, lon, 1000); err == nil {
+			data.GreenSpaces = greenSpaces
+			safeAppendSource(mu, data, "Green Spaces")
+			onProgress("Green Spaces", "success")
+		} else {
+			safeRecordError(mu, data, "Green Spaces", err.Error())
+			onProgress("Green Spaces", "error")
+		}
+	})
 
 	// Education
-	if education, err := pa.apiClient.FetchEducationData(pa.config, lat, lon); err == nil {
-		data.Education = education
-		data.DataSources = append(data.DataSources, "Education")
-	} else {
-		logutil.Debugf("[AGGREGATOR] Education fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["Education"] = err.Error()
+	run(func() {
+		if education, err := pa.apiClient.FetchEducationData(ctx, pa.config, lat, lon); err == nil {
+			data.Education = education
+			safeAppendSource(mu, data, "Education")
+			onProgress("Education", "success")
+		} else {
+			safeRecordError(mu, data, "Education", err.Error())
+			onProgress("Education", "error")
 		}
-	}
+	})
 
 	// Building Permits
-	if permits, err := pa.apiClient.FetchBuildingPermitsData(pa.config, lat, lon, 1000); err == nil {
-		data.BuildingPermits = permits
-		data.DataSources = append(data.DataSources, "Building Permits")
-	} else {
-		logutil.Debugf("[AGGREGATOR] Building Permits fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["Building Permits"] = err.Error()
+	run(func() {
+		if permits, err := pa.apiClient.FetchBuildingPermitsData(ctx, pa.config, lat, lon, 1000); err == nil {
+			data.BuildingPermits = permits
+			safeAppendSource(mu, data, "Building Permits")
+			onProgress("Building Permits", "success")
+		} else {
+			safeRecordError(mu, data, "Building Permits", err.Error())
+			onProgress("Building Permits", "error")
 		}
-	}
+	})
 
 	// Facilities
-	if facilities, err := pa.apiClient.FetchFacilitiesData(pa.config, lat, lon); err == nil {
-		data.Facilities = facilities
-		data.DataSources = append(data.DataSources, "Facilities")
-	} else {
-		logutil.Debugf("[AGGREGATOR] Facilities fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["Facilities"] = err.Error()
+	run(func() {
+		if facilities, err := pa.apiClient.FetchFacilitiesData(ctx, pa.config, lat, lon); err == nil {
+			data.Facilities = facilities
+			safeAppendSource(mu, data, "Facilities")
+			onProgress("Facilities", "success")
+		} else {
+			safeRecordError(mu, data, "Facilities", err.Error())
+			onProgress("Facilities", "error")
 		}
-	}
+	})
 
 	// Elevation (AHN)
-	if elevation, err := pa.apiClient.FetchAHNHeightData(pa.config, lat, lon); err == nil {
-		data.Elevation = elevation
-		data.DataSources = append(data.DataSources, "AHN")
-	} else {
-		logutil.Debugf("[AGGREGATOR] AHN Elevation fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["AHN Elevation"] = err.Error()
+	run(func() {
+		if elevation, err := pa.apiClient.FetchAHNHeightData(ctx, pa.config, lat, lon); err == nil {
+			data.Elevation = elevation
+			safeAppendSource(mu, data, "AHN")
+			onProgress("AHN", "success")
+		} else {
+			safeRecordError(mu, data, "AHN Elevation", err.Error())
+			onProgress("AHN", "error")
 		}
-	}
+	})
+
+	wg.Wait()
 }
 
-func (pa *PropertyAggregator) fetchPlatformData(data *ComprehensivePropertyData, lat, lon float64) {
-	// PDOK Platform
-	if pdok, err := pa.apiClient.FetchPDOKPlatformData(pa.config, lat, lon); err == nil {
-		data.PDOKData = pdok
-		data.DataSources = append(data.DataSources, "PDOK Platform")
-	} else {
-		logutil.Debugf("[AGGREGATOR] PDOK Platform fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["PDOK Platform"] = err.Error()
-		}
+func (pa *PropertyAggregator) fetchPlatformData(ctx context.Context, mu *sync.Mutex, data *ComprehensivePropertyData, lat, lon float64, onProgress func(string, string)) {
+	var wg sync.WaitGroup
+	run := func(fn func()) {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			defer func() {
+				if r := recover(); r != nil {
+					logutil.Debugf("[AGGREGATOR] Panic in fetchPlatformData: %v", r)
+				}
+			}()
+			fn()
+		}()
 	}
+
+	// PDOK Platform
+	run(func() {
+		if pdok, err := pa.apiClient.FetchPDOKPlatformData(ctx, pa.config, lat, lon); err == nil {
+			data.PDOKData = pdok
+			safeAppendSource(mu, data, "PDOK Platform")
+			onProgress("PDOK Platform", "success")
+		} else {
+			safeRecordError(mu, data, "PDOK Platform", err.Error())
+			onProgress("PDOK Platform", "error")
+		}
+	})
 
 	// Stratopo Environment
-	if stratopo, err := pa.apiClient.FetchStratopoEnvironmentData(pa.config, lat, lon); err == nil {
-		data.StratopoEnvironment = stratopo
-		data.DataSources = append(data.DataSources, "Stratopo")
-	} else {
-		logutil.Debugf("[AGGREGATOR] Stratopo fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["Stratopo"] = err.Error()
+	run(func() {
+		if stratopo, err := pa.apiClient.FetchStratopoEnvironmentData(ctx, pa.config, lat, lon); err == nil {
+			data.StratopoEnvironment = stratopo
+			safeAppendSource(mu, data, "Stratopo")
+			onProgress("Stratopo", "success")
+		} else {
+			safeRecordError(mu, data, "Stratopo", err.Error())
+			onProgress("Stratopo", "error")
 		}
-	}
+	})
 
 	// Land Use
-	if landUse, err := pa.apiClient.FetchLandUseData(pa.config, lat, lon); err == nil {
-		data.LandUse = landUse
-		data.DataSources = append(data.DataSources, "Land Use")
-	} else {
-		logutil.Debugf("[AGGREGATOR] Land Use fetch failed: %v", err)
-		if data.Errors != nil {
-			data.Errors["Land Use"] = err.Error()
+	run(func() {
+		if landUse, err := pa.apiClient.FetchLandUseData(ctx, pa.config, lat, lon); err == nil {
+			data.LandUse = landUse
+			safeAppendSource(mu, data, "Land Use")
+			onProgress("Land Use", "success")
+		} else {
+			safeRecordError(mu, data, "Land Use", err.Error())
+			onProgress("Land Use", "error")
 		}
-	}
+	})
+
+	wg.Wait()
 }

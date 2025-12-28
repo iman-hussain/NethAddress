@@ -4,14 +4,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"html"
-	"log"
 	"net/http"
 	"strings"
+
+	"os"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/aggregator"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/apiclient"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/cache"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
+	"github.com/iman-hussain/AddressIQ/backend/pkg/logutil"
+	"github.com/iman-hussain/AddressIQ/backend/pkg/models"
 )
 
 // SearchHandler handles the web search interface
@@ -28,7 +31,7 @@ func NewSearchHandler(apiClient *apiclient.ApiClient, cfg *config.Config) *Searc
 	if cfg.RedisURL != "" {
 		cs, err := cache.NewCacheService(cfg.RedisURL)
 		if err != nil {
-			log.Printf("Warning: Failed to initialize cache: %v", err)
+			logutil.Warnf("Failed to initialize cache: %v", err)
 		} else {
 			cacheService = cs
 		}
@@ -60,11 +63,11 @@ type APIResultsGrouped struct {
 
 // ComprehensiveSearchResponse represents complete property data with all API results
 type ComprehensiveSearchResponse struct {
-	Address     string                   `json:"address"`
-	Coordinates [2]float64               `json:"coordinates"`
-	GeoJSON     string                   `json:"geojson"`
-	APIResults  APIResultsGrouped        `json:"apiResults"`
-	AISummary   *apiclient.GeminiSummary `json:"aiSummary,omitempty"`
+	Address     string                `json:"address"`
+	Coordinates [2]float64            `json:"coordinates"`
+	GeoJSON     string                `json:"geojson"`
+	APIResults  APIResultsGrouped     `json:"apiResults"`
+	AISummary   *models.GeminiSummary `json:"aiSummary,omitempty"`
 }
 
 // HandleSearch handles the /search endpoint
@@ -107,29 +110,38 @@ func (h *SearchHandler) HandleSearch(w http.ResponseWriter, r *http.Request) {
 		houseNumber = parts[1]
 	}
 
-	log.Printf("Comprehensive search for %s %s", postcode, houseNumber)
+	// Security: Only allow cache bypass if authenticated as admin
 	if bypassCache {
-		log.Printf("Bypassing cache for %s %s - fetching fresh data", postcode, houseNumber)
+		adminSecret := os.Getenv("ADMIN_SECRET")
+		authHeader := r.Header.Get("X-Admin-Secret")
+		if adminSecret == "" || authHeader != adminSecret {
+			logutil.Warnf("Security: Cache bypass denied for %s (missing/invalid X-Admin-Secret)", r.RemoteAddr)
+			bypassCache = false
+		} else {
+			logutil.Infof("Admin authorized override: Bypassing cache for %s %s", postcode, houseNumber)
+		}
 	}
 
+	logutil.Infof("Comprehensive search for %s %s (bypassCache=%v)", postcode, houseNumber, bypassCache)
+
 	// Fetch basic BAG data first
-	bagData, err := h.apiClient.FetchBAGData(postcode, houseNumber)
+	bagData, err := h.apiClient.FetchBAGData(r.Context(), postcode, houseNumber)
 	if err != nil {
-		log.Printf("Error fetching BAG data: %v", err)
+		logutil.Errorf("Error fetching BAG data: %v", err)
 		respondWithError(w, http.StatusInternalServerError, "failed to fetch property data")
 		return
 	}
 
 	if bagData == nil || bagData.Address == "" {
-		log.Printf("No BAG data found for %s %s", postcode, houseNumber)
+		logutil.Infof("No BAG data found for %s %s", postcode, houseNumber)
 		respondWithError(w, http.StatusNotFound, "address not found")
 		return
 	}
 
 	// Aggregate all API data
-	comprehensiveData, err := h.aggregator.AggregatePropertyDataWithOptions(postcode, houseNumber, bypassCache)
+	comprehensiveData, err := h.aggregator.AggregatePropertyDataWithOptions(r.Context(), postcode, houseNumber, bypassCache, nil)
 	if err != nil {
-		log.Printf("Error aggregating property data: %v", err)
+		logutil.Errorf("Error aggregating property data: %v", err)
 		// Continue with basic BAG data only
 		comprehensiveData = &aggregator.ComprehensivePropertyData{
 			Address:     bagData.Address,
@@ -152,12 +164,12 @@ func (h *SearchHandler) HandleSearch(w http.ResponseWriter, r *http.Request) {
 	// Serialize to JSON for embedding in HTML
 	responseJSON, err := json.Marshal(response)
 	if err != nil {
-		log.Printf("Error marshaling response: %v", err)
+		logutil.Errorf("Error marshaling response: %v", err)
 		respondWithError(w, http.StatusInternalServerError, "failed to build response")
 		return
 	}
 
-	log.Printf("Found address: %s with %d API results", bagData.Address, len(apiResults.Free)+len(apiResults.Freemium)+len(apiResults.Premium))
+	logutil.Infof("Found address: %s with %d API results", bagData.Address, len(apiResults.Free)+len(apiResults.Freemium)+len(apiResults.Premium))
 
 	// Return HTML response for HTMX - simple structure without IDs that HTMX might hijack
 	html := fmt.Sprintf(`
@@ -178,9 +190,9 @@ func (h *SearchHandler) HandleSearch(w http.ResponseWriter, r *http.Request) {
 <div data-target="results">
 </div>
 <div data-geojson='%s' data-response='%s' style="display:none;"></div>`,
-		bagData.Address,
+		html.EscapeString(bagData.Address),
 		bagData.Coordinates[1], bagData.Coordinates[0],
-		postcode, houseNumber,
+		html.EscapeString(postcode), html.EscapeString(houseNumber),
 		html.EscapeString(bagData.GeoJSON),
 		html.EscapeString(string(responseJSON)))
 

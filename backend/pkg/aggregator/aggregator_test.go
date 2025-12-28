@@ -1,6 +1,7 @@
 package aggregator
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -65,7 +66,7 @@ func TestAggregatePropertyData_BAGIDExtraction(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		// Determine which API is being called based on URL
-		if strings.Contains(r.URL.String(), "locatieserver") || strings.Contains(r.URL.String(), "bzk") {
+		if strings.Contains(r.URL.String(), "locatieserver") || strings.Contains(r.URL.String(), "bzk") || strings.Contains(r.URL.Path, "/v1/search") {
 			w.Write([]byte(mockBAGJSON))
 		} else if strings.Contains(r.URL.String(), "gebiedsindelingen") {
 			w.Write([]byte(mockCBSWFS))
@@ -76,6 +77,10 @@ func TestAggregatePropertyData_BAGIDExtraction(t *testing.T) {
 	}))
 	defer server.Close()
 
+	cfg := &config.Config{
+		BagApiURL: server.URL,
+	}
+
 	// Create client with custom RoundTripper
 	client := apiclient.NewApiClient(&http.Client{
 		Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
@@ -83,16 +88,12 @@ func TestAggregatePropertyData_BAGIDExtraction(t *testing.T) {
 			req.URL.Scheme = "http"
 			return http.DefaultTransport.RoundTrip(req)
 		}),
-	})
-
-	cfg := &config.Config{
-		BagApiURL: server.URL,
-	}
+	}, cfg)
 
 	aggregator := NewPropertyAggregator(client, nil, cfg)
 
 	// Test aggregation
-	result, err := aggregator.AggregatePropertyData("1234AB", "10")
+	result, err := aggregator.AggregatePropertyData(context.Background(), "1234AB", "10")
 	if err != nil {
 		t.Fatalf("AggregatePropertyData failed: %v", err)
 	}
@@ -147,7 +148,7 @@ func TestAggregatePropertyData_ErrorHandling(t *testing.T) {
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Only respond to BAG requests, fail others
-		if strings.Contains(r.URL.String(), "locatieserver") || strings.Contains(r.URL.String(), "bzk") {
+		if strings.Contains(r.URL.String(), "locatieserver") || strings.Contains(r.URL.String(), "bzk") || strings.Contains(r.URL.Path, "/v1/search") {
 			w.Header().Set("Content-Type", "application/json")
 			w.Write([]byte(mockBAGJSON))
 		} else if strings.Contains(r.URL.String(), "gebiedsindelingen") {
@@ -162,25 +163,25 @@ func TestAggregatePropertyData_ErrorHandling(t *testing.T) {
 	}))
 	defer server.Close()
 
+	cfg := &config.Config{
+		BagApiURL:         server.URL,
+		AltumWOZApiURL:    server.URL,
+		AltumWOZApiKey:    "test-key",
+		KNMIWeatherApiURL: server.URL,
+		KNMISolarApiURL:   server.URL,
+	}
+
 	client := apiclient.NewApiClient(&http.Client{
 		Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
 			req.URL.Host = strings.TrimPrefix(server.URL, "http://")
 			req.URL.Scheme = "http"
 			return http.DefaultTransport.RoundTrip(req)
 		}),
-	})
-
-	cfg := &config.Config{
-		BagApiURL:          server.URL,
-		AltumWOZApiURL:     server.URL,
-		AltumWOZApiKey:     "test-key",
-		KNMIWeatherApiURL:  server.URL,
-		KNMISolarApiURL:    server.URL,
-	}
+	}, cfg)
 
 	aggregator := NewPropertyAggregator(client, nil, cfg)
 
-	result, err := aggregator.AggregatePropertyData("1234AB", "10")
+	result, err := aggregator.AggregatePropertyData(context.Background(), "1234AB", "10")
 	if err != nil {
 		t.Fatalf("AggregatePropertyData should not fail on API errors: %v", err)
 	}

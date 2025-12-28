@@ -1,16 +1,17 @@
 package apiclient
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/logutil"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/models"
@@ -19,48 +20,21 @@ import (
 // ApiClient for external API calls
 type ApiClient struct {
 	HTTP *http.Client
+	cfg  *config.Config
 }
 
-func NewApiClient(client *http.Client) *ApiClient {
+func NewApiClient(client *http.Client, cfg *config.Config) *ApiClient {
 	if client == nil {
 		// default client with reasonable timeout to avoid hanging requests
 		client = &http.Client{Timeout: 10 * time.Second}
 	}
-	return &ApiClient{HTTP: client}
+	return &ApiClient{
+		HTTP: client,
+		cfg:  cfg,
+	}
 }
 
-const defaultBAGEndpoint = "https://api.pdok.nl/bzk/locatieserver/search/v3_1/free"
-
-// bagResponse mirrors the PDOK Locatieserver free endpoint JSON payload.
-type bagResponse struct {
-	Response struct {
-		Docs []bagDocument `json:"docs"`
-	} `json:"response"`
-}
-
-// bagDocument contains only the fields we actually use downstream.
-type bagDocument struct {
-	ID                      string  `json:"id"`
-	NummeraanduidingID      string  `json:"nummeraanduiding_id"`
-	VerblijfsobjectID       string  `json:"verblijfsobject_id"`
-	PandID                  string  `json:"pand_id"`
-	Weergavenaam            string  `json:"weergavenaam"`
-	Straatnaam              string  `json:"straatnaam"`
-	Huisnummer              float64 `json:"huisnummer"`
-	HuisNLT                 string  `json:"huis_nlt"`
-	Huisletter              string  `json:"huisletter"`
-	Huisnummertoevoeg       string  `json:"huisnummertoevoeging"`
-	Postcode                string  `json:"postcode"`
-	WoonplaatsNaam          string  `json:"woonplaatsnaam"`
-	Gemeentenaam            string  `json:"gemeentenaam"`
-	Gemeentecode            string  `json:"gemeentecode"`
-	Provincienaam           string  `json:"provincienaam"`
-	Provinciecode           string  `json:"provinciecode"`
-	CentroidLL              string  `json:"centroide_ll"`
-	GeometriePolygoon       string  `json:"geometrie_polygoon"`
-}
-
-func (c *ApiClient) FetchBAGData(postcode, number string) (*models.BAGData, error) {
+func (c *ApiClient) FetchBAGData(ctx context.Context, postcode, number string) (*models.BAGData, error) {
 	postcode = strings.ToUpper(strings.TrimSpace(postcode))
 	number = strings.TrimSpace(number)
 	if postcode == "" || number == "" {
@@ -68,10 +42,7 @@ func (c *ApiClient) FetchBAGData(postcode, number string) (*models.BAGData, erro
 	}
 
 	logutil.Debugf("[BAG] FetchBAGData: postcode=%s, number=%s", postcode, number)
-	endpoint := strings.TrimSpace(os.Getenv("BAG_API_URL"))
-	if endpoint == "" {
-		endpoint = defaultBAGEndpoint
-	}
+	endpoint := c.cfg.BagApiURL
 
 	params := url.Values{}
 	params.Set("q", fmt.Sprintf("postcode:%s AND huisnummer:%s", postcode, number))
@@ -79,7 +50,7 @@ func (c *ApiClient) FetchBAGData(postcode, number string) (*models.BAGData, erro
 	params.Set("rows", "1")
 	params.Set("wt", "json")
 
-	req, err := http.NewRequest("GET", endpoint+"?"+params.Encode(), nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", endpoint+"?"+params.Encode(), nil)
 	if err != nil {
 		logutil.Debugf("[BAG] Request error: %v", err)
 		return nil, err
@@ -106,7 +77,7 @@ func (c *ApiClient) FetchBAGData(postcode, number string) (*models.BAGData, erro
 	}
 
 	logutil.Debugf("[BAG] Raw response: %s", string(body))
-	var apiResp bagResponse
+	var apiResp models.BagResponse
 	if err := json.Unmarshal(body, &apiResp); err != nil {
 		logutil.Debugf("[BAG] Unmarshal error: %v", err)
 		return nil, fmt.Errorf("failed to parse BAG API response: %w", err)
@@ -198,22 +169,22 @@ func (c *ApiClient) FetchBAGData(postcode, number string) (*models.BAGData, erro
 	}, nil
 }
 
-func (c *ApiClient) FetchPDOKData(coordinates string) (*models.PDOKData, error) {
+func (c *ApiClient) FetchPDOKData(ctx context.Context, coordinates string) (*models.PDOKData, error) {
 	logutil.Debugf("[PDOK] FetchPDOKData: coordinates=%s", coordinates)
-	
+
 	// Parse coordinates (expected format: "lon,lat")
 	parts := strings.Split(coordinates, ",")
 	if len(parts) != 2 {
 		return nil, fmt.Errorf("invalid coordinates format, expected 'lon,lat'")
 	}
-	
+
 	lon := strings.TrimSpace(parts[0])
 	lat := strings.TrimSpace(parts[1])
-	
+
 	// Use PDOK WFS for bestemmingsplannen (zoning plans)
 	// Documentation: https://www.nationaalgeoregister.nl/geonetwork/srv/dut/catalog.search#/metadata/c10a2c55-972f-4309-a038-0e5286934877
 	baseURL := "https://service.pdok.nl/roo/ruimtelijkeplannen/wfs/v1_0"
-	
+
 	// Build WFS GetFeature request with proper BBOX
 	// Using a small buffer around the point to ensure we catch the containing polygon
 	lonFloat, err := strconv.ParseFloat(lon, 64)
@@ -225,72 +196,72 @@ func (c *ApiClient) FetchPDOKData(coordinates string) (*models.PDOKData, error) 
 		return nil, fmt.Errorf("invalid latitude '%s': %w", lat, err)
 	}
 	buffer := 0.001 // ~100m buffer
-	
-	bbox := fmt.Sprintf("%.6f,%.6f,%.6f,%.6f", 
+
+	bbox := fmt.Sprintf("%.6f,%.6f,%.6f,%.6f",
 		lonFloat-buffer, latFloat-buffer, lonFloat+buffer, latFloat+buffer)
-	
+
 	url := fmt.Sprintf("%s?service=WFS&version=2.0.0&request=GetFeature&typeName=plangebied&outputFormat=application/json&srsName=EPSG:4326&bbox=%s,EPSG:4326&count=1",
 		baseURL, bbox)
-	
+
 	logutil.Debugf("[PDOK] WFS Request URL: %s", url)
-	
-	req, err := http.NewRequest("GET", url, nil)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		logutil.Debugf("[PDOK] Request error: %v", err)
 		return nil, err
 	}
 	req.Header.Set("Accept", "application/json")
-	
+
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
 		logutil.Debugf("[PDOK] HTTP error: %v", err)
 		return nil, err
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		logutil.Debugf("[PDOK] Non-200 status: %d", resp.StatusCode)
 		b, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("PDOK API returned status %d: %s", resp.StatusCode, string(b))
 	}
-	
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logutil.Debugf("[PDOK] Read body error: %v", err)
 		return nil, err
 	}
-	
+
 	// Log first 500 chars or less of response
 	bodyPreview := string(body)
 	if len(bodyPreview) > 500 {
 		bodyPreview = bodyPreview[:500]
 	}
 	logutil.Debugf("[PDOK] Raw response (first 500 chars): %s", bodyPreview)
-	
+
 	// Parse GeoJSON response
 	var geoJSON struct {
 		Type     string `json:"type"`
 		Features []struct {
 			Type       string `json:"type"`
 			Properties struct {
-				Naam              string `json:"naam"`
-				Plantype          string `json:"plantype"`
-				PlanStatus        string `json:"planstatus"`
+				Naam               string `json:"naam"`
+				Plantype           string `json:"plantype"`
+				PlanStatus         string `json:"planstatus"`
 				Beleidsmatigstatus string `json:"beleidsmatigstatus"`
 			} `json:"properties"`
 		} `json:"features"`
 	}
-	
+
 	if err := json.Unmarshal(body, &geoJSON); err != nil {
 		logutil.Debugf("[PDOK] JSON unmarshal error: %v", err)
 		return nil, fmt.Errorf("failed to parse PDOK response: %w", err)
 	}
-	
+
 	logutil.Debugf("[PDOK] Found %d features", len(geoJSON.Features))
-	
+
 	zoning := "Unknown"
 	restrictions := []string{}
-	
+
 	if len(geoJSON.Features) > 0 {
 		props := geoJSON.Features[0].Properties
 		zoning = props.Naam
@@ -301,9 +272,9 @@ func (c *ApiClient) FetchPDOKData(coordinates string) (*models.PDOKData, error) 
 			restrictions = append(restrictions, fmt.Sprintf("Status: %s", props.PlanStatus))
 		}
 	}
-	
+
 	logutil.Debugf("[PDOK] Final data: zoning=%s, restrictions=%v", zoning, restrictions)
-	
+
 	return &models.PDOKData{
 		ZoningInfo:   zoning,
 		Restrictions: restrictions,

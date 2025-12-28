@@ -2,6 +2,7 @@ package apiclient
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,14 +10,8 @@ import (
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/logutil"
+	"github.com/iman-hussain/AddressIQ/backend/pkg/models"
 )
-
-// GeminiSummary represents the AI-generated location summary
-type GeminiSummary struct {
-	Summary   string `json:"summary"`
-	Generated bool   `json:"generated"`
-	Error     string `json:"error,omitempty"`
-}
 
 // geminiRequest represents the request body for Gemini API
 type geminiRequest struct {
@@ -69,10 +64,10 @@ JSON Data:
 %s`
 
 // GenerateLocationSummary sends property data to Gemini and returns an AI-generated summary
-func (c *ApiClient) GenerateLocationSummary(cfg *config.Config, propertyData interface{}) (*GeminiSummary, error) {
+func (c *ApiClient) GenerateLocationSummary(ctx context.Context, cfg *config.Config, propertyData interface{}) (*models.GeminiSummary, error) {
 	if cfg.GeminiApiKey == "" {
 		logutil.Debugf("[Gemini] API key not configured")
-		return &GeminiSummary{
+		return &models.GeminiSummary{
 			Generated: false,
 			Error:     "Gemini API key not configured",
 		}, nil
@@ -82,7 +77,7 @@ func (c *ApiClient) GenerateLocationSummary(cfg *config.Config, propertyData int
 	jsonData, err := json.Marshal(propertyData)
 	if err != nil {
 		logutil.Debugf("[Gemini] Failed to marshal property data: %v", err)
-		return &GeminiSummary{
+		return &models.GeminiSummary{
 			Generated: false,
 			Error:     "Failed to prepare data for AI analysis",
 		}, nil
@@ -116,7 +111,7 @@ func (c *ApiClient) GenerateLocationSummary(cfg *config.Config, propertyData int
 	reqJSON, err := json.Marshal(reqBody)
 	if err != nil {
 		logutil.Debugf("[Gemini] Failed to marshal request: %v", err)
-		return &GeminiSummary{
+		return &models.GeminiSummary{
 			Generated: false,
 			Error:     "Failed to prepare AI request",
 		}, nil
@@ -127,10 +122,20 @@ func (c *ApiClient) GenerateLocationSummary(cfg *config.Config, propertyData int
 
 	logutil.Debugf("[Gemini] Sending request to Gemini API")
 
-	resp, err := c.HTTP.Post(url, "application/json", bytes.NewBuffer(reqJSON))
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(reqJSON))
+	if err != nil {
+		logutil.Debugf("[Gemini] Failed to create request: %v", err)
+		return &models.GeminiSummary{
+			Generated: false,
+			Error:     "Failed to create AI request",
+		}, nil
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.HTTP.Do(req)
 	if err != nil {
 		logutil.Debugf("[Gemini] HTTP request failed: %v", err)
-		return &GeminiSummary{
+		return &models.GeminiSummary{
 			Generated: false,
 			Error:     "Failed to connect to AI service",
 		}, nil
@@ -140,7 +145,7 @@ func (c *ApiClient) GenerateLocationSummary(cfg *config.Config, propertyData int
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logutil.Debugf("[Gemini] Failed to read response: %v", err)
-		return &GeminiSummary{
+		return &models.GeminiSummary{
 			Generated: false,
 			Error:     "Failed to read AI response",
 		}, nil
@@ -150,7 +155,7 @@ func (c *ApiClient) GenerateLocationSummary(cfg *config.Config, propertyData int
 
 	if resp.StatusCode != http.StatusOK {
 		logutil.Debugf("[Gemini] API error response: %s", string(body))
-		return &GeminiSummary{
+		return &models.GeminiSummary{
 			Generated: false,
 			Error:     fmt.Sprintf("AI service returned status %d", resp.StatusCode),
 		}, nil
@@ -159,7 +164,7 @@ func (c *ApiClient) GenerateLocationSummary(cfg *config.Config, propertyData int
 	var geminiResp geminiResponse
 	if err := json.Unmarshal(body, &geminiResp); err != nil {
 		logutil.Debugf("[Gemini] Failed to parse response: %v", err)
-		return &GeminiSummary{
+		return &models.GeminiSummary{
 			Generated: false,
 			Error:     "Failed to parse AI response",
 		}, nil
@@ -167,7 +172,7 @@ func (c *ApiClient) GenerateLocationSummary(cfg *config.Config, propertyData int
 
 	if geminiResp.Error != nil {
 		logutil.Debugf("[Gemini] API error: %s", geminiResp.Error.Message)
-		return &GeminiSummary{
+		return &models.GeminiSummary{
 			Generated: false,
 			Error:     geminiResp.Error.Message,
 		}, nil
@@ -176,7 +181,7 @@ func (c *ApiClient) GenerateLocationSummary(cfg *config.Config, propertyData int
 	// Extract the generated text
 	if len(geminiResp.Candidates) == 0 || len(geminiResp.Candidates[0].Content.Parts) == 0 {
 		logutil.Debugf("[Gemini] No content in response")
-		return &GeminiSummary{
+		return &models.GeminiSummary{
 			Generated: false,
 			Error:     "AI returned empty response",
 		}, nil
@@ -185,7 +190,7 @@ func (c *ApiClient) GenerateLocationSummary(cfg *config.Config, propertyData int
 	summary := geminiResp.Candidates[0].Content.Parts[0].Text
 	logutil.Debugf("[Gemini] Generated summary: %d characters", len(summary))
 
-	return &GeminiSummary{
+	return &models.GeminiSummary{
 		Summary:   summary,
 		Generated: true,
 	}, nil

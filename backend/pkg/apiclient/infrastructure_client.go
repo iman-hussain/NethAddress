@@ -1,6 +1,7 @@
 package apiclient
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/logutil"
+	"github.com/iman-hussain/AddressIQ/backend/pkg/models"
 )
 
 // Default PDOK API endpoints for infrastructure data (free, no auth required)
@@ -75,64 +77,9 @@ func extractPolygonCentroid(coordsRaw json.RawMessage, geomType string) (float64
 	return 0, 0, 0
 }
 
-// GreenSpacesData represents parks and green areas
-type GreenSpacesData struct {
-	TotalGreenArea  float64      `json:"totalGreenArea"`  // m² within radius
-	GreenPercentage float64      `json:"greenPercentage"` // percentage of area
-	NearestPark     string       `json:"nearestPark"`
-	ParkDistance    float64      `json:"parkDistance"`    // meters
-	TreeCanopyCover float64      `json:"treeCanopyCover"` // percentage
-	GreenSpaces     []GreenSpace `json:"greenSpaces"`
-}
-
-// GreenSpace represents a park or green area
-type GreenSpace struct {
-	Name       string   `json:"name"`
-	Type       string   `json:"type"`       // Park, Forest, Garden, etc.
-	Area       float64  `json:"area"`       // m²
-	Distance   float64  `json:"distance"`   // meters
-	Facilities []string `json:"facilities"` // Playground, Sports, etc.
-	Lat        float64  `json:"lat"`
-	Lon        float64  `json:"lon"`
-}
-
-// bgtGreenResponse represents PDOK BGT begroeidterreindeel API response
-type bgtGreenResponse struct {
-	Type     string `json:"type"`
-	Features []struct {
-		Type       string `json:"type"`
-		ID         string `json:"id"`
-		Properties struct {
-			FysiekVoorkomen string `json:"fysiekVoorkomen"` // e.g., "groenvoorziening", "bos"
-			Naam            string `json:"naam"`
-			OpenbareRuimte  string `json:"openbareRuimte"`
-		} `json:"properties"`
-		Geometry struct {
-			Type        string          `json:"type"`
-			Coordinates json.RawMessage `json:"coordinates"`
-		} `json:"geometry"`
-	} `json:"features"`
-	NumberReturned int `json:"numberReturned"`
-}
-
-// natura2000Response represents PDOK Natura2000 API response
-type natura2000Response struct {
-	Type     string `json:"type"`
-	Features []struct {
-		Type       string `json:"type"`
-		ID         string `json:"id"`
-		Properties struct {
-			Naam        string  `json:"naam"`
-			Oppervlakte float64 `json:"oppervlakte"`
-			Status      string  `json:"status"`
-		} `json:"properties"`
-	} `json:"features"`
-	NumberReturned int `json:"numberReturned"`
-}
-
 // FetchGreenSpacesData retrieves parks and green areas using PDOK BGT API
 // Documentation: https://api.pdok.nl/lv/bgt/ogc/v1
-func (c *ApiClient) FetchGreenSpacesData(cfg *config.Config, lat, lon float64, radius int) (*GreenSpacesData, error) {
+func (c *ApiClient) FetchGreenSpacesData(ctx context.Context, cfg *config.Config, lat, lon float64, radius int) (*models.GreenSpacesData, error) {
 	// Always use PDOK BGT API default (free, no auth) - ignore config overrides which may have bad URLs
 	baseURL := defaultBGTApiURL
 
@@ -144,7 +91,7 @@ func (c *ApiClient) FetchGreenSpacesData(cfg *config.Config, lat, lon float64, r
 	url := fmt.Sprintf("%s/collections/begroeidterreindeel/items?bbox=%s&f=json&limit=50", baseURL, bbox)
 	logutil.Debugf("[GreenSpaces] Request URL: %s", url)
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		logutil.Debugf("[GreenSpaces] Request error: %v", err)
 		return emptyGreenSpacesData(), nil
@@ -163,7 +110,7 @@ func (c *ApiClient) FetchGreenSpacesData(cfg *config.Config, lat, lon float64, r
 		return emptyGreenSpacesData(), nil
 	}
 
-	var apiResp bgtGreenResponse
+	var apiResp models.BgtGreenResponse
 	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
 		logutil.Debugf("[GreenSpaces] Decode error: %v", err)
 		return emptyGreenSpacesData(), nil
@@ -172,7 +119,7 @@ func (c *ApiClient) FetchGreenSpacesData(cfg *config.Config, lat, lon float64, r
 	logutil.Debugf("[GreenSpaces] Found %d green areas", len(apiResp.Features))
 
 	// Calculate total green area and categorise
-	greenSpaces := make([]GreenSpace, 0)
+	greenSpaces := make([]models.GreenSpace, 0)
 	totalArea := 0.0
 	nearestPark := ""
 	nearestDistance := math.MaxFloat64
@@ -211,7 +158,7 @@ func (c *ApiClient) FetchGreenSpacesData(cfg *config.Config, lat, lon float64, r
 
 		totalArea += area
 
-		greenSpaces = append(greenSpaces, GreenSpace{
+		greenSpaces = append(greenSpaces, models.GreenSpace{
 			Name:     name,
 			Type:     greenType,
 			Area:     area,
@@ -232,7 +179,7 @@ func (c *ApiClient) FetchGreenSpacesData(cfg *config.Config, lat, lon float64, r
 	}
 
 	// Also check for Natura2000 protected areas nearby
-	natura2000Parks := c.fetchNatura2000Areas(lat, lon, radius)
+	natura2000Parks := c.fetchNatura2000Areas(ctx, lat, lon, radius)
 	greenSpaces = append(greenSpaces, natura2000Parks...)
 
 	if nearestPark == "" && len(natura2000Parks) > 0 {
@@ -240,7 +187,7 @@ func (c *ApiClient) FetchGreenSpacesData(cfg *config.Config, lat, lon float64, r
 		nearestDistance = natura2000Parks[0].Distance
 	}
 
-	result := &GreenSpacesData{
+	result := &models.GreenSpacesData{
 		TotalGreenArea:  totalArea,
 		GreenPercentage: greenPercentage,
 		NearestPark:     nearestPark,
@@ -253,13 +200,13 @@ func (c *ApiClient) FetchGreenSpacesData(cfg *config.Config, lat, lon float64, r
 	return result, nil
 }
 
-func (c *ApiClient) fetchNatura2000Areas(lat, lon float64, radius int) []GreenSpace {
+func (c *ApiClient) fetchNatura2000Areas(ctx context.Context, lat, lon float64, radius int) []models.GreenSpace {
 	delta := float64(radius) / 111000.0 * 5 // Larger search area for nature reserves
 	bbox := fmt.Sprintf("%.6f,%.6f,%.6f,%.6f", lon-delta, lat-delta, lon+delta, lat+delta)
 
 	url := fmt.Sprintf("%s/collections/natura2000/items?bbox=%s&f=json&limit=5", defaultNatura2000URL, bbox)
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil
 	}
@@ -275,14 +222,14 @@ func (c *ApiClient) fetchNatura2000Areas(lat, lon float64, radius int) []GreenSp
 		return nil
 	}
 
-	var apiResp natura2000Response
+	var apiResp models.Natura2000Response
 	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
 		return nil
 	}
 
-	parks := make([]GreenSpace, 0, len(apiResp.Features))
+	parks := make([]models.GreenSpace, 0, len(apiResp.Features))
 	for _, f := range apiResp.Features {
-		parks = append(parks, GreenSpace{
+		parks = append(parks, models.GreenSpace{
 			Name:     f.Properties.Naam,
 			Type:     "Nature Reserve",
 			Area:     f.Properties.Oppervlakte,
@@ -312,61 +259,20 @@ func mapBGTTypeToGreenType(bgtType string) string {
 	}
 }
 
-func emptyGreenSpacesData() *GreenSpacesData {
-	return &GreenSpacesData{
+func emptyGreenSpacesData() *models.GreenSpacesData {
+	return &models.GreenSpacesData{
 		TotalGreenArea:  0,
 		GreenPercentage: 0,
 		NearestPark:     "",
 		ParkDistance:    0,
 		TreeCanopyCover: 0,
-		GreenSpaces:     []GreenSpace{},
+		GreenSpaces:     []models.GreenSpace{},
 	}
-}
-
-// EducationData represents schools and education facilities
-type EducationData struct {
-	NearestPrimarySchool   *School  `json:"nearestPrimarySchool"`
-	NearestSecondarySchool *School  `json:"nearestSecondarySchool"`
-	AllSchools             []School `json:"allSchools"`
-	AverageQuality         float64  `json:"averageQuality"` // 0-10 rating
-}
-
-// School represents an educational facility
-type School struct {
-	Name         string  `json:"name"`
-	Type         string  `json:"type"`         // Primary, Secondary, Special
-	Distance     float64 `json:"distance"`     // meters
-	QualityScore float64 `json:"qualityScore"` // 0-10
-	Students     int     `json:"students"`
-	Address      string  `json:"address"`
-	Denomination string  `json:"denomination"` // Public, Catholic, etc.
-	Lat          float64 `json:"lat"`
-	Lon          float64 `json:"lon"`
-}
-
-// overpassResponse represents OSM Overpass API response
-type overpassResponse struct {
-	Elements []struct {
-		Type string  `json:"type"`
-		ID   int64   `json:"id"`
-		Lat  float64 `json:"lat"`
-		Lon  float64 `json:"lon"`
-		Tags struct {
-			Name        string `json:"name"`
-			Amenity     string `json:"amenity"`
-			ISCEDLevel  string `json:"isced:level"`
-			Operator    string `json:"operator"`
-			Religion    string `json:"religion"`
-			AddrStreet  string `json:"addr:street"`
-			AddrHouseNo string `json:"addr:housenumber"`
-			AddrCity    string `json:"addr:city"`
-		} `json:"tags"`
-	} `json:"elements"`
 }
 
 // FetchEducationData retrieves school locations using OSM Overpass API
 // Documentation: https://wiki.openstreetmap.org/wiki/Overpass_API
-func (c *ApiClient) FetchEducationData(cfg *config.Config, lat, lon float64) (*EducationData, error) {
+func (c *ApiClient) FetchEducationData(ctx context.Context, cfg *config.Config, lat, lon float64) (*models.EducationData, error) {
 	// Use Overpass API to find schools (free, no auth required)
 	overpassURL := "https://overpass-api.de/api/interpreter"
 
@@ -383,7 +289,7 @@ out center body qt 20;`, radius, lat, lon, radius, lat, lon)
 
 	// Send query as POST body (not query string)
 	reqBody := strings.NewReader("data=" + query)
-	req, err := http.NewRequest("POST", overpassURL, reqBody)
+	req, err := http.NewRequestWithContext(ctx, "POST", overpassURL, reqBody)
 	if err != nil {
 		logutil.Debugf("[Education] Request error: %v", err)
 		return emptyEducationData(), nil
@@ -403,7 +309,7 @@ out center body qt 20;`, radius, lat, lon, radius, lat, lon)
 		return emptyEducationData(), nil
 	}
 
-	var apiResp overpassResponse
+	var apiResp models.OverpassResponse
 	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
 		logutil.Debugf("[Education] Decode error: %v", err)
 		return emptyEducationData(), nil
@@ -411,9 +317,9 @@ out center body qt 20;`, radius, lat, lon, radius, lat, lon)
 
 	logutil.Debugf("[Education] Found %d schools", len(apiResp.Elements))
 
-	allSchools := make([]School, 0, len(apiResp.Elements))
-	var nearestPrimary *School
-	var nearestSecondary *School
+	allSchools := make([]models.School, 0, len(apiResp.Elements))
+	var nearestPrimary *models.School
+	var nearestSecondary *models.School
 	minPrimaryDist := math.MaxFloat64
 	minSecondaryDist := math.MaxFloat64
 
@@ -432,7 +338,7 @@ out center body qt 20;`, radius, lat, lon, radius, lat, lon)
 			address = fmt.Sprintf("%s %s, %s", elem.Tags.AddrStreet, elem.Tags.AddrHouseNo, elem.Tags.AddrCity)
 		}
 
-		school := School{
+		school := models.School{
 			Name:         elem.Tags.Name,
 			Type:         schoolType,
 			Distance:     distance,
@@ -467,7 +373,7 @@ out center body qt 20;`, radius, lat, lon, radius, lat, lon)
 		avgQuality = total / float64(len(allSchools))
 	}
 
-	result := &EducationData{
+	result := &models.EducationData{
 		NearestPrimarySchool:   nearestPrimary,
 		NearestSecondarySchool: nearestSecondary,
 		AllSchools:             allSchools,
@@ -520,57 +426,37 @@ func haversineDistance(lat1, lon1, lat2, lon2 float64) float64 {
 	return earthRadius * c
 }
 
-func emptyEducationData() *EducationData {
-	return &EducationData{
+func emptyEducationData() *models.EducationData {
+	return &models.EducationData{
 		NearestPrimarySchool:   nil,
 		NearestSecondarySchool: nil,
-		AllSchools:             []School{},
+		AllSchools:             []models.School{},
 		AverageQuality:         0,
 	}
 }
 
-// BuildingPermitsData represents recent construction activity
-type BuildingPermitsData struct {
-	TotalPermits    int              `json:"totalPermits"`
-	NewConstruction int              `json:"newConstruction"`
-	Renovations     int              `json:"renovations"`
-	Permits         []BuildingPermit `json:"permits"`
-	GrowthTrend     string           `json:"growthTrend"` // Increasing, Stable, Decreasing
-}
-
-// BuildingPermit represents a single permit
-type BuildingPermit struct {
-	PermitID     string  `json:"permitId"`
-	Type         string  `json:"type"` // New, Renovation, Extension, Demolition
-	Address      string  `json:"address"`
-	Distance     float64 `json:"distance"` // meters
-	IssueDate    string  `json:"issueDate"`
-	ProjectValue float64 `json:"projectValue"` // EUR
-	Status       string  `json:"status"`       // Approved, In Progress, Completed
-}
-
 // FetchBuildingPermitsData retrieves recent building activity
 // Documentation: https://api.store (CBS Building Permits)
-func (c *ApiClient) FetchBuildingPermitsData(cfg *config.Config, lat, lon float64, radius int) (*BuildingPermitsData, error) {
+func (c *ApiClient) FetchBuildingPermitsData(ctx context.Context, cfg *config.Config, lat, lon float64, radius int) (*models.BuildingPermitsData, error) {
 	// Return empty data if not configured
 	if cfg.BuildingPermitsApiURL == "" {
-		return &BuildingPermitsData{
+		return &models.BuildingPermitsData{
 			TotalPermits:    0,
 			NewConstruction: 0,
 			Renovations:     0,
-			Permits:         []BuildingPermit{},
+			Permits:         []models.BuildingPermit{},
 			GrowthTrend:     "Unknown",
 		}, nil
 	}
 
 	url := fmt.Sprintf("%s/permits?lat=%f&lon=%f&radius=%d&years=2", cfg.BuildingPermitsApiURL, lat, lon, radius)
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
-		return &BuildingPermitsData{
+		return &models.BuildingPermitsData{
 			TotalPermits:    0,
 			NewConstruction: 0,
 			Renovations:     0,
-			Permits:         []BuildingPermit{},
+			Permits:         []models.BuildingPermit{},
 			GrowthTrend:     "Unknown",
 		}, nil
 	}
@@ -579,33 +465,33 @@ func (c *ApiClient) FetchBuildingPermitsData(cfg *config.Config, lat, lon float6
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
-		return &BuildingPermitsData{
+		return &models.BuildingPermitsData{
 			TotalPermits:    0,
 			NewConstruction: 0,
 			Renovations:     0,
-			Permits:         []BuildingPermit{},
+			Permits:         []models.BuildingPermit{},
 			GrowthTrend:     "Unknown",
 		}, nil
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return &BuildingPermitsData{
+		return &models.BuildingPermitsData{
 			TotalPermits:    0,
 			NewConstruction: 0,
 			Renovations:     0,
-			Permits:         []BuildingPermit{},
+			Permits:         []models.BuildingPermit{},
 			GrowthTrend:     "Unknown",
 		}, nil
 	}
 
-	var result BuildingPermitsData
+	var result models.BuildingPermitsData
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return &BuildingPermitsData{
+		return &models.BuildingPermitsData{
 			TotalPermits:    0,
 			NewConstruction: 0,
 			Renovations:     0,
-			Permits:         []BuildingPermit{},
+			Permits:         []models.BuildingPermit{},
 			GrowthTrend:     "Unknown",
 		}, nil
 	}
@@ -613,47 +499,9 @@ func (c *ApiClient) FetchBuildingPermitsData(cfg *config.Config, lat, lon float6
 	return &result, nil
 }
 
-// FacilitiesData represents nearby amenities
-type FacilitiesData struct {
-	TopFacilities  []Facility     `json:"topFacilities"`
-	AmenitiesScore float64        `json:"amenitiesScore"` // 0-100
-	CategoryCounts map[string]int `json:"categoryCounts"`
-}
-
-// Facility represents a single amenity
-type Facility struct {
-	Name      string  `json:"name"`
-	Category  string  `json:"category"`  // Retail, Healthcare, Leisure, etc.
-	Type      string  `json:"type"`      // Supermarket, Hospital, Gym, etc.
-	Distance  float64 `json:"distance"`  // meters
-	WalkTime  int     `json:"walkTime"`  // minutes
-	DriveTime int     `json:"driveTime"` // minutes
-	Rating    float64 `json:"rating"`    // 0-5 stars
-	Address   string  `json:"address"`
-	Lat       float64 `json:"lat"`
-	Lon       float64 `json:"lon"`
-}
-
-// overpassFacilitiesResponse for OSM amenities query
-type overpassFacilitiesResponse struct {
-	Elements []struct {
-		Type string  `json:"type"`
-		ID   int64   `json:"id"`
-		Lat  float64 `json:"lat"`
-		Lon  float64 `json:"lon"`
-		Tags struct {
-			Name       string `json:"name"`
-			Amenity    string `json:"amenity"`
-			Shop       string `json:"shop"`
-			Leisure    string `json:"leisure"`
-			Healthcare string `json:"healthcare"`
-		} `json:"tags"`
-	} `json:"elements"`
-}
-
 // FetchFacilitiesData retrieves nearby amenities using OSM Overpass API
 // Documentation: https://wiki.openstreetmap.org/wiki/Overpass_API
-func (c *ApiClient) FetchFacilitiesData(cfg *config.Config, lat, lon float64) (*FacilitiesData, error) {
+func (c *ApiClient) FetchFacilitiesData(ctx context.Context, cfg *config.Config, lat, lon float64) (*models.FacilitiesData, error) {
 	overpassURL := "https://overpass-api.de/api/interpreter"
 
 	// Query for common amenities within 1.5km
@@ -677,7 +525,7 @@ out body qt 50;`, radius, lat, lon, radius, lat, lon, radius, lat, lon, radius, 
 
 	// Send query as POST body (not query string)
 	reqBody := strings.NewReader("data=" + query)
-	req, err := http.NewRequest("POST", overpassURL, reqBody)
+	req, err := http.NewRequestWithContext(ctx, "POST", overpassURL, reqBody)
 	if err != nil {
 		logutil.Debugf("[Facilities] Request error: %v", err)
 		return emptyFacilitiesData(), nil
@@ -697,7 +545,7 @@ out body qt 50;`, radius, lat, lon, radius, lat, lon, radius, lat, lon, radius, 
 		return emptyFacilitiesData(), nil
 	}
 
-	var apiResp overpassFacilitiesResponse
+	var apiResp models.OverpassFacilitiesResponse
 	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
 		logutil.Debugf("[Facilities] Decode error: %v", err)
 		return emptyFacilitiesData(), nil
@@ -705,7 +553,7 @@ out body qt 50;`, radius, lat, lon, radius, lat, lon, radius, lat, lon, radius, 
 
 	logutil.Debugf("[Facilities] Found %d amenities", len(apiResp.Elements))
 
-	facilities := make([]Facility, 0, len(apiResp.Elements))
+	facilities := make([]models.Facility, 0, len(apiResp.Elements))
 	categoryCounts := make(map[string]int)
 
 	for _, elem := range apiResp.Elements {
@@ -721,7 +569,7 @@ out body qt 50;`, radius, lat, lon, radius, lat, lon, radius, lat, lon, radius, 
 		walkTime := int(distance / 80)
 		driveTime := int(distance / 500) // ~30km/h in city
 
-		facility := Facility{
+		facility := models.Facility{
 			Name:      name,
 			Category:  category,
 			Type:      facilityType,
@@ -729,6 +577,7 @@ out body qt 50;`, radius, lat, lon, radius, lat, lon, radius, lat, lon, radius, 
 			WalkTime:  walkTime,
 			DriveTime: driveTime,
 			Rating:    4.0, // Default - would need external API
+			Address:   "",  // Address not parsed for facilities in this simple version
 			Lat:       elem.Lat,
 			Lon:       elem.Lon,
 		}
@@ -746,7 +595,7 @@ out body qt 50;`, radius, lat, lon, radius, lat, lon, radius, lat, lon, radius, 
 	// Calculate amenities score (0-100)
 	amenitiesScore := calculateAmenitiesScore(categoryCounts, facilities)
 
-	result := &FacilitiesData{
+	result := &models.FacilitiesData{
 		TopFacilities:  facilities,
 		AmenitiesScore: amenitiesScore,
 		CategoryCounts: categoryCounts,
@@ -787,7 +636,7 @@ func categorizeFacility(amenity, shop, leisure, healthcare string) (category, fa
 	return "Other", amenity
 }
 
-func sortFacilitiesByDistance(facilities []Facility) {
+func sortFacilitiesByDistance(facilities []models.Facility) {
 	for i := 0; i < len(facilities); i++ {
 		for j := i + 1; j < len(facilities); j++ {
 			if facilities[j].Distance < facilities[i].Distance {
@@ -797,7 +646,7 @@ func sortFacilitiesByDistance(facilities []Facility) {
 	}
 }
 
-func calculateAmenitiesScore(counts map[string]int, facilities []Facility) float64 {
+func calculateAmenitiesScore(counts map[string]int, facilities []models.Facility) float64 {
 	// Score based on variety and proximity
 	score := 0.0
 
@@ -834,35 +683,17 @@ func calculateAmenitiesScore(counts map[string]int, facilities []Facility) float
 	return score
 }
 
-func emptyFacilitiesData() *FacilitiesData {
-	return &FacilitiesData{
-		TopFacilities:  []Facility{},
+func emptyFacilitiesData() *models.FacilitiesData {
+	return &models.FacilitiesData{
+		TopFacilities:  []models.Facility{},
 		AmenitiesScore: 0,
 		CategoryCounts: make(map[string]int),
 	}
 }
 
-// AHNHeightData represents elevation and terrain data
-type AHNHeightData struct {
-	Elevation     float64   `json:"elevation"`     // meters above NAP
-	TerrainSlope  float64   `json:"terrainSlope"`  // degrees
-	FloodRisk     string    `json:"floodRisk"`     // Low, Medium, High based on elevation
-	ViewPotential string    `json:"viewPotential"` // Poor, Fair, Good, Excellent
-	Surrounding   []float64 `json:"surrounding"`   // Elevations of nearby points
-}
-
-// openElevationResponse represents Open-Elevation API response
-type openElevationResponse struct {
-	Results []struct {
-		Elevation float64 `json:"elevation"`
-		Latitude  float64 `json:"latitude"`
-		Longitude float64 `json:"longitude"`
-	} `json:"results"`
-}
-
 // FetchAHNHeightData retrieves elevation data using Open-Elevation API
 // Documentation: https://open-elevation.com
-func (c *ApiClient) FetchAHNHeightData(cfg *config.Config, lat, lon float64) (*AHNHeightData, error) {
+func (c *ApiClient) FetchAHNHeightData(ctx context.Context, cfg *config.Config, lat, lon float64) (*models.AHNHeightData, error) {
 	// Always use Open-Elevation API (free, no auth required)
 	// Ignore config override which may have wrong WFS URLs
 	openElevationURL := "https://api.open-elevation.com/api/v1/lookup"
@@ -871,7 +702,7 @@ func (c *ApiClient) FetchAHNHeightData(cfg *config.Config, lat, lon float64) (*A
 	url := fmt.Sprintf("%s?locations=%.6f,%.6f", openElevationURL, lat, lon)
 	logutil.Debugf("[AHN] Request URL: %s", url)
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		logutil.Debugf("[AHN] Request error: %v", err)
 		return estimateElevationForAmsterdam(lat, lon), nil
@@ -890,7 +721,7 @@ func (c *ApiClient) FetchAHNHeightData(cfg *config.Config, lat, lon float64) (*A
 		return estimateElevationForAmsterdam(lat, lon), nil
 	}
 
-	var apiResp openElevationResponse
+	var apiResp models.OpenElevationResponse
 	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
 		logutil.Debugf("[AHN] Decode error: %v", err)
 		return estimateElevationForAmsterdam(lat, lon), nil
@@ -922,7 +753,7 @@ func (c *ApiClient) FetchAHNHeightData(cfg *config.Config, lat, lon float64) (*A
 		viewPotential = "Poor"
 	}
 
-	result := &AHNHeightData{
+	result := &models.AHNHeightData{
 		Elevation:     elevation,
 		TerrainSlope:  0.5, // Netherlands is very flat
 		FloodRisk:     floodRisk,
@@ -936,7 +767,7 @@ func (c *ApiClient) FetchAHNHeightData(cfg *config.Config, lat, lon float64) (*A
 
 // estimateElevationForAmsterdam provides a reasonable estimate for Amsterdam area
 // Most of Amsterdam is around -2m to +2m NAP
-func estimateElevationForAmsterdam(lat, lon float64) *AHNHeightData {
+func estimateElevationForAmsterdam(lat, lon float64) *models.AHNHeightData {
 	// Amsterdam center is approximately 52.37N, 4.89E
 	// Elevation varies from about -5m (polders) to +2m (city center)
 
@@ -963,7 +794,7 @@ func estimateElevationForAmsterdam(lat, lon float64) *AHNHeightData {
 		floodRisk = "Low"
 	}
 
-	return &AHNHeightData{
+	return &models.AHNHeightData{
 		Elevation:     elevation,
 		TerrainSlope:  0.5,
 		FloodRisk:     floodRisk,

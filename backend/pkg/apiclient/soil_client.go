@@ -1,29 +1,21 @@
 package apiclient
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
+	"github.com/iman-hussain/AddressIQ/backend/pkg/models"
 )
-
-// WURSoilData represents soil physical properties
-type WURSoilData struct {
-	SoilType      string  `json:"soilType"`
-	Composition   string  `json:"composition"`
-	Permeability  float64 `json:"permeability"`
-	OrganicMatter float64 `json:"organicMatter"`
-	PH            float64 `json:"ph"`
-	Suitability   string  `json:"suitability"`
-}
 
 // FetchWURSoilData retrieves soil properties for land quality assessment
 // Documentation: https://www.soilphysics.wur.nl
-func (c *ApiClient) FetchWURSoilData(cfg *config.Config, lat, lon float64) (*WURSoilData, error) {
+func (c *ApiClient) FetchWURSoilData(ctx context.Context, cfg *config.Config, lat, lon float64) (*models.WURSoilData, error) {
 	if cfg.WURSoilApiURL == "" {
 		// Return default data when API is not configured (requires agreement)
-		return &WURSoilData{
+		return &models.WURSoilData{
 			SoilType:      "Unknown",
 			Composition:   "Unknown",
 			Permeability:  0,
@@ -34,7 +26,7 @@ func (c *ApiClient) FetchWURSoilData(cfg *config.Config, lat, lon float64) (*WUR
 	}
 
 	url := fmt.Sprintf("%s/soil?lat=%f&lon=%f", cfg.WURSoilApiURL, lat, lon)
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +40,7 @@ func (c *ApiClient) FetchWURSoilData(cfg *config.Config, lat, lon float64) (*WUR
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return &WURSoilData{
+		return &models.WURSoilData{
 			SoilType:      "Unknown",
 			Composition:   "Unknown",
 			Permeability:  0,
@@ -58,7 +50,7 @@ func (c *ApiClient) FetchWURSoilData(cfg *config.Config, lat, lon float64) (*WUR
 		}, nil
 	}
 
-	var result WURSoilData
+	var result models.WURSoilData
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("failed to decode WUR soil response: %w", err)
 	}
@@ -66,21 +58,12 @@ func (c *ApiClient) FetchWURSoilData(cfg *config.Config, lat, lon float64) (*WUR
 	return &result, nil
 }
 
-// SubsidenceData represents land subsidence data
-type SubsidenceData struct {
-	SubsidenceRate  float64 `json:"subsidenceRate"`  // mm/year
-	TotalSubsidence float64 `json:"totalSubsidence"` // mm since baseline
-	StabilityRating string  `json:"stabilityRating"` // Low, Medium, High risk
-	MeasurementDate string  `json:"measurementDate"`
-	GroundMovement  float64 `json:"groundMovement"`
-}
-
 // FetchSubsidenceData retrieves land subsidence and stability data
 // Documentation: https://bodemdalingskaart.nl
-func (c *ApiClient) FetchSubsidenceData(cfg *config.Config, lat, lon float64) (*SubsidenceData, error) {
+func (c *ApiClient) FetchSubsidenceData(ctx context.Context, cfg *config.Config, lat, lon float64) (*models.SubsidenceData, error) {
 	if cfg.SkyGeoSubsidenceApiURL == "" {
 		// Return default data when API is not configured (paid service)
-		return &SubsidenceData{
+		return &models.SubsidenceData{
 			SubsidenceRate:  0,
 			TotalSubsidence: 0,
 			StabilityRating: "Unknown",
@@ -90,7 +73,7 @@ func (c *ApiClient) FetchSubsidenceData(cfg *config.Config, lat, lon float64) (*
 	}
 
 	url := fmt.Sprintf("%s/subsidence?lat=%f&lon=%f", cfg.SkyGeoSubsidenceApiURL, lat, lon)
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +87,7 @@ func (c *ApiClient) FetchSubsidenceData(cfg *config.Config, lat, lon float64) (*
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return &SubsidenceData{
+		return &models.SubsidenceData{
 			SubsidenceRate:  0,
 			TotalSubsidence: 0,
 			StabilityRating: "Unknown",
@@ -113,7 +96,7 @@ func (c *ApiClient) FetchSubsidenceData(cfg *config.Config, lat, lon float64) (*
 		}, nil
 	}
 
-	var result SubsidenceData
+	var result models.SubsidenceData
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("failed to decode subsidence response: %w", err)
 	}
@@ -121,24 +104,15 @@ func (c *ApiClient) FetchSubsidenceData(cfg *config.Config, lat, lon float64) (*
 	return &result, nil
 }
 
-// SoilQualityData represents soil contamination and quality
-type SoilQualityData struct {
-	ContaminationLevel string   `json:"contaminationLevel"` // Clean, Light, Moderate, Severe
-	Contaminants       []string `json:"contaminants"`
-	QualityZone        string   `json:"qualityZone"`
-	RestrictedUse      bool     `json:"restrictedUse"`
-	LastTested         string   `json:"lastTested"`
-}
-
 // FetchSoilQualityData retrieves soil contamination data
 // Documentation: https://api.store (government soil quality API)
-func (c *ApiClient) FetchSoilQualityData(cfg *config.Config, lat, lon float64) (*SoilQualityData, error) {
+func (c *ApiClient) FetchSoilQualityData(ctx context.Context, cfg *config.Config, lat, lon float64) (*models.SoilQualityData, error) {
 	if cfg.SoilQualityApiURL == "" {
 		return nil, fmt.Errorf("SoilQualityApiURL not configured")
 	}
 
 	url := fmt.Sprintf("%s/soil-quality?lat=%f&lon=%f", cfg.SoilQualityApiURL, lat, lon)
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +127,7 @@ func (c *ApiClient) FetchSoilQualityData(cfg *config.Config, lat, lon float64) (
 
 	if resp.StatusCode == 404 {
 		// No contamination data available - assume clean
-		return &SoilQualityData{
+		return &models.SoilQualityData{
 			ContaminationLevel: "Unknown",
 			Contaminants:       []string{},
 			RestrictedUse:      false,
@@ -164,7 +138,7 @@ func (c *ApiClient) FetchSoilQualityData(cfg *config.Config, lat, lon float64) (
 		return nil, fmt.Errorf("soil quality API returned status %d", resp.StatusCode)
 	}
 
-	var result SoilQualityData
+	var result models.SoilQualityData
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("failed to decode soil quality response: %w", err)
 	}
@@ -172,21 +146,12 @@ func (c *ApiClient) FetchSoilQualityData(cfg *config.Config, lat, lon float64) (
 	return &result, nil
 }
 
-// BROSoilMapData represents soil types and foundation quality
-type BROSoilMapData struct {
-	SoilType          string  `json:"soilType"`
-	PeatComposition   float64 `json:"peatComposition"` // percentage
-	Profile           string  `json:"profile"`
-	FoundationQuality string  `json:"foundationQuality"` // Excellent, Good, Fair, Poor
-	GroundwaterDepth  float64 `json:"groundwaterDepth"`  // meters
-}
-
 // FetchBROSoilMapData retrieves BRO soil map data for foundation quality
 // Documentation: https://www.dinoloket.nl/en/bro-soil-map
-func (c *ApiClient) FetchBROSoilMapData(cfg *config.Config, lat, lon float64) (*BROSoilMapData, error) {
+func (c *ApiClient) FetchBROSoilMapData(ctx context.Context, cfg *config.Config, lat, lon float64) (*models.BROSoilMapData, error) {
 	// Return default data if not configured
 	if cfg.BROSoilMapApiURL == "" {
-		return &BROSoilMapData{
+		return &models.BROSoilMapData{
 			SoilType:          "Unknown",
 			PeatComposition:   0,
 			Profile:           "Unknown",
@@ -196,9 +161,9 @@ func (c *ApiClient) FetchBROSoilMapData(cfg *config.Config, lat, lon float64) (*
 	}
 
 	url := fmt.Sprintf("%s/bro/soil-map?lat=%f&lon=%f", cfg.BROSoilMapApiURL, lat, lon)
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
-		return &BROSoilMapData{
+		return &models.BROSoilMapData{
 			SoilType:          "Unknown",
 			PeatComposition:   0,
 			Profile:           "Unknown",
@@ -211,7 +176,7 @@ func (c *ApiClient) FetchBROSoilMapData(cfg *config.Config, lat, lon float64) (*
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
-		return &BROSoilMapData{
+		return &models.BROSoilMapData{
 			SoilType:          "Unknown",
 			PeatComposition:   0,
 			Profile:           "Unknown",
@@ -222,7 +187,7 @@ func (c *ApiClient) FetchBROSoilMapData(cfg *config.Config, lat, lon float64) (*
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return &BROSoilMapData{
+		return &models.BROSoilMapData{
 			SoilType:          "Unknown",
 			PeatComposition:   0,
 			Profile:           "Unknown",
@@ -231,9 +196,9 @@ func (c *ApiClient) FetchBROSoilMapData(cfg *config.Config, lat, lon float64) (*
 		}, nil
 	}
 
-	var result BROSoilMapData
+	var result models.BROSoilMapData
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return &BROSoilMapData{
+		return &models.BROSoilMapData{
 			SoilType:          "Unknown",
 			PeatComposition:   0,
 			Profile:           "Unknown",

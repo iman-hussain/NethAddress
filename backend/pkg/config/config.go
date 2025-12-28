@@ -1,6 +1,8 @@
 package config
 
 import (
+	"fmt"
+
 	"github.com/joho/godotenv"
 	"github.com/kelseyhightower/envconfig"
 )
@@ -9,6 +11,7 @@ type Config struct {
 	DatabaseURL    string `envconfig:"DATABASE_URL"`
 	RedisURL       string `envconfig:"REDIS_URL"`
 	FrontendOrigin string `envconfig:"FRONTEND_ORIGIN"`
+	AdminSecret    string `envconfig:"ADMIN_SECRET"`
 
 	// Property & Land Data APIs
 	BagApiURL                string `envconfig:"BAG_API_URL"`
@@ -99,5 +102,11 @@ func LoadConfig() (*Config, error) {
 	if err := envconfig.Process("", &cfg); err != nil {
 		return nil, err
 	}
+
+	// Validate required configuration (Fail-Fast)
+	if cfg.BagApiURL == "" {
+		return nil, fmt.Errorf("required environment variable BAG_API_URL is not set")
+	}
+
 	return &cfg, nil
 }

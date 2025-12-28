@@ -1,6 +1,7 @@
 package apiclient
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -8,36 +9,20 @@ import (
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/logutil"
+	"github.com/iman-hussain/AddressIQ/backend/pkg/models"
 )
-
-// AirQualityData represents comprehensive air quality measurements
-type AirQualityData struct {
-	StationID    string           `json:"stationId"`
-	StationName  string           `json:"stationName"`
-	Measurements []AirMeasurement `json:"measurements"`
-	AQI          int              `json:"aqi"`      // Air Quality Index 0-500
-	Category     string           `json:"category"` // Good, Moderate, Unhealthy, etc.
-	LastUpdated  string           `json:"lastUpdated"`
-}
-
-// AirMeasurement represents a single pollutant measurement
-type AirMeasurement struct {
-	Parameter string  `json:"parameter"` // NO2, PM10, PM2.5, O3, etc.
-	Value     float64 `json:"value"`     // µg/m³
-	Unit      string  `json:"unit"`
-}
 
 // FetchAirQualityData retrieves real-time air quality data
 // Documentation: https://api-docs.luchtmeetnet.nl
-func (c *ApiClient) FetchAirQualityData(cfg *config.Config, lat, lon float64) (*AirQualityData, error) {
+func (c *ApiClient) FetchAirQualityData(ctx context.Context, cfg *config.Config, lat, lon float64) (*models.AirQualityData, error) {
 	logutil.Debugf("[APIClient] FetchAirQualityData: url=%s, lat=%.6f, lon=%.6f", cfg.LuchtmeetnetApiURL, lat, lon)
 
 	// Return empty data if not configured
 	if cfg.LuchtmeetnetApiURL == "" {
-		return &AirQualityData{
+		return &models.AirQualityData{
 			StationID:    "",
 			StationName:  "",
-			Measurements: []AirMeasurement{},
+			Measurements: []models.AirMeasurement{},
 			AQI:          0,
 			Category:     "Unknown",
 			LastUpdated:  "",
@@ -47,12 +32,12 @@ func (c *ApiClient) FetchAirQualityData(cfg *config.Config, lat, lon float64) (*
 	// Find nearest station
 	stationURL := fmt.Sprintf("%s/stations?lat=%f&lon=%f&limit=1", cfg.LuchtmeetnetApiURL, lat, lon)
 	logutil.Debugf("[APIClient] FetchAirQualityData: stationURL=%s", stationURL)
-	req, err := http.NewRequest("GET", stationURL, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", stationURL, nil)
 	if err != nil {
-		return &AirQualityData{
+		return &models.AirQualityData{
 			StationID:    "",
 			StationName:  "",
-			Measurements: []AirMeasurement{},
+			Measurements: []models.AirMeasurement{},
 			AQI:          0,
 			Category:     "Unknown",
 			LastUpdated:  "",
@@ -62,10 +47,10 @@ func (c *ApiClient) FetchAirQualityData(cfg *config.Config, lat, lon float64) (*
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
-		return &AirQualityData{
+		return &models.AirQualityData{
 			StationID:    "",
 			StationName:  "",
-			Measurements: []AirMeasurement{},
+			Measurements: []models.AirMeasurement{},
 			AQI:          0,
 			Category:     "Unknown",
 			LastUpdated:  "",
@@ -76,10 +61,10 @@ func (c *ApiClient) FetchAirQualityData(cfg *config.Config, lat, lon float64) (*
 	logutil.Debugf("[APIClient] FetchAirQualityData: response status=%d", resp.StatusCode)
 
 	if resp.StatusCode != 200 {
-		return &AirQualityData{
+		return &models.AirQualityData{
 			StationID:    "",
 			StationName:  "",
-			Measurements: []AirMeasurement{},
+			Measurements: []models.AirMeasurement{},
 			AQI:          0,
 			Category:     "Unknown",
 			LastUpdated:  "",
@@ -94,10 +79,10 @@ func (c *ApiClient) FetchAirQualityData(cfg *config.Config, lat, lon float64) (*
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&stations); err != nil {
-		return &AirQualityData{
+		return &models.AirQualityData{
 			StationID:    "",
 			StationName:  "",
-			Measurements: []AirMeasurement{},
+			Measurements: []models.AirMeasurement{},
 			AQI:          0,
 			Category:     "Unknown",
 			LastUpdated:  "",
@@ -106,10 +91,10 @@ func (c *ApiClient) FetchAirQualityData(cfg *config.Config, lat, lon float64) (*
 
 	if len(stations.Data) == 0 {
 		logutil.Debugf("[APIClient] FetchAirQualityData: measure request error: %v", err)
-		return &AirQualityData{
+		return &models.AirQualityData{
 			StationID:    "",
 			StationName:  "",
-			Measurements: []AirMeasurement{},
+			Measurements: []models.AirMeasurement{},
 			AQI:          0,
 			Category:     "Unknown",
 			LastUpdated:  "",
@@ -122,12 +107,12 @@ func (c *ApiClient) FetchAirQualityData(cfg *config.Config, lat, lon float64) (*
 	// Get measurements for this station
 	measureURL := fmt.Sprintf("%s/stations/%s/measurements?order_by=timestamp_measured&order_direction=desc&limit=25", cfg.LuchtmeetnetApiURL, stationID)
 	logutil.Debugf("[APIClient] FetchAirQualityData: measureURL=%s", measureURL)
-	req2, err := http.NewRequest("GET", measureURL, nil)
+	req2, err := http.NewRequestWithContext(ctx, "GET", measureURL, nil)
 	if err != nil {
-		return &AirQualityData{
+		return &models.AirQualityData{
 			StationID:    stationID,
 			StationName:  stationName,
-			Measurements: []AirMeasurement{},
+			Measurements: []models.AirMeasurement{},
 			AQI:          0,
 			Category:     "Unknown",
 			LastUpdated:  "",
@@ -137,10 +122,10 @@ func (c *ApiClient) FetchAirQualityData(cfg *config.Config, lat, lon float64) (*
 
 	resp2, err := c.HTTP.Do(req2)
 	if err != nil {
-		return &AirQualityData{
+		return &models.AirQualityData{
 			StationID:    stationID,
 			StationName:  stationName,
-			Measurements: []AirMeasurement{},
+			Measurements: []models.AirMeasurement{},
 			AQI:          0,
 			Category:     "Unknown",
 			LastUpdated:  "",
@@ -157,17 +142,17 @@ func (c *ApiClient) FetchAirQualityData(cfg *config.Config, lat, lon float64) (*
 	}
 
 	if err := json.NewDecoder(resp2.Body).Decode(&measurements); err != nil {
-		return &AirQualityData{
+		return &models.AirQualityData{
 			StationID:    stationID,
 			StationName:  stationName,
-			Measurements: []AirMeasurement{},
+			Measurements: []models.AirMeasurement{},
 			AQI:          0,
 			Category:     "Unknown",
 			LastUpdated:  "",
 		}, nil
 	}
 
-	airMeasurements := make([]AirMeasurement, 0, len(measurements.Data))
+	airMeasurements := make([]models.AirMeasurement, 0, len(measurements.Data))
 	lastUpdated := ""
 
 	// Calculate simplified AQI based on PM2.5 (if available)
@@ -188,7 +173,7 @@ func (c *ApiClient) FetchAirQualityData(cfg *config.Config, lat, lon float64) (*
 			unit = "µg/m³"
 		}
 
-		airMeasurements = append(airMeasurements, AirMeasurement{
+		airMeasurements = append(airMeasurements, models.AirMeasurement{
 			Parameter: parameter,
 			Value:     m.Value,
 			Unit:      unit,
@@ -208,7 +193,7 @@ func (c *ApiClient) FetchAirQualityData(cfg *config.Config, lat, lon float64) (*
 		}
 	}
 
-	return &AirQualityData{
+	return &models.AirQualityData{
 		StationID:    stationID,
 		StationName:  stationName,
 		Measurements: airMeasurements,
@@ -218,31 +203,12 @@ func (c *ApiClient) FetchAirQualityData(cfg *config.Config, lat, lon float64) (*
 	}, nil
 }
 
-// NoisePollutionData represents noise levels from various sources
-type NoisePollutionData struct {
-	TotalNoise    float64       `json:"totalNoise"`    // dB(A)
-	RoadNoise     float64       `json:"roadNoise"`     // dB(A)
-	RailNoise     float64       `json:"railNoise"`     // dB(A)
-	IndustryNoise float64       `json:"industryNoise"` // dB(A)
-	AircraftNoise float64       `json:"aircraftNoise"` // dB(A)
-	NoiseCategory string        `json:"noiseCategory"` // Quiet, Moderate, Loud, Very Loud
-	ExceedsLimit  bool          `json:"exceedsLimit"`  // Above 55 dB(A) limit
-	Sources       []NoiseSource `json:"sources"`
-}
-
-// NoiseSource represents a specific noise contributor
-type NoiseSource struct {
-	Type       string  `json:"type"`
-	Distance   float64 `json:"distance"`   // meters
-	NoiseLevel float64 `json:"noiseLevel"` // dB(A)
-}
-
 // FetchNoisePollutionData retrieves noise pollution data for livability scoring
 // Documentation: Government noise API
-func (c *ApiClient) FetchNoisePollutionData(cfg *config.Config, lat, lon float64) (*NoisePollutionData, error) {
+func (c *ApiClient) FetchNoisePollutionData(ctx context.Context, cfg *config.Config, lat, lon float64) (*models.NoisePollutionData, error) {
 	// Return default data if not configured
 	if cfg.NoisePollutionApiURL == "" {
-		return &NoisePollutionData{
+		return &models.NoisePollutionData{
 			TotalNoise:    0,
 			RoadNoise:     0,
 			RailNoise:     0,
@@ -250,14 +216,14 @@ func (c *ApiClient) FetchNoisePollutionData(cfg *config.Config, lat, lon float64
 			AircraftNoise: 0,
 			NoiseCategory: "Unknown",
 			ExceedsLimit:  false,
-			Sources:       []NoiseSource{},
+			Sources:       []models.NoiseSource{},
 		}, nil
 	}
 
 	url := fmt.Sprintf("%s/noise?lat=%f&lon=%f", cfg.NoisePollutionApiURL, lat, lon)
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
-		return &NoisePollutionData{
+		return &models.NoisePollutionData{
 			TotalNoise:    0,
 			RoadNoise:     0,
 			RailNoise:     0,
@@ -265,7 +231,7 @@ func (c *ApiClient) FetchNoisePollutionData(cfg *config.Config, lat, lon float64
 			AircraftNoise: 0,
 			NoiseCategory: "Unknown",
 			ExceedsLimit:  false,
-			Sources:       []NoiseSource{},
+			Sources:       []models.NoiseSource{},
 		}, nil
 	}
 
@@ -273,7 +239,7 @@ func (c *ApiClient) FetchNoisePollutionData(cfg *config.Config, lat, lon float64
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
-		return &NoisePollutionData{
+		return &models.NoisePollutionData{
 			TotalNoise:    0,
 			RoadNoise:     0,
 			RailNoise:     0,
@@ -281,23 +247,23 @@ func (c *ApiClient) FetchNoisePollutionData(cfg *config.Config, lat, lon float64
 			AircraftNoise: 0,
 			NoiseCategory: "Unknown",
 			ExceedsLimit:  false,
-			Sources:       []NoiseSource{},
+			Sources:       []models.NoiseSource{},
 		}, nil
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == 404 {
 		// No noise data - assume quiet area
-		return &NoisePollutionData{
+		return &models.NoisePollutionData{
 			TotalNoise:    45.0,
 			NoiseCategory: "Quiet",
 			ExceedsLimit:  false,
-			Sources:       []NoiseSource{},
+			Sources:       []models.NoiseSource{},
 		}, nil
 	}
 
 	if resp.StatusCode != 200 {
-		return &NoisePollutionData{
+		return &models.NoisePollutionData{
 			TotalNoise:    0,
 			RoadNoise:     0,
 			RailNoise:     0,
@@ -305,13 +271,13 @@ func (c *ApiClient) FetchNoisePollutionData(cfg *config.Config, lat, lon float64
 			AircraftNoise: 0,
 			NoiseCategory: "Unknown",
 			ExceedsLimit:  false,
-			Sources:       []NoiseSource{},
+			Sources:       []models.NoiseSource{},
 		}, nil
 	}
 
-	var result NoisePollutionData
+	var result models.NoisePollutionData
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return &NoisePollutionData{
+		return &models.NoisePollutionData{
 			TotalNoise:    0,
 			RoadNoise:     0,
 			RailNoise:     0,
@@ -319,7 +285,7 @@ func (c *ApiClient) FetchNoisePollutionData(cfg *config.Config, lat, lon float64
 			AircraftNoise: 0,
 			NoiseCategory: "Unknown",
 			ExceedsLimit:  false,
-			Sources:       []NoiseSource{},
+			Sources:       []models.NoiseSource{},
 		}, nil
 	}
 

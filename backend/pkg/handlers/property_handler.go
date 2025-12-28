@@ -2,11 +2,11 @@ package handlers
 
 import (
 	"encoding/json"
-	"log"
 	"net/http"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/aggregator"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
+	"github.com/iman-hussain/AddressIQ/backend/pkg/logutil"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/scoring"
 )
 
@@ -63,11 +63,11 @@ func (h *PropertyHandler) HandleGetPropertyData(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	log.Printf("Fetching property data for %s %s", postcode, houseNumber)
+	logutil.Infof("Fetching property data for %s %s", postcode, houseNumber)
 
-	data, err := h.aggregator.AggregatePropertyData(postcode, houseNumber)
+	data, err := h.aggregator.AggregatePropertyData(r.Context(), postcode, houseNumber)
 	if err != nil {
-		log.Printf("Error aggregating property data: %v", err)
+		logutil.Errorf("Error aggregating property data: %v", err)
 		respondWithError(w, http.StatusInternalServerError, "failed to aggregate property data")
 		return
 	}
@@ -88,12 +88,12 @@ func (h *PropertyHandler) HandleGetPropertyScores(w http.ResponseWriter, r *http
 		return
 	}
 
-	log.Printf("Calculating scores for %s %s", postcode, houseNumber)
+	logutil.Infof("Calculating scores for %s %s", postcode, houseNumber)
 
 	// Get aggregated data first
-	data, err := h.aggregator.AggregatePropertyData(postcode, houseNumber)
+	data, err := h.aggregator.AggregatePropertyData(r.Context(), postcode, houseNumber)
 	if err != nil {
-		log.Printf("Error aggregating property data for scoring: %v", err)
+		logutil.Errorf("Error aggregating property data for scoring: %v", err)
 		respondWithError(w, http.StatusInternalServerError, "failed to aggregate property data")
 		return
 	}
@@ -119,12 +119,12 @@ func (h *PropertyHandler) HandleGetRecommendations(w http.ResponseWriter, r *htt
 		return
 	}
 
-	log.Printf("Generating recommendations for %s %s", postcode, houseNumber)
+	logutil.Infof("Generating recommendations for %s %s", postcode, houseNumber)
 
 	// Get aggregated data
-	data, err := h.aggregator.AggregatePropertyData(postcode, houseNumber)
+	data, err := h.aggregator.AggregatePropertyData(r.Context(), postcode, houseNumber)
 	if err != nil {
-		log.Printf("Error aggregating property data for recommendations: %v", err)
+		logutil.Errorf("Error aggregating property data for recommendations: %v", err)
 		respondWithError(w, http.StatusInternalServerError, "failed to aggregate property data")
 		return
 	}
@@ -150,12 +150,12 @@ func (h *PropertyHandler) HandleGetFullAnalysis(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	log.Printf("Performing full analysis for %s %s", postcode, houseNumber)
+	logutil.Infof("Performing full analysis for %s %s", postcode, houseNumber)
 
 	// Get aggregated data
-	data, err := h.aggregator.AggregatePropertyData(postcode, houseNumber)
+	data, err := h.aggregator.AggregatePropertyData(r.Context(), postcode, houseNumber)
 	if err != nil {
-		log.Printf("Error aggregating property data for analysis: %v", err)
+		logutil.Errorf("Error aggregating property data for analysis: %v", err)
 		respondWithError(w, http.StatusInternalServerError, "failed to aggregate property data")
 		return
 	}
@@ -180,7 +180,7 @@ func respondWithJSON(w http.ResponseWriter, statusCode int, payload interface{})
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	if err := json.NewEncoder(w).Encode(payload); err != nil {
-		log.Printf("Error encoding JSON response: %v", err)
+		logutil.Errorf("Error encoding JSON response: %v", err)
 	}
 }
 

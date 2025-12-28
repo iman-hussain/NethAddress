@@ -1,69 +1,22 @@
 package apiclient
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/logutil"
+	"github.com/iman-hussain/AddressIQ/backend/pkg/models"
 )
 
 // Default PDOK CBS API endpoint (free, no auth required)
 const defaultCBSBuurtenApiURL = "https://api.pdok.nl/cbs/wijken-en-buurten-2024/ogc/v1"
 
-// CBSPopulationData represents neighbourhood-based population data from CBS buurten
-type CBSPopulationData struct {
-	TotalPopulation   int                    `json:"totalPopulation"`
-	AgeDistribution   map[string]int         `json:"ageDistribution"`
-	Households        int                    `json:"households"`
-	AverageHHSize     float64                `json:"averageHouseholdSize"`
-	Demographics      PopulationDemographics `json:"demographics"`
-	NeighbourhoodName string                 `json:"neighbourhoodName"` // Buurtnaam
-	MunicipalityName  string                 `json:"municipalityName"`  // Gemeentenaam
-	DensityPerKm2     int                    `json:"densityPerKm2"`     // Population density per km²
-	NeighbourhoodCode string                 `json:"neighbourhoodCode"` // Buurtcode
-}
-
-// PopulationDemographics represents demographic breakdown
-type PopulationDemographics struct {
-	Age0to14  int `json:"age0to14"`
-	Age15to24 int `json:"age15to24"`
-	Age25to44 int `json:"age25to44"`
-	Age45to64 int `json:"age45to64"`
-	Age65Plus int `json:"age65plus"`
-}
-
-// cbsBuurtenResponse represents the PDOK CBS wijken-en-buurten OGC API response
-type cbsBuurtenResponse struct {
-	Type     string `json:"type"`
-	Features []struct {
-		Type       string `json:"type"`
-		ID         string `json:"id"`
-		Properties struct {
-			Buurtcode                    string   `json:"buurtcode"`
-			Buurtnaam                    string   `json:"buurtnaam"`
-			Wijkcode                     string   `json:"wijkcode"`
-			Gemeentecode                 string   `json:"gemeentecode"`
-			Gemeentenaam                 string   `json:"gemeentenaam"`
-			AantalInwoners               *int     `json:"aantal_inwoners"`
-			AantalHuishoudens            *int     `json:"aantal_huishoudens"`
-			GemiddeldeHuishoudensgrootte *float64 `json:"gemiddelde_huishoudsgrootte"`
-			Bevolkingsdichtheid          *int     `json:"bevolkingsdichtheid_inwoners_per_km2"`
-			// Age distribution fields (percentage)
-			Perc0Tot15Jaar  *int `json:"percentage_personen_0_tot_15_jaar"`
-			Perc15Tot25Jaar *int `json:"percentage_personen_15_tot_25_jaar"`
-			Perc25Tot45Jaar *int `json:"percentage_personen_25_tot_45_jaar"`
-			Perc45Tot65Jaar *int `json:"percentage_personen_45_tot_65_jaar"`
-			Perc65Plus      *int `json:"percentage_personen_65_jaar_en_ouder"`
-		} `json:"properties"`
-	} `json:"features"`
-	NumberReturned int `json:"numberReturned"`
-}
-
 // FetchCBSPopulationData retrieves population data using the free PDOK CBS OGC API
 // Documentation: https://api.pdok.nl/cbs/wijken-en-buurten-2024/ogc/v1
-func (c *ApiClient) FetchCBSPopulationData(cfg *config.Config, lat, lon float64) (*CBSPopulationData, error) {
+func (c *ApiClient) FetchCBSPopulationData(ctx context.Context, cfg *config.Config, lat, lon float64) (*models.CBSPopulationData, error) {
 	// Always use PDOK CBS API default (free, no auth) - ignore config overrides which may have bad URLs
 	baseURL := defaultCBSBuurtenApiURL
 
@@ -74,7 +27,7 @@ func (c *ApiClient) FetchCBSPopulationData(cfg *config.Config, lat, lon float64)
 	url := fmt.Sprintf("%s/collections/buurten/items?bbox=%s&f=json&limit=1", baseURL, bbox)
 	logutil.Debugf("[CBS Population] Request URL: %s", url)
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		logutil.Debugf("[CBS Population] Request error: %v", err)
 		return emptyPopulationData(), nil
@@ -93,7 +46,7 @@ func (c *ApiClient) FetchCBSPopulationData(cfg *config.Config, lat, lon float64)
 		return emptyPopulationData(), nil
 	}
 
-	var apiResp cbsBuurtenResponse
+	var apiResp models.CBSBuurtenResponse
 	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
 		logutil.Debugf("[CBS Population] Decode error: %v", err)
 		return emptyPopulationData(), nil
@@ -155,7 +108,7 @@ func (c *ApiClient) FetchCBSPopulationData(cfg *config.Config, lat, lon float64)
 		densityPerKm2 = *props.Bevolkingsdichtheid
 	}
 
-	result := &CBSPopulationData{
+	result := &models.CBSPopulationData{
 		TotalPopulation: population,
 		AgeDistribution: map[string]int{
 			"0-14":  age0to14,
@@ -170,7 +123,7 @@ func (c *ApiClient) FetchCBSPopulationData(cfg *config.Config, lat, lon float64)
 		MunicipalityName:  props.Gemeentenaam,
 		DensityPerKm2:     densityPerKm2,
 		NeighbourhoodCode: props.Buurtcode,
-		Demographics: PopulationDemographics{
+		Demographics: models.PopulationDemographics{
 			Age0to14:  age0to14,
 			Age15to24: age15to24,
 			Age25to44: age25to44,
@@ -183,8 +136,8 @@ func (c *ApiClient) FetchCBSPopulationData(cfg *config.Config, lat, lon float64)
 	return result, nil
 }
 
-func emptyPopulationData() *CBSPopulationData {
-	return &CBSPopulationData{
+func emptyPopulationData() *models.CBSPopulationData {
+	return &models.CBSPopulationData{
 		TotalPopulation:   0,
 		AgeDistribution:   make(map[string]int),
 		Households:        0,
@@ -193,7 +146,7 @@ func emptyPopulationData() *CBSPopulationData {
 		MunicipalityName:  "",
 		DensityPerKm2:     0,
 		NeighbourhoodCode: "",
-		Demographics: PopulationDemographics{
+		Demographics: models.PopulationDemographics{
 			Age0to14:  0,
 			Age15to24: 0,
 			Age25to44: 0,
@@ -203,24 +156,11 @@ func emptyPopulationData() *CBSPopulationData {
 	}
 }
 
-// CBSStatLineData represents comprehensive socioeconomic data
-type CBSStatLineData struct {
-	RegionCode     string  `json:"regionCode"`
-	RegionName     string  `json:"regionName"`
-	Population     int     `json:"population"`
-	AverageIncome  float64 `json:"averageIncome"`  // EUR per household
-	EmploymentRate float64 `json:"employmentRate"` // percentage
-	EducationLevel string  `json:"educationLevel"` // Low, Medium, High
-	HousingStock   int     `json:"housingStock"`
-	AverageWOZ     float64 `json:"averageWOZ"`
-	Year           int     `json:"year"`
-}
-
 // FetchCBSStatLineData retrieves socioeconomic data via OData API
 // Documentation: https://www.cbs.nl/en-gb/our-services/open-data/statline-as-open-data
-func (c *ApiClient) FetchCBSStatLineData(cfg *config.Config, regionCode string) (*CBSStatLineData, error) {
+func (c *ApiClient) FetchCBSStatLineData(ctx context.Context, cfg *config.Config, regionCode string) (*models.CBSStatLineData, error) {
 	if cfg.CBSStatLineApiURL == "" {
-		return &CBSStatLineData{
+		return &models.CBSStatLineData{
 			RegionCode:     regionCode,
 			RegionName:     regionCode,
 			Population:     0,
@@ -238,7 +178,7 @@ func (c *ApiClient) FetchCBSStatLineData(cfg *config.Config, regionCode string) 
 	url := fmt.Sprintf("%s/ODataFeed/v4/CBS/84286NED/Observations?$filter=RegioS eq '%s'&$orderby=Perioden desc&$top=1",
 		cfg.CBSStatLineApiURL, regionCode)
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -253,7 +193,7 @@ func (c *ApiClient) FetchCBSStatLineData(cfg *config.Config, regionCode string) 
 
 	if resp.StatusCode != 200 {
 		// Return default data if API fails
-		return &CBSStatLineData{
+		return &models.CBSStatLineData{
 			RegionCode:     regionCode,
 			RegionName:     regionCode,
 			Population:     0,
@@ -284,7 +224,7 @@ func (c *ApiClient) FetchCBSStatLineData(cfg *config.Config, regionCode string) 
 
 	if len(result.Value) == 0 {
 		// Return default data instead of error
-		return &CBSStatLineData{
+		return &models.CBSStatLineData{
 			RegionCode:     regionCode,
 			RegionName:     regionCode,
 			Population:     0,
@@ -298,7 +238,7 @@ func (c *ApiClient) FetchCBSStatLineData(cfg *config.Config, regionCode string) 
 	}
 
 	data := result.Value[0]
-	return &CBSStatLineData{
+	return &models.CBSStatLineData{
 		RegionCode:     data.RegioS,
 		RegionName:     regionCode, // Would need lookup table for full names
 		Population:     data.BevolkingAanHetBeginVanDePeriode_1,
@@ -310,41 +250,9 @@ func (c *ApiClient) FetchCBSStatLineData(cfg *config.Config, regionCode string) 
 	}, nil
 }
 
-// CBSSquareStatsData represents hyperlocal neighbourhood statistics
-type CBSSquareStatsData struct {
-	GridID            string  `json:"gridId"`
-	Population        int     `json:"population"`
-	Households        int     `json:"households"`
-	AverageWOZ        float64 `json:"averageWOZ"`
-	AverageIncome     float64 `json:"averageIncome"`
-	HousingDensity    int     `json:"housingDensity"`    // addresses per km²
-	NeighbourhoodName string  `json:"neighbourhoodName"` // Buurtnaam
-	MunicipalityName  string  `json:"municipalityName"`  // Gemeentenaam
-}
-
-// cbsSquareResponse for parsing CBS grid statistics
-type cbsSquareResponse struct {
-	Type     string `json:"type"`
-	Features []struct {
-		Type       string `json:"type"`
-		ID         string `json:"id"`
-		Properties struct {
-			Buurtcode                  string `json:"buurtcode"`
-			Buurtnaam                  string `json:"buurtnaam"`
-			Gemeentenaam               string `json:"gemeentenaam"`
-			AantalInwoners             *int   `json:"aantal_inwoners"`
-			AantalHuishoudens          *int   `json:"aantal_huishoudens"`
-			GemiddeldeWozWaardeWoning  *int   `json:"gemiddelde_woningwaarde"`
-			Omgevingsadressendichtheid *int   `json:"omgevingsadressendichtheid"`
-			// Income data
-			GemHuishoudinkomen *int `json:"gemiddeld_gestandaardiseerd_inkomen_van_huishoudens"`
-		} `json:"properties"`
-	} `json:"features"`
-}
-
 // FetchCBSSquareStats retrieves neighbourhood-level statistics using PDOK CBS API
 // Documentation: https://api.pdok.nl/cbs/wijken-en-buurten-2024/ogc/v1
-func (c *ApiClient) FetchCBSSquareStats(cfg *config.Config, lat, lon float64) (*CBSSquareStatsData, error) {
+func (c *ApiClient) FetchCBSSquareStats(ctx context.Context, cfg *config.Config, lat, lon float64) (*models.CBSSquareStatsData, error) {
 	// Use config URL if provided (for testing), otherwise use PDOK CBS API default
 	baseURL := defaultCBSBuurtenApiURL
 	if cfg.CBSSquareStatsApiURL != "" {
@@ -358,7 +266,7 @@ func (c *ApiClient) FetchCBSSquareStats(cfg *config.Config, lat, lon float64) (*
 	url := fmt.Sprintf("%s/collections/buurten/items?bbox=%s&f=json&limit=1", baseURL, bbox)
 	logutil.Debugf("[CBS Square] Request URL: %s", url)
 
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		logutil.Debugf("[CBS Square] Request error: %v", err)
 		return emptySquareStats(), nil
@@ -377,7 +285,7 @@ func (c *ApiClient) FetchCBSSquareStats(cfg *config.Config, lat, lon float64) (*
 		return emptySquareStats(), nil
 	}
 
-	var apiResp cbsSquareResponse
+	var apiResp models.CBSSquareResponse
 	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
 		logutil.Debugf("[CBS Square] Decode error: %v", err)
 		return emptySquareStats(), nil
@@ -415,7 +323,7 @@ func (c *ApiClient) FetchCBSSquareStats(cfg *config.Config, lat, lon float64) (*
 		avgIncome = float64(*props.GemHuishoudinkomen) * 100 // Convert from x100
 	}
 
-	result := &CBSSquareStatsData{
+	result := &models.CBSSquareStatsData{
 		GridID:            props.Buurtcode,
 		Population:        population,
 		Households:        households,
@@ -430,8 +338,8 @@ func (c *ApiClient) FetchCBSSquareStats(cfg *config.Config, lat, lon float64) (*
 	return result, nil
 }
 
-func emptySquareStats() *CBSSquareStatsData {
-	return &CBSSquareStatsData{
+func emptySquareStats() *models.CBSSquareStatsData {
+	return &models.CBSSquareStatsData{
 		GridID:            "",
 		Population:        0,
 		Households:        0,

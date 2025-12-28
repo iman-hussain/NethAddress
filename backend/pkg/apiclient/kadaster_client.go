@@ -1,35 +1,24 @@
 package apiclient
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
+	"github.com/iman-hussain/AddressIQ/backend/pkg/models"
 )
-
-// KadasterObjectInfo represents comprehensive property data from Kadaster Objectinformatie API
-type KadasterObjectInfo struct {
-	OwnerName          string  `json:"ownerName"`
-	CadastralReference string  `json:"cadastralReference"`
-	WOZValue           float64 `json:"wozValue"`
-	EnergyLabel        string  `json:"energyLabel"`
-	MunicipalTaxes     float64 `json:"municipalTaxes"`
-	SurfaceArea        float64 `json:"surfaceArea"`
-	PlotSize           float64 `json:"plotSize"`
-	BuildingType       string  `json:"buildingType"`
-	BuildYear          int     `json:"buildYear"`
-}
 
 // FetchKadasterObjectInfo retrieves comprehensive property information using BAG ID
 // Documentation: https://www.kadaster.nl/-/objectinformatie-api
-func (c *ApiClient) FetchKadasterObjectInfo(cfg *config.Config, bagID string) (*KadasterObjectInfo, error) {
+func (c *ApiClient) FetchKadasterObjectInfo(ctx context.Context, cfg *config.Config, bagID string) (*models.KadasterObjectInfo, error) {
 	if cfg.KadasterObjectInfoApiURL == "" {
 		return nil, fmt.Errorf("KadasterObjectInfoApiURL not configured")
 	}
 
 	url := fmt.Sprintf("%s/objecten/%s", cfg.KadasterObjectInfoApiURL, bagID)
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +73,7 @@ func (c *ApiClient) FetchKadasterObjectInfo(cfg *config.Config, bagID string) (*
 		return nil, fmt.Errorf("failed to decode kadaster response: %w", err)
 	}
 
-	return &KadasterObjectInfo{
+	return &models.KadasterObjectInfo{
 		OwnerName:          result.Eigenaar.Naam,
 		CadastralReference: result.Kadaster.Referentie,
 		WOZValue:           result.WOZ.Waarde,

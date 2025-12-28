@@ -1,6 +1,7 @@
 package apiclient
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -9,33 +10,21 @@ import (
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/logutil"
+	"github.com/iman-hussain/AddressIQ/backend/pkg/models"
 )
-
-// NDWTrafficData represents real-time traffic data
-type NDWTrafficData struct {
-	LocationID      string  `json:"locationId"`
-	Intensity       int     `json:"intensity"`       // vehicles/hour
-	AverageSpeed    float64 `json:"averageSpeed"`    // km/h
-	CongestionLevel string  `json:"congestionLevel"` // Free, Light, Moderate, Heavy, Jammed
-	LastUpdated     string  `json:"lastUpdated"`
-	Coordinates     struct {
-		Lat float64 `json:"lat"`
-		Lon float64 `json:"lon"`
-	} `json:"coordinates"`
-}
 
 // FetchNDWTrafficData retrieves real-time traffic data for accessibility scoring
 // Documentation: https://opendata.ndw.nu
-func (c *ApiClient) FetchNDWTrafficData(cfg *config.Config, lat, lon float64, radius int) ([]NDWTrafficData, error) {
+func (c *ApiClient) FetchNDWTrafficData(ctx context.Context, cfg *config.Config, lat, lon float64, radius int) ([]models.NDWTrafficData, error) {
 	// NDW requires registration - return empty data if not configured
 	if cfg.NDWTrafficApiURL == "" {
 		logutil.Debugf("[NDW Traffic] No API URL configured, returning empty data")
-		return []NDWTrafficData{}, nil
+		return []models.NDWTrafficData{}, nil
 	}
 
 	// Query traffic data within radius (meters) of location
 	url := fmt.Sprintf("%s/traffic?lat=%f&lon=%f&radius=%d", cfg.NDWTrafficApiURL, lat, lon, radius)
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -49,11 +38,11 @@ func (c *ApiClient) FetchNDWTrafficData(cfg *config.Config, lat, lon float64, ra
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return []NDWTrafficData{}, nil
+		return []models.NDWTrafficData{}, nil
 	}
 
 	var result struct {
-		Data []NDWTrafficData `json:"data"`
+		Data []models.NDWTrafficData `json:"data"`
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
@@ -63,56 +52,9 @@ func (c *ApiClient) FetchNDWTrafficData(cfg *config.Config, lat, lon float64, ra
 	return result.Data, nil
 }
 
-// OpenOVTransportData represents public transport accessibility
-type OpenOVTransportData struct {
-	NearestStops []PublicTransportStop `json:"nearestStops"`
-	Connections  []Connection          `json:"connections"`
-}
-
-// PublicTransportStop represents a PT stop
-type PublicTransportStop struct {
-	StopID      string  `json:"stopId"`
-	Name        string  `json:"name"`
-	Type        string  `json:"type"`     // Bus, Tram, Metro, Train
-	Distance    float64 `json:"distance"` // meters
-	Coordinates struct {
-		Lat float64 `json:"lat"`
-		Lon float64 `json:"lon"`
-	} `json:"coordinates"`
-	Lines []string `json:"lines"`
-}
-
-// Connection represents a PT connection
-type Connection struct {
-	Line      string `json:"line"`
-	Direction string `json:"direction"`
-	Departure string `json:"departure"`
-	Delay     int    `json:"delay"` // minutes
-	Platform  string `json:"platform"`
-}
-
-// overpassTransportResponse for OSM public transport query
-type overpassTransportResponse struct {
-	Elements []struct {
-		Type string  `json:"type"`
-		ID   int64   `json:"id"`
-		Lat  float64 `json:"lat"`
-		Lon  float64 `json:"lon"`
-		Tags struct {
-			Name            string `json:"name"`
-			Highway         string `json:"highway"`          // bus_stop
-			Railway         string `json:"railway"`          // station, tram_stop, halt
-			PublicTransport string `json:"public_transport"` // stop_position, platform
-			Network         string `json:"network"`
-			Operator        string `json:"operator"`
-			Ref             string `json:"ref"`
-		} `json:"tags"`
-	} `json:"elements"`
-}
-
 // FetchOpenOVData retrieves public transport data using OSM Overpass API
 // Documentation: https://wiki.openstreetmap.org/wiki/Overpass_API
-func (c *ApiClient) FetchOpenOVData(cfg *config.Config, lat, lon float64) (*OpenOVTransportData, error) {
+func (c *ApiClient) FetchOpenOVData(ctx context.Context, cfg *config.Config, lat, lon float64) (*models.OpenOVTransportData, error) {
 	// Use Overpass API to find PT stops (free, no auth required)
 	overpassURL := "https://overpass-api.de/api/interpreter"
 
@@ -132,7 +74,7 @@ out body qt 30;`, radius, lat, lon, radius, lat, lon, radius, lat, lon, radius, 
 
 	// Send query as POST body (not query string)
 	reqBody := strings.NewReader("data=" + query)
-	req, err := http.NewRequest("POST", overpassURL, reqBody)
+	req, err := http.NewRequestWithContext(ctx, "POST", overpassURL, reqBody)
 	if err != nil {
 		logutil.Debugf("[OpenOV] Request error: %v", err)
 		return emptyTransportData(), nil
@@ -152,7 +94,7 @@ out body qt 30;`, radius, lat, lon, radius, lat, lon, radius, lat, lon, radius, 
 		return emptyTransportData(), nil
 	}
 
-	var apiResp overpassTransportResponse
+	var apiResp models.OverpassTransportResponse
 	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
 		logutil.Debugf("[OpenOV] Decode error: %v", err)
 		return emptyTransportData(), nil
@@ -160,7 +102,7 @@ out body qt 30;`, radius, lat, lon, radius, lat, lon, radius, lat, lon, radius, 
 
 	logutil.Debugf("[OpenOV] Found %d PT stops", len(apiResp.Elements))
 
-	stops := make([]PublicTransportStop, 0, len(apiResp.Elements))
+	stops := make([]models.PublicTransportStop, 0, len(apiResp.Elements))
 	for _, elem := range apiResp.Elements {
 		distance := haversineDistanceTraffic(lat, lon, elem.Lat, elem.Lon)
 
@@ -170,7 +112,7 @@ out body qt 30;`, radius, lat, lon, radius, lat, lon, radius, lat, lon, radius, 
 			name = fmt.Sprintf("%s stop", stopType)
 		}
 
-		stop := PublicTransportStop{
+		stop := models.PublicTransportStop{
 			StopID:   fmt.Sprintf("%d", elem.ID),
 			Name:     name,
 			Type:     stopType,
@@ -189,9 +131,9 @@ out body qt 30;`, radius, lat, lon, radius, lat, lon, radius, lat, lon, radius, 
 		stops = stops[:10]
 	}
 
-	result := &OpenOVTransportData{
+	result := &models.OpenOVTransportData{
 		NearestStops: stops,
-		Connections:  []Connection{}, // Would need real-time API
+		Connections:  []models.Connection{}, // Would need real-time API
 	}
 
 	logutil.Debugf("[OpenOV] Result: %d stops found", len(stops))
@@ -217,7 +159,7 @@ func determineStopType(highway, railway, publicTransport string) string {
 	return "Bus"
 }
 
-func sortStopsByDistance(stops []PublicTransportStop) {
+func sortStopsByDistance(stops []models.PublicTransportStop) {
 	// Simple bubble sort for small arrays
 	for i := 0; i < len(stops); i++ {
 		for j := i + 1; j < len(stops); j++ {
@@ -245,56 +187,32 @@ func haversineDistanceTraffic(lat1, lon1, lat2, lon2 float64) float64 {
 	return earthRadius * c
 }
 
-func emptyTransportData() *OpenOVTransportData {
-	return &OpenOVTransportData{
-		NearestStops: []PublicTransportStop{},
-		Connections:  []Connection{},
+func emptyTransportData() *models.OpenOVTransportData {
+	return &models.OpenOVTransportData{
+		NearestStops: []models.PublicTransportStop{},
+		Connections:  []models.Connection{},
 	}
-}
-
-// ParkingData represents parking availability data
-type ParkingData struct {
-	TotalSpaces     int           `json:"totalSpaces"`
-	AvailableSpaces int           `json:"availableSpaces"`
-	OccupancyRate   float64       `json:"occupancyRate"` // percentage
-	ParkingZones    []ParkingZone `json:"parkingZones"`
-	LastUpdated     string        `json:"lastUpdated"`
-}
-
-// ParkingZone represents a parking area
-type ParkingZone struct {
-	ZoneID      string  `json:"zoneId"`
-	Name        string  `json:"name"`
-	Type        string  `json:"type"` // Street, Garage, Private
-	Capacity    int     `json:"capacity"`
-	Available   int     `json:"available"`
-	Distance    float64 `json:"distance"`   // meters
-	HourlyRate  float64 `json:"hourlyRate"` // EUR
-	Coordinates struct {
-		Lat float64 `json:"lat"`
-		Lon float64 `json:"lon"`
-	} `json:"coordinates"`
 }
 
 // FetchParkingData retrieves parking availability for convenience scoring
 // Documentation: Municipal API (varies by city)
-func (c *ApiClient) FetchParkingData(cfg *config.Config, lat, lon float64, radius int) (*ParkingData, error) {
+func (c *ApiClient) FetchParkingData(ctx context.Context, cfg *config.Config, lat, lon float64, radius int) (*models.ParkingData, error) {
 	// Return empty data if not configured
 	if cfg.ParkingApiURL == "" {
-		return &ParkingData{
+		return &models.ParkingData{
 			TotalSpaces:     0,
 			AvailableSpaces: 0,
-			ParkingZones:    []ParkingZone{},
+			ParkingZones:    []models.ParkingZone{},
 		}, nil
 	}
 
 	url := fmt.Sprintf("%s/parking?lat=%f&lon=%f&radius=%d", cfg.ParkingApiURL, lat, lon, radius)
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
-		return &ParkingData{
+		return &models.ParkingData{
 			TotalSpaces:     0,
 			AvailableSpaces: 0,
-			ParkingZones:    []ParkingZone{},
+			ParkingZones:    []models.ParkingZone{},
 		}, nil
 	}
 
@@ -302,29 +220,29 @@ func (c *ApiClient) FetchParkingData(cfg *config.Config, lat, lon float64, radiu
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
-		return &ParkingData{
+		return &models.ParkingData{
 			TotalSpaces:     0,
 			AvailableSpaces: 0,
-			ParkingZones:    []ParkingZone{},
+			ParkingZones:    []models.ParkingZone{},
 		}, nil
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
 		// Return empty data for any non-200 status (including 404)
-		return &ParkingData{
+		return &models.ParkingData{
 			TotalSpaces:     0,
 			AvailableSpaces: 0,
-			ParkingZones:    []ParkingZone{},
+			ParkingZones:    []models.ParkingZone{},
 		}, nil
 	}
 
-	var result ParkingData
+	var result models.ParkingData
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return &ParkingData{
+		return &models.ParkingData{
 			TotalSpaces:     0,
 			AvailableSpaces: 0,
-			ParkingZones:    []ParkingZone{},
+			ParkingZones:    []models.ParkingZone{},
 		}, nil
 	}
 
