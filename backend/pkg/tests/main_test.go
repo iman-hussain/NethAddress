@@ -1,6 +1,7 @@
 package tests
 
 import (
+	"context"
 	"io"
 	"math"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/apiclient"
+	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/models"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/scoring"
 )
@@ -63,8 +65,9 @@ func TestFetchBAGDataMock(t *testing.T) {
 		req.URL.Host = strings.TrimPrefix(ts.URL, "http://")
 		return http.DefaultTransport.RoundTrip(req)
 	})}
-	client := apiclient.NewApiClient(httpClient)
-	data, err := client.FetchBAGData("1234AB", "10")
+	cfg := &config.Config{}
+	client := apiclient.NewApiClient(httpClient, cfg)
+	data, err := client.FetchBAGData(context.Background(), "1234AB", "10")
 	if err != nil {
 		t.Fatalf("FetchBAGData failed: %v. Check if the mock server is running and the response format matches expected BAG API output.", err)
 	}
@@ -106,8 +109,9 @@ func TestFetchPDOKDataMock(t *testing.T) {
 		req.URL.Host = strings.TrimPrefix(ts.URL, "http://")
 		return http.DefaultTransport.RoundTrip(req)
 	})}
-	client := apiclient.NewApiClient(httpClient)
-	data, err := client.FetchPDOKData("52.3702,4.8952")
+	cfg := &config.Config{}
+	client := apiclient.NewApiClient(httpClient, cfg)
+	data, err := client.FetchPDOKData(context.Background(), "52.3702,4.8952")
 	if err != nil {
 		t.Fatalf("FetchPDOKData failed: %v. Check if the mock server is running and the response format matches expected PDOK API output.", err)
 	}

@@ -1,10 +1,13 @@
 package apiclient
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
 )
 
 // roundTripperFunc allows using a function as http.RoundTripper for test mocks
@@ -38,6 +41,7 @@ func TestFetchBAGData_RealAPI(t *testing.T) {
 	}))
 	defer server.Close()
 
+	cfg := &config.Config{}
 	// Use a custom RoundTripper to redirect requests to the mock server
 	client := NewApiClient(&http.Client{
 		Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
@@ -46,9 +50,9 @@ func TestFetchBAGData_RealAPI(t *testing.T) {
 			req.URL.Scheme = "http"
 			return http.DefaultTransport.RoundTrip(req)
 		}),
-	})
+	}, cfg)
 
-	bagData, err := client.FetchBAGData("1234AB", "10")
+	bagData, err := client.FetchBAGData(context.Background(), "1234AB", "10")
 	if err != nil {
 		t.Fatalf("FetchBAGData failed: %v", err)
 	}

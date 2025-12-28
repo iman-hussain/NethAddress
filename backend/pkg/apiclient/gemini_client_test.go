@@ -1,6 +1,7 @@
 package apiclient
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -10,12 +11,12 @@ import (
 )
 
 func TestGenerateLocationSummary_NoAPIKey(t *testing.T) {
-	client := NewApiClient(nil, cfg)
 	cfg := &config.Config{
 		GeminiApiKey: "",
 	}
+	client := NewApiClient(nil, cfg)
 
-	result, err := client.GenerateLocationSummary(cfg, map[string]string{"test": "data"})
+	result, err := client.GenerateLocationSummary(context.Background(), cfg, map[string]string{"test": "data"})
 
 	if err != nil {
 		t.Errorf("Expected no error, got: %v", err)
@@ -73,12 +74,12 @@ func TestGenerateLocationSummary_Success(t *testing.T) {
 	// because the URL is hardcoded. This is a limitation of the current implementation.
 	// In production, we'd inject the base URL via config.
 
-	client := NewApiClient(nil, cfg)
 	cfg := &config.Config{
 		GeminiApiKey: "", // Empty to test the early return
 	}
+	client := NewApiClient(nil, cfg)
 
-	result, err := client.GenerateLocationSummary(cfg, map[string]string{"address": "Test"})
+	result, err := client.GenerateLocationSummary(context.Background(), cfg, map[string]string{"address": "Test"})
 
 	if err != nil {
 		t.Errorf("Expected no error, got: %v", err)

@@ -1,6 +1,7 @@
 package apiclient
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"strings"
@@ -29,10 +30,10 @@ func TestFetchCBSData(t *testing.T) {
 		}),
 	}
 
-	client := NewApiClient(stub)
 	cfg := &config.Config{CBSApiURL: "http://example.com"}
+	client := NewApiClient(stub, cfg)
 
-	data, err := client.FetchCBSData(cfg, "GM0344")
+	data, err := client.FetchCBSData(context.Background(), cfg, "GM0344")
 	if !called {
 		t.Fatalf("Expected CBS API test server to be called, got err: %v", err)
 	}

@@ -1,6 +1,7 @@
 package apiclient
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -29,7 +30,7 @@ func TestFetchAltumWOZData(t *testing.T) {
 	}
 	client := NewApiClient(nil, cfg)
 
-	result, err := client.FetchAltumWOZData(cfg, "test-bag-id")
+	result, err := client.FetchAltumWOZData(context.Background(), cfg, "test-bag-id")
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -67,7 +68,7 @@ func TestFetchTransactionHistory(t *testing.T) {
 	}
 	client := NewApiClient(nil, cfg)
 
-	result, err := client.FetchTransactionHistory(cfg, "test-bag-id")
+	result, err := client.FetchTransactionHistory(context.Background(), cfg, "test-bag-id")
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -94,7 +95,7 @@ func TestFetchTransactionHistory_NoData(t *testing.T) {
 	}
 	client := NewApiClient(nil, cfg)
 
-	result, err := client.FetchTransactionHistory(cfg, "test-bag-id")
+	result, err := client.FetchTransactionHistory(context.Background(), cfg, "test-bag-id")
 	if err != nil {
 		t.Fatalf("Expected no error for 404, got %v", err)
 	}

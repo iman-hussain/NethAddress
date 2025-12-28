@@ -1,6 +1,7 @@
 package apiclient
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -38,9 +39,9 @@ func TestFetchGreenSpacesData(t *testing.T) {
 	})
 
 	cfg := &config.Config{}
-	client := NewApiClient(&http.Client{Transport: mockTransport})
+	client := NewApiClient(&http.Client{Transport: mockTransport}, cfg)
 
-	data, err := client.FetchGreenSpacesData(cfg, 52.0907, 5.1214, 1000)
+	data, err := client.FetchGreenSpacesData(context.Background(), cfg, 52.0907, 5.1214, 1000)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -77,11 +78,11 @@ func TestFetchEducationData(t *testing.T) {
 	// Note: The education function uses a fixed Overpass URL, so this test
 	// verifies the parsing logic rather than the actual HTTP call
 	cfg := &config.Config{}
-	client := NewApiClient(server.Client())
+	client := NewApiClient(server.Client(), cfg)
 
 	// This will call the real Overpass API, not our mock
 	// So we just verify it doesn't panic and returns valid structure
-	data, err := client.FetchEducationData(cfg, 52.0907, 5.1214)
+	data, err := client.FetchEducationData(context.Background(), cfg, 52.0907, 5.1214)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -109,9 +110,9 @@ func TestFetchBuildingPermitsData(t *testing.T) {
 	cfg := &config.Config{
 		BuildingPermitsApiURL: server.URL,
 	}
-	client := NewApiClient(server.Client())
+	client := NewApiClient(server.Client(), cfg)
 
-	data, err := client.FetchBuildingPermitsData(cfg, 52.0907, 5.1214, 1000)
+	data, err := client.FetchBuildingPermitsData(context.Background(), cfg, 52.0907, 5.1214, 1000)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -129,9 +130,9 @@ func TestFetchFacilitiesData(t *testing.T) {
 	// The real function uses hardcoded Overpass URL, so this test
 	// verifies that it doesn't panic and returns valid structure
 	cfg := &config.Config{}
-	client := NewApiClient(http.DefaultClient)
+	client := NewApiClient(http.DefaultClient, cfg)
 
-	data, err := client.FetchFacilitiesData(cfg, 52.0907, 5.1214)
+	data, err := client.FetchFacilitiesData(context.Background(), cfg, 52.0907, 5.1214)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -159,9 +160,9 @@ func TestFetchAHNHeightData(t *testing.T) {
 	})
 
 	cfg := &config.Config{}
-	client := NewApiClient(&http.Client{Transport: mockTransport})
+	client := NewApiClient(&http.Client{Transport: mockTransport}, cfg)
 
-	data, err := client.FetchAHNHeightData(cfg, 52.0907, 5.1214)
+	data, err := client.FetchAHNHeightData(context.Background(), cfg, 52.0907, 5.1214)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}

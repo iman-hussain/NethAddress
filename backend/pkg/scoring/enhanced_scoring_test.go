@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/aggregator"
-	"github.com/iman-hussain/AddressIQ/backend/pkg/apiclient"
+	"github.com/iman-hussain/AddressIQ/backend/pkg/models"
 )
 
 func TestCalculateComprehensiveScores_Basic(t *testing.T) {
@@ -12,10 +12,10 @@ func TestCalculateComprehensiveScores_Basic(t *testing.T) {
 
 	// Create minimal test data
 	data := &aggregator.ComprehensivePropertyData{
-		EnergyClimate: &apiclient.EnergyClimateData{
+		EnergyClimate: &models.EnergyClimateData{
 			EnergyLabel: "B",
 		},
-		FloodRisk: &apiclient.FloodRiskData{
+		FloodRisk: &models.FloodRiskData{
 			RiskLevel: "Low",
 		},
 	}
@@ -86,10 +86,10 @@ func TestCalculateRiskLevel(t *testing.T) {
 		{
 			name: "Low Risk",
 			data: &aggregator.ComprehensivePropertyData{
-				FloodRisk: &apiclient.FloodRiskData{
+				FloodRisk: &models.FloodRiskData{
 					RiskLevel: "Low",
 				},
-				Safety: &apiclient.SafetyData{
+				Safety: &models.SafetyData{
 					SafetyScore: 80,
 				},
 			},
@@ -98,13 +98,13 @@ func TestCalculateRiskLevel(t *testing.T) {
 		{
 			name: "High Risk",
 			data: &aggregator.ComprehensivePropertyData{
-				FloodRisk: &apiclient.FloodRiskData{
+				FloodRisk: &models.FloodRiskData{
 					RiskLevel: "Very High",
 				},
-				SoilQuality: &apiclient.SoilQualityData{
+				SoilQuality: &models.SoilQualityData{
 					ContaminationLevel: "Severe",
 				},
-				Subsidence: &apiclient.SubsidenceData{
+				Subsidence: &models.SubsidenceData{
 					StabilityRating: "High risk",
 				},
 			},

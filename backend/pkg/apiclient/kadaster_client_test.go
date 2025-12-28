@@ -1,6 +1,7 @@
 package apiclient
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -32,7 +33,7 @@ func TestFetchKadasterObjectInfo(t *testing.T) {
 	}
 	client := NewApiClient(nil, cfg)
 
-	result, err := client.FetchKadasterObjectInfo(cfg, "test-bag-id")
+	result, err := client.FetchKadasterObjectInfo(context.Background(), cfg, "test-bag-id")
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -62,7 +63,7 @@ func TestFetchKadasterObjectInfo_NotFound(t *testing.T) {
 	}
 	client := NewApiClient(nil, cfg)
 
-	_, err := client.FetchKadasterObjectInfo(cfg, "nonexistent")
+	_, err := client.FetchKadasterObjectInfo(context.Background(), cfg, "nonexistent")
 	if err == nil {
 		t.Error("Expected error for 404 response, got nil")
 	}

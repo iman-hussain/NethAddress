@@ -1,6 +1,7 @@
 package apiclient
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -37,9 +38,9 @@ func TestFetchNDWTrafficData(t *testing.T) {
 	cfg := &config.Config{
 		NDWTrafficApiURL: server.URL,
 	}
-	client := NewApiClient(server.Client())
+	client := NewApiClient(server.Client(), cfg)
 
-	data, err := client.FetchNDWTrafficData(cfg, 52.0907, 5.1214, 2000)
+	data, err := client.FetchNDWTrafficData(context.Background(), cfg, 52.0907, 5.1214, 2000)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -61,9 +62,9 @@ func TestFetchOpenOVData(t *testing.T) {
 	// The function first finds nearby stop area codes via PDOK BAG, then queries OVapi
 	// This test verifies that the function returns a valid structure
 	cfg := &config.Config{}
-	client := NewApiClient(http.DefaultClient)
+	client := NewApiClient(http.DefaultClient, cfg)
 
-	data, err := client.FetchOpenOVData(cfg, 52.0907, 5.1214)
+	data, err := client.FetchOpenOVData(context.Background(), cfg, 52.0907, 5.1214)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -98,9 +99,9 @@ func TestFetchParkingData(t *testing.T) {
 	cfg := &config.Config{
 		ParkingApiURL: server.URL,
 	}
-	client := NewApiClient(server.Client())
+	client := NewApiClient(server.Client(), cfg)
 
-	data, err := client.FetchParkingData(cfg, 52.0907, 5.1214, 1000)
+	data, err := client.FetchParkingData(context.Background(), cfg, 52.0907, 5.1214, 1000)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}

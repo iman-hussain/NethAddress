@@ -1,6 +1,7 @@
 package apiclient
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -35,9 +36,9 @@ func TestFetchFloodRiskData(t *testing.T) {
 	cfg := &config.Config{
 		FloodRiskApiURL: server.URL,
 	}
-	client := NewApiClient(server.Client())
+	client := NewApiClient(server.Client(), cfg)
 
-	data, err := client.FetchFloodRiskData(cfg, 52.0907, 5.1214)
+	data, err := client.FetchFloodRiskData(context.Background(), cfg, 52.0907, 5.1214)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -72,9 +73,9 @@ func TestFetchWaterQualityData(t *testing.T) {
 	cfg := &config.Config{
 		DigitalDeltaApiURL: server.URL,
 	}
-	client := NewApiClient(server.Client())
+	client := NewApiClient(server.Client(), cfg)
 
-	data, err := client.FetchWaterQualityData(cfg, 52.0907, 5.1214)
+	data, err := client.FetchWaterQualityData(context.Background(), cfg, 52.0907, 5.1214)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -106,9 +107,9 @@ func TestFetchSafetyData(t *testing.T) {
 	cfg := &config.Config{
 		SafetyExperienceApiURL: server.URL,
 	}
-	client := NewApiClient(server.Client())
+	client := NewApiClient(server.Client(), cfg)
 
-	data, err := client.FetchSafetyData(cfg, "GM0344")
+	data, err := client.FetchSafetyData(context.Background(), cfg, "GM0344")
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -146,9 +147,9 @@ func TestFetchSchipholFlightData(t *testing.T) {
 	cfg := &config.Config{
 		SchipholApiURL: server.URL,
 	}
-	client := NewApiClient(server.Client())
+	client := NewApiClient(server.Client(), cfg)
 
-	data, err := client.FetchSchipholFlightData(cfg, 52.0907, 5.1214)
+	data, err := client.FetchSchipholFlightData(context.Background(), cfg, 52.0907, 5.1214)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}

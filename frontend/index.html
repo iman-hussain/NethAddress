@@ -1,94 +1,116 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AddressIQ - Dutch Property Intelligence</title>
-    <!-- Google Fonts - Inter for clean modern typography -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Bulma CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bulma@1/css/bulma.min.css" rel="stylesheet">
-    <!-- HTMX -->
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <!-- MapLibre GL JS -->
-    <link href="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.css" rel="stylesheet" />
-    <script src="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
-    <!-- AddressIQ Styles -->
-    <link rel="stylesheet" href="/static/css/styles.css">
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>AddressIQ - Dutch Property Intelligence</title>
+	<!-- Google Fonts - Inter for clean modern typography -->
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+		rel="stylesheet">
+	<!-- Bulma CSS -->
+	<link href="https://cdn.jsdelivr.net/npm/bulma@1/css/bulma.min.css" rel="stylesheet">
+	<!-- HTMX -->
+	<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+	<!-- MapLibre GL JS -->
+	<link href="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.css" rel="stylesheet" />
+	<script src="https://unpkg.com/maplibre-gl@3.6.1/dist/maplibre-gl.js"></script>
+	<!-- AddressIQ Styles -->
+	<link rel="stylesheet" href="/static/css/styles.css">
 </head>
+
 <body>
-    <div class="full-height-columns">
-        <nav class="navbar is-primary">
-            <div class="navbar-brand">
-                <a class="navbar-item" href="#">
-                    <span class="logo-icon">🏠</span>
-                    AddressIQ
-                </a>
-            </div>
-            <div class="navbar-end">
-                <div class="navbar-item">
-                    <span class="tag is-light is-size-7" id="build-info">Loading...</span>
-                </div>
-            </div>
-        </nav>
-        <div class="columns is-gapless">
-            <!-- Map (full background) -->
-            <div class="column" id="map-container">
-                <div id="map"></div>
-                <div class="map-style-switcher">
-                    <button class="map-style-btn" onclick="switchMapStyle('osm')" title="OpenStreetMap - Detailed">🗺️</button>
-                    <button class="map-style-btn" onclick="switchMapStyle('hybrid')" title="Hybrid - Satellite with Labels">🌍</button>
-                    <button class="map-style-btn" onclick="switchMapStyle('satellite')" title="Satellite Imagery">🛰️</button>
-                </div>
-            </div>
-            <!-- Floating Sidebar -->
-            <div class="sidebar-overlay">
-                <div class="sidebar-content">
-                    <div class="search-panel">
-                        <div class="box">
-                            <form
-                                id="search-form"
-                            >
-                                <div class="search-form-row">
-                                    <div class="field">
-                                        <label class="label" for="postcode">Postcode</label>
-                                        <div class="control">
-                                            <input class="input" type="text" name="postcode" id="postcode" placeholder="1016GV" required />
-                                        </div>
-                                    </div>
-                                    <div class="field">
-                                        <label class="label" for="houseNumber">House Number</label>
-                                        <div class="control">
-                                            <input class="input" type="text" name="houseNumber" id="houseNumber" placeholder="263" required />
-                                        </div>
-                                    </div>
-                                    <div class="field">
-                                        <label class="label">&nbsp;</label>
-                                        <div class="control" style="display: flex; gap: 0.5rem;">
-                                            <button type="submit" class="button is-primary">🔎 Search</button>
-                                            <button type="button" class="button is-info" onclick="refreshData()" title="Bypass cache and fetch fresh data">🔄 Refresh</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                    <div class="results-wrapper desktop-results">
-                        <div id="results-desktop"></div>
-                    </div>
-                    <div class="results-wrapper mobile-results">
-                        <div id="results-mobile"></div>
-                    </div>
-                    <div id="results-container" style="display: none;"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- AddressIQ Application Script -->
-    <script type="module" src="/static/js/app.js"></script>
+	<div class="full-height-columns">
+		<nav class="navbar is-primary">
+			<div class="navbar-brand">
+				<a class="navbar-item" href="#">
+					<span class="logo-icon">🏠</span>
+					AddressIQ
+				</a>
+			</div>
+			<div class="navbar-end">
+				<div class="navbar-item">
+					<span class="tag is-light is-size-7" id="build-info">Loading...</span>
+				</div>
+			</div>
+		</nav>
+		<div class="columns is-gapless">
+			<!-- Map (full background) -->
+			<div class="column" id="map-container">
+				<div id="map"></div>
+				<div class="map-style-switcher">
+					<button class="map-style-btn" onclick="switchMapStyle('osm')"
+						title="OpenStreetMap - Detailed">🗺️</button>
+					<button class="map-style-btn" onclick="switchMapStyle('hybrid')"
+						title="Hybrid - Satellite with Labels">🌍</button>
+					<button class="map-style-btn" onclick="switchMapStyle('satellite')"
+						title="Satellite Imagery">🛰️</button>
+				</div>
+			</div>
+			<!-- Floating Sidebar -->
+			<div class="sidebar-overlay">
+				<div class="sidebar-content">
+					<div class="search-panel">
+						<div class="box">
+							<form id="search-form" onsubmit="handleSearch(event)">
+								<div class="search-form-row">
+									<div class="field">
+										<label class="label"
+											for="postcode">Postcode</label>
+										<div class="control">
+											<input class="input" type="text"
+												name="postcode"
+												id="postcode"
+												placeholder="1016GV"
+												required />
+										</div>
+									</div>
+									<div class="field">
+										<label class="label"
+											for="houseNumber">House
+											Number</label>
+										<div class="control">
+											<input class="input" type="text"
+												name="houseNumber"
+												id="houseNumber"
+												placeholder="263"
+												required />
+										</div>
+									</div>
+									<div class="field">
+										<label class="label">&nbsp;</label>
+										<div class="control"
+											style="display: flex; gap: 0.5rem;">
+											<button type="submit"
+												class="button is-primary">🔎
+												Search</button>
+											<button type="button"
+												class="button is-info"
+												onclick="refreshData()"
+												title="Bypass cache and fetch fresh data">🔄
+												Refresh</button>
+										</div>
+									</div>
+								</div>
+							</form>
+						</div>
+					</div>
+					<div class="results-wrapper desktop-results">
+						<div id="results-desktop"></div>
+					</div>
+					<div class="results-wrapper mobile-results">
+						<div id="results-mobile"></div>
+					</div>
+					<div id="results-container" style="display: none;"></div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<!-- AddressIQ Application Script -->
+	<script type="module" src="/static/js/app.js"></script>
 </body>
 <div id="modal-target"></div>
-</html>
 
+</html>

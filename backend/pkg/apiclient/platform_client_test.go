@@ -1,6 +1,7 @@
 package apiclient
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -39,9 +40,9 @@ func TestFetchPDOKPlatformData(t *testing.T) {
 	cfg := &config.Config{
 		PDOKApiURL: server.URL,
 	}
-	client := NewApiClient(server.Client())
+	client := NewApiClient(server.Client(), cfg)
 
-	data, err := client.FetchPDOKPlatformData(cfg, 52.0907, 5.1214)
+	data, err := client.FetchPDOKPlatformData(context.Background(), cfg, 52.0907, 5.1214)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -75,9 +76,9 @@ func TestFetchStratopoEnvironmentData(t *testing.T) {
 	cfg := &config.Config{
 		StratopoApiURL: server.URL,
 	}
-	client := NewApiClient(server.Client())
+	client := NewApiClient(server.Client(), cfg)
 
-	data, err := client.FetchStratopoEnvironmentData(cfg, 52.0907, 5.1214)
+	data, err := client.FetchStratopoEnvironmentData(context.Background(), cfg, 52.0907, 5.1214)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -121,9 +122,9 @@ func TestFetchLandUseData(t *testing.T) {
 	cfg := &config.Config{
 		LandUseApiURL: server.URL,
 	}
-	client := NewApiClient(server.Client())
+	client := NewApiClient(server.Client(), cfg)
 
-	data, err := client.FetchLandUseData(cfg, 52.0907, 5.1214)
+	data, err := client.FetchLandUseData(context.Background(), cfg, 52.0907, 5.1214)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}

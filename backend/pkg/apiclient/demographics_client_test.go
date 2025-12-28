@@ -1,6 +1,7 @@
 package apiclient
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -51,9 +52,9 @@ func TestFetchCBSPopulationData(t *testing.T) {
 	})
 
 	cfg := &config.Config{}
-	client := NewApiClient(&http.Client{Transport: mockTransport})
+	client := NewApiClient(&http.Client{Transport: mockTransport}, cfg)
 
-	data, err := client.FetchCBSPopulationData(cfg, 52.0907, 5.1214)
+	data, err := client.FetchCBSPopulationData(context.Background(), cfg, 52.0907, 5.1214)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -102,9 +103,9 @@ func TestFetchCBSStatLineData(t *testing.T) {
 	cfg := &config.Config{
 		CBSStatLineApiURL: "http://example.com",
 	}
-	client := NewApiClient(stub)
+	client := NewApiClient(stub, cfg)
 
-	data, err := client.FetchCBSStatLineData(cfg, "Utrecht")
+	data, err := client.FetchCBSStatLineData(context.Background(), cfg, "Utrecht")
 	if !called {
 		t.Fatalf("Expected CBS StatLine API stub to be called")
 	}
@@ -153,9 +154,9 @@ func TestFetchCBSSquareStats(t *testing.T) {
 	cfg := &config.Config{
 		CBSSquareStatsApiURL: server.URL,
 	}
-	client := NewApiClient(&http.Client{})
+	client := NewApiClient(&http.Client{}, cfg)
 
-	data, err := client.FetchCBSSquareStats(cfg, 52.0907, 5.1214)
+	data, err := client.FetchCBSSquareStats(context.Background(), cfg, 52.0907, 5.1214)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}

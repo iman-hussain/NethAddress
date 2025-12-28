@@ -1,6 +1,7 @@
 package apiclient
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -37,9 +38,9 @@ func TestFetchAirQualityData(t *testing.T) {
 	cfg := &config.Config{
 		LuchtmeetnetApiURL: server.URL,
 	}
-	client := NewApiClient(server.Client())
+	client := NewApiClient(server.Client(), cfg)
 
-	data, err := client.FetchAirQualityData(cfg, 52.0907, 5.1214)
+	data, err := client.FetchAirQualityData(context.Background(), cfg, 52.0907, 5.1214)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -77,9 +78,9 @@ func TestFetchNoisePollutionData(t *testing.T) {
 	cfg := &config.Config{
 		NoisePollutionApiURL: server.URL,
 	}
-	client := NewApiClient(server.Client())
+	client := NewApiClient(server.Client(), cfg)
 
-	data, err := client.FetchNoisePollutionData(cfg, 52.0907, 5.1214)
+	data, err := client.FetchNoisePollutionData(context.Background(), cfg, 52.0907, 5.1214)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -104,9 +105,9 @@ func TestFetchAirQualityData_NotFound(t *testing.T) {
 	cfg := &config.Config{
 		LuchtmeetnetApiURL: server.URL,
 	}
-	client := NewApiClient(server.Client())
+	client := NewApiClient(server.Client(), cfg)
 
-	data, err := client.FetchAirQualityData(cfg, 0, 0)
+	data, err := client.FetchAirQualityData(context.Background(), cfg, 0, 0)
 	if err != nil {
 		t.Errorf("Expected no error with graceful degradation, got %v", err)
 	}

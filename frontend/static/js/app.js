@@ -159,12 +159,9 @@ document.addEventListener('DOMContentLoaded', function () {
 	applyMapPadding();
 	window.addEventListener('resize', applyMapPadding);
 
-	// Set hx-post on the form
-	const searchForm = document.getElementById('search-form');
-	searchForm.setAttribute('hx-post', apiHost + '/search');
 
-	// Process with HTMX
-	htmx.process(searchForm);
+	// Form is now handled by onsubmit="handleSearch(event)" in HTML for SSE streaming
+
 
 	// Make refreshData available globally
 	window.refreshData = function () {

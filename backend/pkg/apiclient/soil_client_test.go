@@ -1,6 +1,7 @@
 package apiclient
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -27,10 +28,10 @@ func TestFetchWURSoilData(t *testing.T) {
 	cfg := &config.Config{
 		WURSoilApiURL: server.URL,
 	}
-	client := NewApiClient(server.Client())
+	client := NewApiClient(server.Client(), cfg)
 
 	// Test successful fetch
-	data, err := client.FetchWURSoilData(cfg, 52.0907, 5.1214)
+	data, err := client.FetchWURSoilData(context.Background(), cfg, 52.0907, 5.1214)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -62,9 +63,9 @@ func TestFetchSubsidenceData(t *testing.T) {
 	cfg := &config.Config{
 		SkyGeoSubsidenceApiURL: server.URL,
 	}
-	client := NewApiClient(server.Client())
+	client := NewApiClient(server.Client(), cfg)
 
-	data, err := client.FetchSubsidenceData(cfg, 52.0907, 5.1214)
+	data, err := client.FetchSubsidenceData(context.Background(), cfg, 52.0907, 5.1214)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -93,9 +94,9 @@ func TestFetchSoilQualityData(t *testing.T) {
 	cfg := &config.Config{
 		SoilQualityApiURL: server.URL,
 	}
-	client := NewApiClient(server.Client())
+	client := NewApiClient(server.Client(), cfg)
 
-	data, err := client.FetchSoilQualityData(cfg, 52.0907, 5.1214)
+	data, err := client.FetchSoilQualityData(context.Background(), cfg, 52.0907, 5.1214)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -121,9 +122,9 @@ func TestFetchBROSoilMapData(t *testing.T) {
 	cfg := &config.Config{
 		BROSoilMapApiURL: server.URL,
 	}
-	client := NewApiClient(server.Client())
+	client := NewApiClient(server.Client(), cfg)
 
-	data, err := client.FetchBROSoilMapData(cfg, 52.0907, 5.1214)
+	data, err := client.FetchBROSoilMapData(context.Background(), cfg, 52.0907, 5.1214)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}

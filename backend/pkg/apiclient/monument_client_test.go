@@ -1,6 +1,7 @@
 package apiclient
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -11,10 +12,10 @@ import (
 func TestFetchMonumentData(t *testing.T) {
 	// The BAG Pand ID-based method now returns not-a-monument as we use coordinate-based lookup
 	// This test verifies the function doesn't error
-	client := NewApiClient(http.DefaultClient)
 	cfg := &config.Config{}
+	client := NewApiClient(http.DefaultClient, cfg)
 
-	data, err := client.FetchMonumentData(cfg, "1234567890")
+	data, err := client.FetchMonumentData(context.Background(), cfg, "1234567890")
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -49,10 +50,10 @@ func TestFetchMonumentDataByCoords(t *testing.T) {
 	}))
 	defer server.Close()
 
-	client := NewApiClient(server.Client())
 	cfg := &config.Config{MonumentenApiURL: server.URL}
+	client := NewApiClient(server.Client(), cfg)
 
-	data, err := client.FetchMonumentDataByCoords(cfg, 52.3753, 4.8837)
+	data, err := client.FetchMonumentDataByCoords(context.Background(), cfg, 52.3753, 4.8837)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}

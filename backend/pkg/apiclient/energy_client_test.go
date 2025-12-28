@@ -1,6 +1,7 @@
 package apiclient
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -25,9 +26,9 @@ func TestFetchEnergyClimateData(t *testing.T) {
 	cfg := &config.Config{
 		AltumEnergyApiURL: server.URL,
 	}
-	client := NewApiClient(server.Client())
+	client := NewApiClient(server.Client(), cfg)
 
-	data, err := client.FetchEnergyClimateData(cfg, "0123456789012345")
+	data, err := client.FetchEnergyClimateData(context.Background(), cfg, "0123456789012345")
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -71,9 +72,9 @@ func TestFetchSustainabilityData(t *testing.T) {
 	cfg := &config.Config{
 		AltumSustainabilityApiURL: server.URL,
 	}
-	client := NewApiClient(server.Client())
+	client := NewApiClient(server.Client(), cfg)
 
-	data, err := client.FetchSustainabilityData(cfg, "0123456789012345")
+	data, err := client.FetchSustainabilityData(context.Background(), cfg, "0123456789012345")
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -98,9 +99,9 @@ func TestFetchEnergyClimateData_NotFound(t *testing.T) {
 	cfg := &config.Config{
 		AltumEnergyApiURL: server.URL,
 	}
-	client := NewApiClient(server.Client())
+	client := NewApiClient(server.Client(), cfg)
 
-	_, err := client.FetchEnergyClimateData(cfg, "0000000000000000")
+	_, err := client.FetchEnergyClimateData(context.Background(), cfg, "0000000000000000")
 	if err == nil {
 		t.Error("Expected error for non-existent address, got nil")
 	}

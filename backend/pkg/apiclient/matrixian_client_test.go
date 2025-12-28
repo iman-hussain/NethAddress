@@ -1,6 +1,7 @@
 package apiclient
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -41,7 +42,7 @@ func TestFetchPropertyValuePlus(t *testing.T) {
 	}
 	client := NewApiClient(nil, cfg)
 
-	result, err := client.FetchPropertyValuePlus(cfg, "test-bag-id", 52.37, 4.89)
+	result, err := client.FetchPropertyValuePlus(context.Background(), cfg, "test-bag-id", 52.37, 4.89)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}

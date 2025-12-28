@@ -1,6 +1,7 @@
 package apiclient
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -32,9 +33,9 @@ func TestFetchKNMIWeatherData(t *testing.T) {
 	cfg := &config.Config{
 		KNMIWeatherApiURL: server.URL,
 	}
-	client := NewApiClient(server.Client())
+	client := NewApiClient(server.Client(), cfg)
 
-	result, err := client.FetchKNMIWeatherData(cfg, 52.37, 4.89)
+	result, err := client.FetchKNMIWeatherData(context.Background(), cfg, 52.37, 4.89)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -71,9 +72,9 @@ func TestFetchWeerliveWeather(t *testing.T) {
 		WeerliveApiURL: server.URL,
 		WeerliveApiKey: "test-key",
 	}
-	client := NewApiClient(server.Client())
+	client := NewApiClient(server.Client(), cfg)
 
-	result, err := client.FetchWeerliveWeather(cfg, 52.37, 4.89)
+	result, err := client.FetchWeerliveWeather(context.Background(), cfg, 52.37, 4.89)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -106,9 +107,9 @@ func TestFetchKNMISolarData(t *testing.T) {
 	cfg := &config.Config{
 		KNMISolarApiURL: server.URL,
 	}
-	client := NewApiClient(server.Client())
+	client := NewApiClient(server.Client(), cfg)
 
-	result, err := client.FetchKNMISolarData(cfg, 52.37, 4.89)
+	result, err := client.FetchKNMISolarData(context.Background(), cfg, 52.37, 4.89)
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}

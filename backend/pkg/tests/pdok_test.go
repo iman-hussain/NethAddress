@@ -1,11 +1,13 @@
 package tests
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/apiclient"
+	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
 )
 
 // Use roundTripperFunc from bag_test.go
@@ -37,6 +39,7 @@ func TestFetchPDOKData_RealAPI(t *testing.T) {
 	}))
 	defer server.Close()
 
+	cfg := &config.Config{}
 	// Use a custom RoundTripper to redirect requests to the mock server
 	client := apiclient.NewApiClient(&http.Client{
 		Transport: roundTripperFunc(func(req *http.Request) (*http.Response, error) {
@@ -44,9 +47,9 @@ func TestFetchPDOKData_RealAPI(t *testing.T) {
 			req.URL.Scheme = "http"
 			return http.DefaultTransport.RoundTrip(req)
 		}),
-	})
+	}, cfg)
 
-	pdokData, err := client.FetchPDOKData("4.8952,52.3702")
+	pdokData, err := client.FetchPDOKData(context.Background(), "4.8952,52.3702")
 	if err != nil {
 		t.Fatalf("FetchPDOKData failed: %v", err)
 	}
