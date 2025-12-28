@@ -27,7 +27,7 @@ func TestFetchAltumWOZData(t *testing.T) {
 		AltumWOZApiURL: server.URL,
 		AltumWOZApiKey: "test-key",
 	}
-	client := NewApiClient(nil)
+	client := NewApiClient(nil, cfg)
 
 	result, err := client.FetchAltumWOZData(cfg, "test-bag-id")
 	if err != nil {
@@ -65,7 +65,7 @@ func TestFetchTransactionHistory(t *testing.T) {
 		AltumTransactionApiURL: server.URL,
 		AltumTransactionApiKey: "test-key",
 	}
-	client := NewApiClient(nil)
+	client := NewApiClient(nil, cfg)
 
 	result, err := client.FetchTransactionHistory(cfg, "test-bag-id")
 	if err != nil {
@@ -92,7 +92,7 @@ func TestFetchTransactionHistory_NoData(t *testing.T) {
 	cfg := &config.Config{
 		AltumTransactionApiURL: server.URL,
 	}
-	client := NewApiClient(nil)
+	client := NewApiClient(nil, cfg)
 
 	result, err := client.FetchTransactionHistory(cfg, "test-bag-id")
 	if err != nil {

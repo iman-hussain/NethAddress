@@ -10,7 +10,7 @@ import (
 )
 
 func TestGenerateLocationSummary_NoAPIKey(t *testing.T) {
-	client := NewApiClient(nil)
+	client := NewApiClient(nil, cfg)
 	cfg := &config.Config{
 		GeminiApiKey: "",
 	}
@@ -73,7 +73,7 @@ func TestGenerateLocationSummary_Success(t *testing.T) {
 	// because the URL is hardcoded. This is a limitation of the current implementation.
 	// In production, we'd inject the base URL via config.
 
-	client := NewApiClient(nil)
+	client := NewApiClient(nil, cfg)
 	cfg := &config.Config{
 		GeminiApiKey: "", // Empty to test the early return
 	}

@@ -39,7 +39,7 @@ func TestFetchPropertyValuePlus(t *testing.T) {
 		MatrixianApiURL: server.URL,
 		MatrixianApiKey: "test-key",
 	}
-	client := NewApiClient(nil)
+	client := NewApiClient(nil, cfg)
 
 	result, err := client.FetchPropertyValuePlus(cfg, "test-bag-id", 52.37, 4.89)
 	if err != nil {

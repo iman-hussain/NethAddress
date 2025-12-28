@@ -30,7 +30,7 @@ func TestFetchKadasterObjectInfo(t *testing.T) {
 	cfg := &config.Config{
 		KadasterObjectInfoApiURL: server.URL,
 	}
-	client := NewApiClient(nil)
+	client := NewApiClient(nil, cfg)
 
 	result, err := client.FetchKadasterObjectInfo(cfg, "test-bag-id")
 	if err != nil {
@@ -60,7 +60,7 @@ func TestFetchKadasterObjectInfo_NotFound(t *testing.T) {
 	cfg := &config.Config{
 		KadasterObjectInfoApiURL: server.URL,
 	}
-	client := NewApiClient(nil)
+	client := NewApiClient(nil, cfg)
 
 	_, err := client.FetchKadasterObjectInfo(cfg, "nonexistent")
 	if err == nil {
