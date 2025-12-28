@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"html"
 	"net/http"
 	"time"
 
@@ -162,11 +163,11 @@ func (h *SearchHandler) HandleSearchStream(w http.ResponseWriter, r *http.Reques
 <div data-target="results">
 </div>
 <div data-geojson='%s' data-response='%s' style="display:none;"></div>`,
-				data.Address,
+				html.EscapeString(data.Address),
 				data.Coordinates[1], data.Coordinates[0],
-				postcode, houseNumber,
-				"", // GeoJSON placeholder
-				string(responseJSON))
+				html.EscapeString(postcode), html.EscapeString(houseNumber),
+				html.EscapeString(""), // GeoJSON placeholder
+				html.EscapeString(string(responseJSON)))
 
 			// Send HTML as JSON string for safe transport
 			payload, err := json.Marshal(htmlContent)
