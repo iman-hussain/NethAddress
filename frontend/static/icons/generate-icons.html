@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AddressIQ Icon Generator</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: #f5f5f5;
+        }
+        h1 { color: #357ABD; }
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        .icon-card {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .icon-card canvas {
+            border: 1px dashed #ccc;
+            margin-bottom: 0.5rem;
+        }
+        .icon-card h3 {
+            margin: 0.5rem 0;
+            font-size: 0.9rem;
+            color: #333;
+        }
+        .icon-card a {
+            display: inline-block;
+            margin-top: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: #4A90D9;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 0.8rem;
+        }
+        .icon-card a:hover {
+            background: #357ABD;
+        }
+        .instructions {
+            background: #e3f2fd;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+        }
+        .instructions ol {
+            margin: 0.5rem 0;
+            padding-left: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <h1>AddressIQ Icon Generator</h1>
+    
+    <div class="instructions">
+        <strong>Instructions:</strong>
+        <ol>
+            <li>Wait for all icons to render below</li>
+            <li>Click "Download" on each icon to save it</li>
+            <li>Place the downloaded PNG files in <code>frontend/static/icons/</code></li>
+        </ol>
+    </div>
+    
+    <div id="icon-grid" class="icon-grid"></div>
+
+    <script>
+        // Icon configurations
+        const icons = [
+            { name: 'icon-192.png', size: 192, maskable: false },
+            { name: 'icon-512.png', size: 512, maskable: false },
+            { name: 'icon-maskable-192.png', size: 192, maskable: true },
+            { name: 'icon-maskable-512.png', size: 512, maskable: true },
+            { name: 'apple-touch-icon-152.png', size: 152, maskable: false },
+            { name: 'apple-touch-icon-167.png', size: 167, maskable: false },
+            { name: 'apple-touch-icon-180.png', size: 180, maskable: false },
+            { name: 'favicon-32.png', size: 32, maskable: false, simplified: true },
+            { name: 'favicon-16.png', size: 16, maskable: false, simplified: true },
+        ];
+
+        // Gradient colours
+        const gradientStart = '#4A90D9';
+        const gradientEnd = '#357ABD';
+
+        function drawIcon(canvas, config) {
+            const ctx = canvas.getContext('2d');
+            const size = config.size;
+            canvas.width = size;
+            canvas.height = size;
+
+            // Create gradient background
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, gradientStart);
+            gradient.addColorStop(1, gradientEnd);
+
+            // Draw background
+            if (config.maskable) {
+                // Full bleed for maskable icons
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, size, size);
+            } else {
+                // Rounded corners for regular icons
+                const radius = size * 0.176; // iOS-style corner radius
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.roundRect(0, 0, size, size, radius);
+                ctx.fill();
+            }
+
+            // Set up text rendering
+            ctx.textBaseline = 'alphabetic';
+            ctx.fillStyle = '#FFFFFF';
+
+            if (config.simplified) {
+                // Simplified favicon - just "A"
+                const fontSize = size * 0.85;
+                ctx.font = `800 ${fontSize}px Inter, -apple-system, sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.fillText('A', size * 0.5, size * 0.82);
+            } else {
+                // Full icon with A and subscript IQ
+                const scale = config.maskable ? 0.8 : 1;
+                const offset = config.maskable ? size * 0.1 : 0;
+
+                // Main "A"
+                const aFontSize = size * 0.74 * scale;
+                ctx.font = `800 ${aFontSize}px Inter, -apple-system, sans-serif`;
+                ctx.textAlign = 'left';
+                const aX = offset + size * 0.15 * scale;
+                const aY = offset + size * 0.74 * scale;
+                ctx.fillText('A', aX, aY);
+
+                // Subscript "IQ"
+                const iqFontSize = size * 0.23 * scale;
+                ctx.font = `700 ${iqFontSize}px Inter, -apple-system, sans-serif`;
+                ctx.globalAlpha = 0.95;
+                const iqX = offset + size * 0.55 * scale;
+                const iqY = offset + size * 0.86 * scale;
+                ctx.fillText('IQ', iqX, iqY);
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        function createIconCard(config) {
+            const card = document.createElement('div');
+            card.className = 'icon-card';
+
+            const canvas = document.createElement('canvas');
+            drawIcon(canvas, config);
+
+            const title = document.createElement('h3');
+            title.textContent = `${config.name} (${config.size}×${config.size})`;
+
+            const link = document.createElement('a');
+            link.href = canvas.toDataURL('image/png');
+            link.download = config.name;
+            link.textContent = 'Download';
+
+            card.appendChild(canvas);
+            card.appendChild(title);
+            card.appendChild(link);
+
+            return card;
+        }
+
+        // Generate all icons when Inter font is loaded
+        document.fonts.ready.then(() => {
+            // Wait a bit for font to fully load
+            setTimeout(() => {
+                const grid = document.getElementById('icon-grid');
+                icons.forEach(config => {
+                    grid.appendChild(createIconCard(config));
+                });
+            }, 500);
+        });
+
+        // Fallback if fonts API not available
+        setTimeout(() => {
+            const grid = document.getElementById('icon-grid');
+            if (grid.children.length === 0) {
+                icons.forEach(config => {
+                    grid.appendChild(createIconCard(config));
+                });
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

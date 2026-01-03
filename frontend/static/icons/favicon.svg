@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Favicon - simplified for small sizes -->
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A90D9"/>
+      <stop offset="100%" style="stop-color:#357ABD"/>
+    </linearGradient>
+  </defs>
+  
+  <rect width="32" height="32" rx="6" ry="6" fill="url(#bgGrad)"/>
+  
+  <!-- Simplified A for favicon - just the main letter -->
+  <text x="6" y="26" 
+        font-family="Inter, -apple-system, sans-serif" 
+        font-size="28" 
+        font-weight="800" 
+        fill="#FFFFFF">A</text>
+</svg>

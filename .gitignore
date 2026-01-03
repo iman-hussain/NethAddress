@@ -19,3 +19,8 @@ addressiq-*
 /backend/addressiq
 /backend/addressiq-*
 /backend/backend
+
+# Icon generator files (PNGs are committed, but generator tools are not)
+/frontend/static/icons/node_modules/
+/frontend/static/icons/package.json
+/frontend/static/icons/package-lock.json

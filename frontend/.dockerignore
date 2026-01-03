@@ -30,6 +30,13 @@ dist/
 build/
 .cache/
 
+# Ignore icon generator files (not needed in production)
+static/icons/generate-icons.mjs
+static/icons/generate-icons.html
+static/icons/node_modules/
+static/icons/package.json
+static/icons/package-lock.json
+
 # Ignore environment files
 .env
 .env.local

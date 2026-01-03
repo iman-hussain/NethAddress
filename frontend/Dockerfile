@@ -11,6 +11,7 @@ ARG BUILD_DATE
 # (least frequently changed first for better layer caching)
 COPY static /usr/share/nginx/html/static/
 COPY templates /usr/share/nginx/html/templates/
+COPY manifest.json /usr/share/nginx/html/
 COPY index.html /usr/share/nginx/html/
 
 # Expose port 80
