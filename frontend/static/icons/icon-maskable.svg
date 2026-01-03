@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- 
+  <!--
     Maskable icon for Android Adaptive Icons
     Safe zone is the inner 80% (40px padding on each side for 512px)
     Content is centred within safe zone to prevent clipping
@@ -14,24 +14,24 @@
       <stop offset="100%" style="stop-color:#F0F0F0"/>
     </linearGradient>
   </defs>
-  
+
   <!-- Full bleed background - no rounded corners as mask will be applied -->
   <rect width="512" height="512" fill="url(#bgGradient)"/>
-  
+
   <!-- Content scaled down and centred to fit within 80% safe zone -->
   <g transform="translate(51.2, 51.2) scale(0.8)">
     <!-- Main "A" letter -->
-    <text x="220" y="380" 
-          font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" 
-          font-size="380" 
-          font-weight="800" 
+    <text x="220" y="380"
+          font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+          font-size="380"
+          font-weight="800"
           fill="url(#textGradient)">A</text>
-    
+
     <!-- Subscript "IQ" -->
-    <text x="340" y="440" 
-          font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" 
-          font-size="120" 
-          font-weight="700" 
+    <text x="340" y="440"
+          font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+          font-size="120"
+          font-weight="700"
           fill="url(#textGradient)"
           opacity="0.95">IQ</text>
   </g>

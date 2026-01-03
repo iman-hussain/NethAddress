@@ -1,9 +1,9 @@
 /**
  * Icon Generator Script for AddressIQ
- * 
+ *
  * Generates PNG icons from SVG sources for PWA/home screen support.
  * Run with: node generate-icons.mjs
- * 
+ *
  * Prerequisites: npm install sharp
  */
 
@@ -28,7 +28,7 @@ const GRADIENT_END = '#357ABD';
  */
 function createIconSVG(size, maskable = false, simplified = false) {
     const cornerRadius = maskable ? 0 : Math.round(size * 0.176);
-    
+
     if (simplified) {
         // Simplified favicon - just "A"
         return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">
@@ -39,26 +39,26 @@ function createIconSVG(size, maskable = false, simplified = false) {
     </linearGradient>
   </defs>
   <rect width="${size}" height="${size}" rx="${cornerRadius}" ry="${cornerRadius}" fill="url(#bgGrad)"/>
-  <text x="${size * 0.18}" y="${size * 0.82}" 
-        font-family="Inter, Arial, sans-serif" 
-        font-size="${size * 0.85}" 
-        font-weight="800" 
+  <text x="${size * 0.18}" y="${size * 0.82}"
+        font-family="Inter, Arial, sans-serif"
+        font-size="${size * 0.85}"
+        font-weight="800"
         fill="#FFFFFF">A</text>
 </svg>`;
     }
-    
+
     // Full icon with A and subscript IQ
     const scale = maskable ? 0.75 : 1;
     const offsetX = maskable ? size * 0.125 : 0;
     const offsetY = maskable ? size * 0.125 : 0;
-    
+
     const aFontSize = Math.round(size * 0.72 * scale);
     const iqFontSize = Math.round(size * 0.22 * scale);
     const aX = Math.round(offsetX + size * 0.14);
     const aY = Math.round(offsetY + size * 0.72 * scale);
     const iqX = Math.round(offsetX + size * 0.52 * scale);
     const iqY = Math.round(offsetY + size * 0.84 * scale);
-    
+
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">
   <defs>
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -67,15 +67,15 @@ function createIconSVG(size, maskable = false, simplified = false) {
     </linearGradient>
   </defs>
   <rect width="${size}" height="${size}" rx="${cornerRadius}" ry="${cornerRadius}" fill="url(#bgGrad)"/>
-  <text x="${aX}" y="${aY}" 
-        font-family="Inter, Arial, sans-serif" 
-        font-size="${aFontSize}" 
-        font-weight="800" 
+  <text x="${aX}" y="${aY}"
+        font-family="Inter, Arial, sans-serif"
+        font-size="${aFontSize}"
+        font-weight="800"
         fill="#FFFFFF">A</text>
-  <text x="${iqX}" y="${iqY}" 
-        font-family="Inter, Arial, sans-serif" 
-        font-size="${iqFontSize}" 
-        font-weight="700" 
+  <text x="${iqX}" y="${iqY}"
+        font-family="Inter, Arial, sans-serif"
+        font-size="${iqFontSize}"
+        font-weight="700"
         fill="#FFFFFF"
         opacity="0.95">IQ</text>
 </svg>`;
@@ -84,36 +84,36 @@ function createIconSVG(size, maskable = false, simplified = false) {
 async function generateIcon(filename, size, maskable = false, simplified = false) {
     const svg = createIconSVG(size, maskable, simplified);
     const outputPath = join(__dirname, filename);
-    
+
     await sharp(Buffer.from(svg))
         .resize(size, size)
         .png()
         .toFile(outputPath);
-    
+
     console.log(`✓ Generated ${filename} (${size}×${size})`);
 }
 
 async function main() {
     console.log('Generating AddressIQ icons...\n');
-    
+
     try {
         // Standard icons
         await generateIcon('icon-192.png', 192);
         await generateIcon('icon-512.png', 512);
-        
+
         // Maskable icons (Android adaptive)
         await generateIcon('icon-maskable-192.png', 192, true);
         await generateIcon('icon-maskable-512.png', 512, true);
-        
+
         // Apple touch icons
         await generateIcon('apple-touch-icon-152.png', 152);
         await generateIcon('apple-touch-icon-167.png', 167);
         await generateIcon('apple-touch-icon-180.png', 180);
-        
+
         // Favicons
         await generateIcon('favicon-32.png', 32, false, true);
         await generateIcon('favicon-16.png', 16, false, true);
-        
+
         console.log('\n✅ All icons generated successfully!');
         console.log('Icons are ready in: frontend/static/icons/');
     } catch (error) {

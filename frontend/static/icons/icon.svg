@@ -18,23 +18,23 @@
       <feComposite in2="SourceGraphic" operator="over"/>
     </filter>
   </defs>
-  
+
   <!-- Background with rounded corners for iOS compatibility -->
   <rect width="512" height="512" rx="90" ry="90" fill="url(#bgGradient)"/>
-  
+
   <!-- Main "A" letter - large and centred -->
-  <text x="220" y="380" 
-        font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" 
-        font-size="380" 
-        font-weight="800" 
+  <text x="220" y="380"
+        font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+        font-size="380"
+        font-weight="800"
         fill="url(#textGradient)"
         filter="url(#innerShadow)">A</text>
-  
+
   <!-- Subscript "IQ" - smaller, positioned to bottom-right of A -->
-  <text x="340" y="440" 
-        font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" 
-        font-size="120" 
-        font-weight="700" 
+  <text x="340" y="440"
+        font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+        font-size="120"
+        font-weight="700"
         fill="url(#textGradient)"
         opacity="0.95">IQ</text>
 </svg>

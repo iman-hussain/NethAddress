@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
-  <!-- 
+  <!--
     Apple Touch Icon - optimised for iOS
     iOS applies its own rounded corners and effects (including liquid glass in iOS 18+)
     Using slightly more padding for better visual balance on iOS
@@ -14,22 +14,22 @@
       <stop offset="100%" style="stop-color:#F0F0F0"/>
     </linearGradient>
   </defs>
-  
+
   <!-- Full background - iOS applies rounded corners automatically -->
   <rect width="180" height="180" fill="url(#bgGradient)"/>
-  
+
   <!-- Main "A" letter - scaled for 180x180 -->
-  <text x="75" y="135" 
-        font-family="Inter, -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif" 
-        font-size="135" 
-        font-weight="800" 
+  <text x="75" y="135"
+        font-family="Inter, -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif"
+        font-size="135"
+        font-weight="800"
         fill="url(#textGradient)">A</text>
-  
+
   <!-- Subscript "IQ" -->
-  <text x="118" y="155" 
-        font-family="Inter, -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif" 
-        font-size="42" 
-        font-weight="700" 
+  <text x="118" y="155"
+        font-family="Inter, -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif"
+        font-size="42"
+        font-weight="700"
         fill="url(#textGradient)"
         opacity="0.95">IQ</text>
 </svg>
