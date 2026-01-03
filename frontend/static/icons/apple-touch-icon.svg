@@ -18,18 +18,20 @@
   <!-- Full background - iOS applies rounded corners automatically -->
   <rect width="180" height="180" fill="url(#bgGradient)"/>
 
-  <!-- Main "A" letter - scaled for 180x180 -->
-  <text x="75" y="135"
+  <!-- Main "A" letter - centred -->
+  <text x="90" y="142"
         font-family="Inter, -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif"
-        font-size="135"
+        font-size="148"
         font-weight="800"
+        text-anchor="middle"
         fill="url(#textGradient)">A</text>
 
-  <!-- Subscript "IQ" -->
-  <text x="118" y="155"
+  <!-- "IQ" - centred between the legs of the A -->
+  <text x="90" y="140"
         font-family="Inter, -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif"
-        font-size="42"
+        font-size="30"
         font-weight="700"
+        text-anchor="middle"
         fill="url(#textGradient)"
         opacity="0.95">IQ</text>
 </svg>

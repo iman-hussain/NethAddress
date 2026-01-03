@@ -23,18 +23,20 @@
   <rect width="512" height="512" rx="90" ry="90" fill="url(#bgGradient)"/>
 
   <!-- Main "A" letter - large and centred -->
-  <text x="220" y="380"
+  <text x="256" y="400"
         font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
-        font-size="380"
+        font-size="420"
         font-weight="800"
+        text-anchor="middle"
         fill="url(#textGradient)"
         filter="url(#innerShadow)">A</text>
 
-  <!-- Subscript "IQ" - smaller, positioned to bottom-right of A -->
-  <text x="340" y="440"
+  <!-- "IQ" - smaller, centred between the legs of the A -->
+  <text x="256" y="395"
         font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
-        font-size="120"
+        font-size="85"
         font-weight="700"
+        text-anchor="middle"
         fill="url(#textGradient)"
         opacity="0.95">IQ</text>
 </svg>

@@ -20,18 +20,20 @@
 
   <!-- Content scaled down and centred to fit within 80% safe zone -->
   <g transform="translate(51.2, 51.2) scale(0.8)">
-    <!-- Main "A" letter -->
-    <text x="220" y="380"
+    <!-- Main "A" letter - centred -->
+    <text x="256" y="400"
           font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
-          font-size="380"
+          font-size="420"
           font-weight="800"
+          text-anchor="middle"
           fill="url(#textGradient)">A</text>
 
-    <!-- Subscript "IQ" -->
-    <text x="340" y="440"
+    <!-- "IQ" - centred between the legs of the A -->
+    <text x="256" y="395"
           font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
-          font-size="120"
+          font-size="85"
           font-weight="700"
+          text-anchor="middle"
           fill="url(#textGradient)"
           opacity="0.95">IQ</text>
   </g>

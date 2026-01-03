@@ -28,9 +28,10 @@ const GRADIENT_END = '#357ABD';
  */
 function createIconSVG(size, maskable = false, simplified = false) {
     const cornerRadius = maskable ? 0 : Math.round(size * 0.176);
+    const centre = size / 2;
 
     if (simplified) {
-        // Simplified favicon - just "A"
+        // Simplified favicon - just centred "A"
         return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">
   <defs>
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -39,25 +40,25 @@ function createIconSVG(size, maskable = false, simplified = false) {
     </linearGradient>
   </defs>
   <rect width="${size}" height="${size}" rx="${cornerRadius}" ry="${cornerRadius}" fill="url(#bgGrad)"/>
-  <text x="${size * 0.18}" y="${size * 0.82}"
+  <text x="${centre}" y="${size * 0.82}"
         font-family="Inter, Arial, sans-serif"
         font-size="${size * 0.85}"
         font-weight="800"
+        text-anchor="middle"
         fill="#FFFFFF">A</text>
 </svg>`;
     }
 
-    // Full icon with A and subscript IQ
+    // Full icon with centred A and IQ between the legs
     const scale = maskable ? 0.75 : 1;
     const offsetX = maskable ? size * 0.125 : 0;
     const offsetY = maskable ? size * 0.125 : 0;
+    const contentCentre = maskable ? size * 0.5 : centre;
 
-    const aFontSize = Math.round(size * 0.72 * scale);
-    const iqFontSize = Math.round(size * 0.22 * scale);
-    const aX = Math.round(offsetX + size * 0.14);
-    const aY = Math.round(offsetY + size * 0.72 * scale);
-    const iqX = Math.round(offsetX + size * 0.52 * scale);
-    const iqY = Math.round(offsetY + size * 0.84 * scale);
+    const aFontSize = Math.round(size * 0.82 * scale);
+    const iqFontSize = Math.round(size * 0.17 * scale);
+    const aY = Math.round(offsetY + size * 0.78 * scale);
+    const iqY = Math.round(offsetY + size * 0.77 * scale);
 
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">
   <defs>
@@ -67,15 +68,17 @@ function createIconSVG(size, maskable = false, simplified = false) {
     </linearGradient>
   </defs>
   <rect width="${size}" height="${size}" rx="${cornerRadius}" ry="${cornerRadius}" fill="url(#bgGrad)"/>
-  <text x="${aX}" y="${aY}"
+  <text x="${contentCentre}" y="${aY}"
         font-family="Inter, Arial, sans-serif"
         font-size="${aFontSize}"
         font-weight="800"
+        text-anchor="middle"
         fill="#FFFFFF">A</text>
-  <text x="${iqX}" y="${iqY}"
+  <text x="${contentCentre}" y="${iqY}"
         font-family="Inter, Arial, sans-serif"
         font-size="${iqFontSize}"
         font-weight="700"
+        text-anchor="middle"
         fill="#FFFFFF"
         opacity="0.95">IQ</text>
 </svg>`;

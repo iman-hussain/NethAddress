@@ -9,10 +9,11 @@
 
   <rect width="32" height="32" rx="6" ry="6" fill="url(#bgGrad)"/>
 
-  <!-- Simplified A for favicon - just the main letter -->
-  <text x="6" y="26"
+  <!-- Simplified A for favicon - centred -->
+  <text x="16" y="26"
         font-family="Inter, -apple-system, sans-serif"
         font-size="28"
         font-weight="800"
+        text-anchor="middle"
         fill="#FFFFFF">A</text>
 </svg>
