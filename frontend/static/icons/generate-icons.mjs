@@ -84,6 +84,61 @@ function createIconSVG(size, maskable = false, simplified = false) {
 </svg>`;
 }
 
+/**
+ * Creates an SVG icon for iOS 18 Dark Mode
+ * Transparent background with white foreground for glass effect
+ */
+function createDarkIconSVG(size) {
+    const centre = size / 2;
+    const aFontSize = Math.round(size * 0.82);
+    const iqFontSize = Math.round(size * 0.17);
+    const aY = Math.round(size * 0.78);
+    const iqY = Math.round(size * 0.77);
+
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">
+  <text x="${centre}" y="${aY}"
+        font-family="Inter, Arial, sans-serif"
+        font-size="${aFontSize}"
+        font-weight="800"
+        text-anchor="middle"
+        fill="#FFFFFF">A</text>
+  <text x="${centre}" y="${iqY}"
+        font-family="Inter, Arial, sans-serif"
+        font-size="${iqFontSize}"
+        font-weight="700"
+        text-anchor="middle"
+        fill="#FFFFFF"
+        opacity="0.9">IQ</text>
+</svg>`;
+}
+
+/**
+ * Creates an SVG icon for iOS 18 Tinted Mode
+ * Grayscale monochrome - iOS applies user's tint colour
+ */
+function createTintedIconSVG(size) {
+    const centre = size / 2;
+    const aFontSize = Math.round(size * 0.82);
+    const iqFontSize = Math.round(size * 0.17);
+    const aY = Math.round(size * 0.78);
+    const iqY = Math.round(size * 0.77);
+
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">
+  <text x="${centre}" y="${aY}"
+        font-family="Inter, Arial, sans-serif"
+        font-size="${aFontSize}"
+        font-weight="800"
+        text-anchor="middle"
+        fill="#1A1A1A">A</text>
+  <text x="${centre}" y="${iqY}"
+        font-family="Inter, Arial, sans-serif"
+        font-size="${iqFontSize}"
+        font-weight="700"
+        text-anchor="middle"
+        fill="#2A2A2A">IQ</text>
+</svg>`;
+}
+
 async function generateIcon(filename, size, maskable = false, simplified = false) {
     const svg = createIconSVG(size, maskable, simplified);
     const outputPath = join(__dirname, filename);
@@ -96,24 +151,64 @@ async function generateIcon(filename, size, maskable = false, simplified = false
     console.log(`✓ Generated ${filename} (${size}×${size})`);
 }
 
+async function generateDarkIcon(filename, size) {
+    const svg = createDarkIconSVG(size);
+    const outputPath = join(__dirname, filename);
+
+    await sharp(Buffer.from(svg))
+        .resize(size, size)
+        .png()
+        .toFile(outputPath);
+
+    console.log(`✓ Generated ${filename} (${size}×${size}) [dark]`);
+}
+
+async function generateTintedIcon(filename, size) {
+    const svg = createTintedIconSVG(size);
+    const outputPath = join(__dirname, filename);
+
+    await sharp(Buffer.from(svg))
+        .resize(size, size)
+        .png()
+        .toFile(outputPath);
+
+    console.log(`✓ Generated ${filename} (${size}×${size}) [tinted/grayscale]`);
+}
+
 async function main() {
     console.log('Generating AddressIQ icons...\n');
 
     try {
-        // Standard icons
+        // Standard icons (default/light appearance)
+        console.log('Default icons:');
         await generateIcon('icon-192.png', 192);
         await generateIcon('icon-512.png', 512);
 
         // Maskable icons (Android adaptive)
+        console.log('\nAndroid adaptive icons:');
         await generateIcon('icon-maskable-192.png', 192, true);
         await generateIcon('icon-maskable-512.png', 512, true);
 
-        // Apple touch icons
+        // Apple touch icons - default
+        console.log('\nApple touch icons (default):');
         await generateIcon('apple-touch-icon-152.png', 152);
         await generateIcon('apple-touch-icon-167.png', 167);
         await generateIcon('apple-touch-icon-180.png', 180);
 
+        // Apple touch icons - dark mode (iOS 18 Liquid Glass)
+        console.log('\nApple touch icons (dark - iOS 18):');
+        await generateDarkIcon('apple-touch-icon-dark-152.png', 152);
+        await generateDarkIcon('apple-touch-icon-dark-167.png', 167);
+        await generateDarkIcon('apple-touch-icon-dark-180.png', 180);
+
+        // Apple touch icons - tinted mode (iOS 18 Liquid Glass)
+        console.log('\nApple touch icons (tinted - iOS 18):');
+        await generateTintedIcon('apple-touch-icon-tinted-152.png', 152);
+        await generateTintedIcon('apple-touch-icon-tinted-167.png', 167);
+        await generateTintedIcon('apple-touch-icon-tinted-180.png', 180);
+
         // Favicons
+        console.log('\nFavicons:');
         await generateIcon('favicon-32.png', 32, false, true);
         await generateIcon('favicon-16.png', 16, false, true);
 
