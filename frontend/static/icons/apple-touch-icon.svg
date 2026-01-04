@@ -2,30 +2,24 @@
   <!--
     Apple Touch Icon - optimised for iOS 18 Liquid Glass
     NO background - allows iOS to apply clear/tinted glass effects properly
-    iOS automatically adds rounded corners and visual effects
+    Pure black foreground for maximum contrast in grayscale/tinted modes
   -->
-  <defs>
-    <linearGradient id="textGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" style="stop-color:#1E3A5F"/>
-      <stop offset="100%" style="stop-color:#0F172A"/>
-    </linearGradient>
-  </defs>
 
   <!-- NO background rect - transparent for iOS glass effects -->
 
-  <!-- Main "A" letter - centred, dark blue for visibility on glass -->
+  <!-- Main "A" letter - pure black for maximum contrast -->
   <text x="90" y="142"
         font-family="Inter, -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif"
         font-size="148"
         font-weight="800"
         text-anchor="middle"
-        fill="url(#textGradient)">A</text>
+        fill="#000000">A</text>
 
-  <!-- "IQ" - centred between the legs of the A -->
+  <!-- "IQ" - pure black -->
   <text x="90" y="140"
         font-family="Inter, -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif"
         font-size="30"
         font-weight="700"
         text-anchor="middle"
-        fill="url(#textGradient)">IQ</text>
+        fill="#000000">IQ</text>
 </svg>

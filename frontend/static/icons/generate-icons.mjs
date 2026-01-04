@@ -87,7 +87,7 @@ function createIconSVG(size, maskable = false, simplified = false) {
 /**
  * Creates an SVG icon for iOS 18 with transparent background
  * Works with Clear, Tinted, and Dark modes in Liquid Glass
- * Dark foreground for light backgrounds, iOS handles the rest
+ * Pure black foreground for maximum contrast in grayscale/tinted modes
  */
 function createAppleIconSVG(size) {
     const centre = size / 2;
@@ -96,26 +96,20 @@ function createAppleIconSVG(size) {
     const aY = Math.round(size * 0.79);
     const iqY = Math.round(size * 0.78);
 
-    // Dark blue/navy colour that works on both light and dark glass
+    // Pure black for maximum contrast - iOS handles tinting/colorisation
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">
-  <defs>
-    <linearGradient id="textGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" style="stop-color:#1E3A5F"/>
-      <stop offset="100%" style="stop-color:#0F172A"/>
-    </linearGradient>
-  </defs>
   <text x="${centre}" y="${aY}"
         font-family="Inter, Arial, sans-serif"
         font-size="${aFontSize}"
         font-weight="800"
         text-anchor="middle"
-        fill="url(#textGrad)">A</text>
+        fill="#000000">A</text>
   <text x="${centre}" y="${iqY}"
         font-family="Inter, Arial, sans-serif"
         font-size="${iqFontSize}"
         font-weight="700"
         text-anchor="middle"
-        fill="url(#textGrad)">IQ</text>
+        fill="#000000">IQ</text>
 </svg>`;
 }
 
