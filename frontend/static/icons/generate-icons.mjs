@@ -87,7 +87,7 @@ function createIconSVG(size, maskable = false, simplified = false) {
 /**
  * Creates an SVG icon for iOS 18 with transparent background
  * Works with Clear, Tinted, and Dark modes in Liquid Glass
- * Pure black foreground for maximum contrast in grayscale/tinted modes
+ * Teal brand colour matching frontend theme, darkened for contrast
  */
 function createAppleIconSVG(size) {
     const centre = size / 2;
@@ -96,20 +96,20 @@ function createAppleIconSVG(size) {
     const aY = Math.round(size * 0.79);
     const iqY = Math.round(size * 0.78);
 
-    // Pure black for maximum contrast - iOS handles tinting/colorisation
+    // Teal brand colour darkened for better contrast (#0d9488 -> #0A6B62)
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">
   <text x="${centre}" y="${aY}"
         font-family="Inter, Arial, sans-serif"
         font-size="${aFontSize}"
         font-weight="800"
         text-anchor="middle"
-        fill="#000000">A</text>
+        fill="#0A6B62">A</text>
   <text x="${centre}" y="${iqY}"
         font-family="Inter, Arial, sans-serif"
         font-size="${iqFontSize}"
         font-weight="700"
         text-anchor="middle"
-        fill="#000000">IQ</text>
+        fill="#0A6B62">IQ</text>
 </svg>`;
 }
 
@@ -143,8 +143,7 @@ function createDarkIconSVG(size) {
 
 /**
  * Creates an SVG icon for iOS 18 Tinted Mode
- * Grayscale monochrome - iOS applies user's tint colour
- * Must be pure grayscale for proper tinting
+ * Dark teal on transparent - iOS converts to grayscale and applies user's tint
  */
 function createTintedIconSVG(size) {
     const centre = size / 2;
@@ -153,20 +152,20 @@ function createTintedIconSVG(size) {
     const aY = Math.round(size * 0.79);
     const iqY = Math.round(size * 0.78);
 
-    // Pure black for maximum tint effect
+    // Dark teal - iOS converts to grayscale for tinting
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">
   <text x="${centre}" y="${aY}"
         font-family="Inter, Arial, sans-serif"
         font-size="${aFontSize}"
         font-weight="800"
         text-anchor="middle"
-        fill="#000000">A</text>
+        fill="#0A6B62">A</text>
   <text x="${centre}" y="${iqY}"
         font-family="Inter, Arial, sans-serif"
         font-size="${iqFontSize}"
         font-weight="700"
         text-anchor="middle"
-        fill="#000000">IQ</text>
+        fill="#0A6B62">IQ</text>
 </svg>`;
 }
 

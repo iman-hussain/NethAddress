@@ -2,24 +2,24 @@
   <!--
     Apple Touch Icon - optimised for iOS 18 Liquid Glass
     NO background - allows iOS to apply clear/tinted glass effects properly
-    Pure black foreground for maximum contrast in grayscale/tinted modes
+    Teal brand colour matching frontend theme
   -->
 
   <!-- NO background rect - transparent for iOS glass effects -->
 
-  <!-- Main "A" letter - pure black for maximum contrast -->
+  <!-- Main "A" letter - teal brand colour, darkened for contrast -->
   <text x="90" y="142"
         font-family="Inter, -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif"
         font-size="148"
         font-weight="800"
         text-anchor="middle"
-        fill="#000000">A</text>
+        fill="#0A6B62">A</text>
 
-  <!-- "IQ" - pure black -->
+  <!-- "IQ" - matching teal -->
   <text x="90" y="140"
         font-family="Inter, -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif"
         font-size="30"
         font-weight="700"
         text-anchor="middle"
-        fill="#000000">IQ</text>
+        fill="#0A6B62">IQ</text>
 </svg>
