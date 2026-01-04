@@ -1,25 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
   <!--
     iOS 18 Tinted Mode Icon
-    Grayscale monochrome - iOS will apply user's chosen tint colour
-    Uses varying shades of gray to create depth that survives colorisation
+    Pure black on transparent - iOS applies user's chosen tint colour
   -->
 
   <!-- NO background - iOS applies tinted glass background -->
 
-  <!-- Main "A" letter - dark gray for tinting -->
-  <text x="256" y="400"
+  <!-- Main "A" letter - pure black for tinting -->
+  <text x="256" y="405"
         font-family="Inter, -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif"
         font-size="420"
         font-weight="800"
         text-anchor="middle"
-        fill="#1A1A1A">A</text>
+        fill="#000000">A</text>
 
-  <!-- "IQ" - slightly lighter gray for subtle depth -->
-  <text x="256" y="395"
+  <!-- "IQ" - pure black -->
+  <text x="256" y="400"
         font-family="Inter, -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif"
         font-size="85"
         font-weight="700"
         text-anchor="middle"
-        fill="#2A2A2A">IQ</text>
+        fill="#000000">IQ</text>
 </svg>

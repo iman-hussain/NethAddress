@@ -85,6 +85,41 @@ function createIconSVG(size, maskable = false, simplified = false) {
 }
 
 /**
+ * Creates an SVG icon for iOS 18 with transparent background
+ * Works with Clear, Tinted, and Dark modes in Liquid Glass
+ * Dark foreground for light backgrounds, iOS handles the rest
+ */
+function createAppleIconSVG(size) {
+    const centre = size / 2;
+    const aFontSize = Math.round(size * 0.82);
+    const iqFontSize = Math.round(size * 0.17);
+    const aY = Math.round(size * 0.79);
+    const iqY = Math.round(size * 0.78);
+
+    // Dark blue/navy colour that works on both light and dark glass
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">
+  <defs>
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#1E3A5F"/>
+      <stop offset="100%" style="stop-color:#0F172A"/>
+    </linearGradient>
+  </defs>
+  <text x="${centre}" y="${aY}"
+        font-family="Inter, Arial, sans-serif"
+        font-size="${aFontSize}"
+        font-weight="800"
+        text-anchor="middle"
+        fill="url(#textGrad)">A</text>
+  <text x="${centre}" y="${iqY}"
+        font-family="Inter, Arial, sans-serif"
+        font-size="${iqFontSize}"
+        font-weight="700"
+        text-anchor="middle"
+        fill="url(#textGrad)">IQ</text>
+</svg>`;
+}
+
+/**
  * Creates an SVG icon for iOS 18 Dark Mode
  * Transparent background with white foreground for glass effect
  */
@@ -92,8 +127,8 @@ function createDarkIconSVG(size) {
     const centre = size / 2;
     const aFontSize = Math.round(size * 0.82);
     const iqFontSize = Math.round(size * 0.17);
-    const aY = Math.round(size * 0.78);
-    const iqY = Math.round(size * 0.77);
+    const aY = Math.round(size * 0.79);
+    const iqY = Math.round(size * 0.78);
 
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">
   <text x="${centre}" y="${aY}"
@@ -115,27 +150,29 @@ function createDarkIconSVG(size) {
 /**
  * Creates an SVG icon for iOS 18 Tinted Mode
  * Grayscale monochrome - iOS applies user's tint colour
+ * Must be pure grayscale for proper tinting
  */
 function createTintedIconSVG(size) {
     const centre = size / 2;
     const aFontSize = Math.round(size * 0.82);
     const iqFontSize = Math.round(size * 0.17);
-    const aY = Math.round(size * 0.78);
-    const iqY = Math.round(size * 0.77);
+    const aY = Math.round(size * 0.79);
+    const iqY = Math.round(size * 0.78);
 
+    // Pure black for maximum tint effect
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${size} ${size}">
   <text x="${centre}" y="${aY}"
         font-family="Inter, Arial, sans-serif"
         font-size="${aFontSize}"
         font-weight="800"
         text-anchor="middle"
-        fill="#1A1A1A">A</text>
+        fill="#000000">A</text>
   <text x="${centre}" y="${iqY}"
         font-family="Inter, Arial, sans-serif"
         font-size="${iqFontSize}"
         font-weight="700"
         text-anchor="middle"
-        fill="#2A2A2A">IQ</text>
+        fill="#000000">IQ</text>
 </svg>`;
 }
 
@@ -151,13 +188,26 @@ async function generateIcon(filename, size, maskable = false, simplified = false
     console.log(`✓ Generated ${filename} (${size}×${size})`);
 }
 
+async function generateAppleIcon(filename, size) {
+    const svg = createAppleIconSVG(size);
+    const outputPath = join(__dirname, filename);
+
+    // Ensure transparent background is preserved
+    await sharp(Buffer.from(svg))
+        .resize(size, size)
+        .png({ compressionLevel: 9 })
+        .toFile(outputPath);
+
+    console.log(`✓ Generated ${filename} (${size}×${size}) [transparent]`);
+}
+
 async function generateDarkIcon(filename, size) {
     const svg = createDarkIconSVG(size);
     const outputPath = join(__dirname, filename);
 
     await sharp(Buffer.from(svg))
         .resize(size, size)
-        .png()
+        .png({ compressionLevel: 9 })
         .toFile(outputPath);
 
     console.log(`✓ Generated ${filename} (${size}×${size}) [dark]`);
@@ -169,7 +219,7 @@ async function generateTintedIcon(filename, size) {
 
     await sharp(Buffer.from(svg))
         .resize(size, size)
-        .png()
+        .png({ compressionLevel: 9 })
         .toFile(outputPath);
 
     console.log(`✓ Generated ${filename} (${size}×${size}) [tinted/grayscale]`);
@@ -179,8 +229,8 @@ async function main() {
     console.log('Generating AddressIQ icons...\n');
 
     try {
-        // Standard icons (default/light appearance)
-        console.log('Default icons:');
+        // Standard icons (default/light appearance) - with background for Android/general use
+        console.log('Default icons (with background):');
         await generateIcon('icon-192.png', 192);
         await generateIcon('icon-512.png', 512);
 
@@ -189,19 +239,20 @@ async function main() {
         await generateIcon('icon-maskable-192.png', 192, true);
         await generateIcon('icon-maskable-512.png', 512, true);
 
-        // Apple touch icons - default
-        console.log('\nApple touch icons (default):');
-        await generateIcon('apple-touch-icon-152.png', 152);
-        await generateIcon('apple-touch-icon-167.png', 167);
-        await generateIcon('apple-touch-icon-180.png', 180);
+        // Apple touch icons - transparent background for iOS 18 Liquid Glass
+        // These work with default, clear, and tinted modes
+        console.log('\nApple touch icons (transparent - iOS 18 Liquid Glass):');
+        await generateAppleIcon('apple-touch-icon-152.png', 152);
+        await generateAppleIcon('apple-touch-icon-167.png', 167);
+        await generateAppleIcon('apple-touch-icon-180.png', 180);
 
-        // Apple touch icons - dark mode (iOS 18 Liquid Glass)
+        // Apple touch icons - dark mode variant (white on transparent)
         console.log('\nApple touch icons (dark - iOS 18):');
         await generateDarkIcon('apple-touch-icon-dark-152.png', 152);
         await generateDarkIcon('apple-touch-icon-dark-167.png', 167);
         await generateDarkIcon('apple-touch-icon-dark-180.png', 180);
 
-        // Apple touch icons - tinted mode (iOS 18 Liquid Glass)
+        // Apple touch icons - tinted mode (pure black on transparent for colorisation)
         console.log('\nApple touch icons (tinted - iOS 18):');
         await generateTintedIcon('apple-touch-icon-tinted-152.png', 152);
         await generateTintedIcon('apple-touch-icon-tinted-167.png', 167);
