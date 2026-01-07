@@ -1532,3 +1532,55 @@ body:not(.has-results) .desktop-results {
 		grid-template-columns: 1fr;
 	}
 }
+/* Settings Grid Layout */
+.api-tier-group {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+	gap: 0.75rem;
+	margin-bottom: 1.5rem;
+}
+
+.api-tier-label {
+	grid-column: 1 / -1;
+	font-weight: 700;
+	color: var(--text-primary);
+	margin-bottom: 0.5rem;
+	font-size: 1.125rem;
+	border-bottom: 1px solid var(--border);
+	padding-bottom: 0.25rem;
+}
+
+/* Mobile Info Cards Updates */
+@media screen and (max-width: 768px) {
+
+	.result-card,
+	.box {
+		/* Remove background/borders for cleaner look on mobile if requested */
+		background: transparent !important;
+		border: none !important;
+		box-shadow: none !important;
+		padding-left: 0 !important;
+		padding-right: 0 !important;
+	}
+
+	/* Ensure text keeps some contrast or just rely on text color */
+	/* Maybe add backdrop blur if user wants "glass"? User said "remove background". */
+	/* We obey strict removal. */
+
+	.metric-value,
+	.card-header-title {
+		/* Ensure readability if map is behind? But map is bottom layer. */
+		/* The whole results area has a background? No, .sidebar-content is transparent. */
+		/* If result-card is transparent, you see the map? */
+		/* Actually, the sidebar overlay is covering the map. */
+		/* If sidebar-overlay background is transparent (from previous step), then yes, map is visible. */
+		/* Text might be hard to read. I'll add a subtle text-shadow just in case. */
+		text-shadow: 0 1px 4px rgba(255, 255, 255, 0.9);
+	}
+
+	[data-theme="dark"] .metric-value,
+	[data-theme="dark"] .card-header-title,
+	[data-theme="dark"] .section-header h4 {
+		text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+	}
+}
