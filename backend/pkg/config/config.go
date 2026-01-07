@@ -35,6 +35,7 @@ type Config struct {
 	// Environmental & Soil Data
 	WURSoilApiURL          string `envconfig:"WUR_SOIL_API_URL"`
 	SkyGeoSubsidenceApiURL string `envconfig:"SKYGEO_SUBSIDENCE_API_URL"`
+	SkyGeoApiKey           string `envconfig:"SKYGEO_API_KEY"` // Added missing key
 	SoilQualityApiURL      string `envconfig:"SOIL_QUALITY_API_URL"`
 	BROSoilMapApiURL       string `envconfig:"BRO_SOIL_MAP_API_URL"`
 
@@ -56,6 +57,7 @@ type Config struct {
 	CBSStatLineApiURL    string `envconfig:"CBS_STATLINE_API_URL"`
 	CBSSquareStatsApiURL string `envconfig:"CBS_SQUARE_STATS_API_URL"`
 	CBSApiURL            string `envconfig:"CBS_API_URL"`
+	CBSApiKey            string `envconfig:"CBS_API_KEY"` // Added missing key
 
 	// Environmental Quality
 	LuchtmeetnetApiURL   string `envconfig:"LUCHTMEETNET_API_URL"`
@@ -65,6 +67,7 @@ type Config struct {
 	// Water & Flooding
 	FloodRiskApiURL    string `envconfig:"FLOOD_RISK_API_URL"`
 	DigitalDeltaApiURL string `envconfig:"DIGITAL_DELTA_API_URL"`
+	DigitalDeltaApiKey string `envconfig:"DIGITAL_DELTA_API_KEY"` // Added missing key
 
 	// Safety & Aviation
 	SafetyExperienceApiURL string `envconfig:"SAFETY_EXPERIENCE_API_URL"`

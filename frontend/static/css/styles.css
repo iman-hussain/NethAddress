@@ -1452,4 +1452,83 @@ body:not(.has-results) .desktop-results {
 	border-radius: var(--radius-sm);
 	font-size: 0.875rem;
 	box-shadow: var(--shadow-md);
+}/* Logo Styling */
+.logo-icon-img {
+	height: 32px;
+	width: 32px;
+	margin-right: 0.75rem;
+	border-radius: 8px;
+	vertical-align: middle;
+	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Better Pointer Events for Sidebar (Click through to map) */
+.sidebar-content {
+	pointer-events: none;
+	/* Let clicks pass through empty space */
+}
+
+.sidebar-content>* {
+	pointer-events: auto;
+	/* Re-enable for cards */
+}
+
+/* Mobile Optimizations */
+@media screen and (max-width: 768px) {
+
+	/* Search Panel Tweaks */
+	.search-form-row {
+		flex-direction: row;
+		/* Keep row but ensure wrap if needed, or row is fine */
+		flex-wrap: wrap;
+	}
+
+	.search-form-row .field {
+		min-width: 120px;
+	}
+
+	.sidebar-overlay {
+		width: 100%;
+		/* Full width on mobile */
+		padding-bottom: 80px;
+		/* Space for bottom content if needed */
+	}
+
+	.sidebar-content {
+		padding: 0.75rem;
+		/* Smaller padding */
+	}
+
+	/* Typography adjustments */
+	.metric-value {
+		font-size: 2.25rem;
+	}
+
+	.navbar-item {
+		padding: 0.5rem 1rem;
+	}
+
+	.active-layers-panel {
+		bottom: 1rem;
+		left: 1rem;
+		right: 1rem;
+		max-width: none;
+		min-width: 0;
+	}
+
+	/* Hide map switcher text or compact it? */
+	.map-style-switcher {
+		top: auto;
+		bottom: 1rem;
+		/* Position above active layers if present, or just top-right? */
+		/* Actually keep it top right but compact */
+		transform: scale(0.9);
+		right: 0.5rem;
+		top: 0.5rem;
+	}
+
+	/* Results Grid - Single Column on Mobile */
+	.api-results-grid {
+		grid-template-columns: 1fr;
+	}
 }

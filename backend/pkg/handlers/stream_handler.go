@@ -120,41 +120,28 @@ func (h *SearchHandler) HandleSearchStream(w http.ResponseWriter, r *http.Reques
 			// Build full response
 			apiResults := h.buildAPIResults(data)
 
-			// If we got BAG data earlier but aggregation partially moved on,
-			// we rely on aggregator returning what it has.
-			// Reconstruct GeoJSON if it's not in comprehensive data (aggregator stores just coords/address)
-			// Wait, aggregator.ComprehensivePropertyData does not store GeoJSON string directly?
-			// Let's check aggregator.go structure.
-			// It has `Coordinates` but not `GeoJSON`. `SearchHandler.HandleSearch` fetched BAG separately.
-			// `AggregatePropertyData` fetches BAG internally too.
-			// BUT `ComprehensivePropertyData` struct in `aggregator.go`:
-			// Address, Coordinates, BAGID...
-			// It does NOT have GeoJSON field.
-
-			// We might need to fetch BAG again or update aggregator struct to keep GeoJSON.
-			// Or just re-fetch BAG? That's wasteful.
-			// Update aggregator struct to include GeoJSON is better.
-			// But for now, let's just proceed. The map needs GeoJSON.
-			// We can fetch BAG quickly or `aggregator` already has it, just didn't export it.
-			// `aggregator` fetches `apiClient.FetchBAGData`. The response has GeoJSON.
-			// I should probably add `GeoJSON` to `ComprehensivePropertyData` in `aggregator.go` as a quick fix or just omit it for now?
-			// Without GeoJSON, the map won't draw the potential blue polygon.
-			// Let's update `ComprehensivePropertyData` to include `GeoJSON string` later.
-			// For now, I will leave it empty string in the response or re-fetch it quickly (it's cached anyway usually).
-			// Actually, let's leave GeoJSON empty for now to avoid blocking. The UI handles missing GeoJSON gracefully (just zooms to point).
-
 			response := ComprehensiveSearchResponse{
 				Address:     data.Address,
 				Coordinates: data.Coordinates,
-				GeoJSON:     "", // Missing for now
+				GeoJSON:     data.GeoJSON, // Use aggregated GeoJSON
 				APIResults:  apiResults,
 				AISummary:   data.AISummary,
 			}
 
-			// Serialize to JSON for embedding
-			responseJSON, _ := json.Marshal(response)
+			// Serialize to JSON
+			responseJSON, err := json.Marshal(response)
+			if err != nil {
+				logutil.Errorf("Error marshaling response: %v", err)
+				sendSSEError(w, flusher, "Failed to serialize response")
+				return
+			}
 
-			// Generate HTML (matching search_handler.go)
+			// 1. Send Data Event (Raw JSON) - Efficient transport
+			fmt.Fprintf(w, "event: data\ndata: %s\n\n", responseJSON)
+			flusher.Flush()
+
+			// 2. Send HTML Event (Presentation only) - Lightweight
+			// Note: We remove the heavy data-response attribute since data is sent separately
 			htmlContent := fmt.Sprintf(`
 <div data-target="header">
     <div class="box">
@@ -172,21 +159,20 @@ func (h *SearchHandler) HandleSearchStream(w http.ResponseWriter, r *http.Reques
 </div>
 <div data-target="results">
 </div>
-<div data-geojson='%s' data-response='%s' style="display:none;"></div>`,
+<div data-geojson='%s' style="display:none;"></div>`,
 				html.EscapeString(data.Address),
 				data.Coordinates[1], data.Coordinates[0],
 				html.EscapeString(postcode), html.EscapeString(houseNumber),
-				html.EscapeString(""), // GeoJSON placeholder
-				html.EscapeString(string(responseJSON)))
+				html.EscapeString(data.GeoJSON))
 
-			// Send HTML as JSON string for safe transport
-			payload, err := json.Marshal(htmlContent)
+			// Send HTML as JSON string for safe transport (frontend expects JSON string of HTML)
+			htmlPayload, err := json.Marshal(htmlContent)
 			if err != nil {
-				logutil.Errorf("Error marshaling final response: %v", err)
+				logutil.Errorf("Error marshaling html response: %v", err)
 				sendSSEError(w, flusher, "Failed to serialize response")
 				return
 			}
-			fmt.Fprintf(w, "event: complete\ndata: %s\n\n", payload)
+			fmt.Fprintf(w, "event: complete\ndata: %s\n\n", htmlPayload)
 			flusher.Flush()
 			return
 

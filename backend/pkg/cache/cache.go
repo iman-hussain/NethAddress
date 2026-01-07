@@ -1,8 +1,9 @@
 package cache
 
 import (
+	"bytes"
 	"context"
-	"encoding/json"
+	"encoding/gob"
 	"fmt"
 	"time"
 
@@ -46,8 +47,9 @@ func (cs *CacheService) Get(key string, dest interface{}) error {
 		return fmt.Errorf("cache get error: %w", err)
 	}
 
-	if err := json.Unmarshal([]byte(val), dest); err != nil {
-		return fmt.Errorf("failed to unmarshal cached value: %w", err)
+	b := bytes.NewBuffer([]byte(val))
+	if err := gob.NewDecoder(b).Decode(dest); err != nil {
+		return fmt.Errorf("failed to decode cached value (gob): %w", err)
 	}
 
 	return nil
@@ -55,12 +57,12 @@ func (cs *CacheService) Get(key string, dest interface{}) error {
 
 // Set stores a value in cache with TTL
 func (cs *CacheService) Set(key string, value interface{}, ttl time.Duration) error {
-	jsonData, err := json.Marshal(value)
-	if err != nil {
-		return fmt.Errorf("failed to marshal value: %w", err)
+	var b bytes.Buffer
+	if err := gob.NewEncoder(&b).Encode(value); err != nil {
+		return fmt.Errorf("failed to encode value (gob): %w", err)
 	}
 
-	if err := cs.client.Set(cs.ctx, key, jsonData, ttl).Err(); err != nil {
+	if err := cs.client.Set(cs.ctx, key, b.Bytes(), ttl).Err(); err != nil {
 		return fmt.Errorf("cache set error: %w", err)
 	}
 

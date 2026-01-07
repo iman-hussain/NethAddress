@@ -36,6 +36,7 @@ type ComprehensivePropertyData struct {
 	Address     string     `json:"address"`
 	Coordinates [2]float64 `json:"coordinates"`
 	BAGID       string     `json:"bagId"`
+	GeoJSON     string     `json:"geojson,omitempty"` // Raw GeoJSON for map display
 
 	// Property Details
 	KadasterInfo       *models.KadasterObjectInfo     `json:"kadasterInfo,omitempty"`
@@ -133,10 +134,9 @@ func (pa *PropertyAggregator) AggregatePropertyDataWithOptions(ctx context.Conte
 	}
 
 	// Create a shallow copy of config to apply user provided keys (if any)
-	// We do this per-request to avoid concurrency issues with shared global config
 	reqConfig := *pa.config
 	if userKeys != nil {
-		reqConfig.ApplyUserLocalKeys(userKeys) // Helper method to map keys to config fields
+		reqConfig.ApplyUserLocalKeys(userKeys)
 	}
 	cfg := &reqConfig
 
@@ -149,28 +149,21 @@ func (pa *PropertyAggregator) AggregatePropertyDataWithOptions(ctx context.Conte
 	lat := bagData.Coordinates[1]
 	lon := bagData.Coordinates[0]
 
-	logutil.Debugf("[AGGREGATOR] Coordinates from BAG: lat=%.6f, lon=%.6f", lat, lon)
-
 	// Extract BAG ID from response
 	bagID := bagData.ID
 	if bagID == "" {
 		logutil.Debugf("[AGGREGATOR] Warning: No BAG ID found in response, some APIs may fail")
 	}
 
-	// Lookup neighborhood and region codes dynamically
-	// This is also fast and essential for other calls, so we do it synchronously (or could be parallel, but simpler here)
-	// Actually, let's keep it sync for simplicity of dependency management
+	// Dynamic neighborhood/region lookup
 	var neighborhoodCode, regionCode string
 	regionCodes, err := pa.apiClient.LookupNeighborhoodCode(ctx, cfg, lat, lon)
 	if err == nil && regionCodes != nil {
 		neighborhoodCode = regionCodes.NeighborhoodCode
 		regionCode = regionCodes.MunicipalityCode
-		logutil.Debugf("[AGGREGATOR] Resolved neighborhood=%s, region=%s", neighborhoodCode, regionCode)
 	} else {
-		logutil.Debugf("[AGGREGATOR] Warning: Could not resolve neighborhood codes: %v", err)
 		if bagData.MunicipalityCode != "" {
 			regionCode = bagData.MunicipalityCode
-			logutil.Debugf("[AGGREGATOR] Using municipality code from BAG: %s", regionCode)
 		}
 	}
 
@@ -178,22 +171,24 @@ func (pa *PropertyAggregator) AggregatePropertyDataWithOptions(ctx context.Conte
 		Address:      bagData.Address,
 		Coordinates:  bagData.Coordinates,
 		BAGID:        bagID,
+		GeoJSON:      bagData.GeoJSON, // Populate GeoJSON!
 		AggregatedAt: time.Now(),
 		DataSources:  []string{"BAG"},
 		Errors:       make(map[string]string),
 	}
 
-	// Total expected sources (approximate)
-	const totalSources = 33
+	// Dynamic progress tracking
+	totalSources := pa.countEnabledSources(cfg)
 	var completedSources atomic.Int32
+	// Account for BAG being done
+	completedSources.Store(1)
 
 	// Progress callback
 	reportProgress := func(source, status string) {
 		newCompleted := completedSources.Add(1)
-		logutil.Debugf("[AGGREGATOR] Progress: %s (%s) - %d/%d", source, status, newCompleted, totalSources)
+		// logutil.Debugf("[AGGREGATOR] Progress: %s (%s) - %d/%d", source, status, newCompleted, totalSources)
 
 		if progressCh != nil {
-			// Non-blocking send to avoid stalling if channel is full/slow
 			select {
 			case progressCh <- ProgressEvent{
 				Source:        source,
@@ -203,23 +198,28 @@ func (pa *PropertyAggregator) AggregatePropertyDataWithOptions(ctx context.Conte
 				LastCompleted: source,
 			}:
 			default:
-				logutil.Debugf("[AGGREGATOR] Progress channel full, dropping event for %s", source)
+				// Buffer full, skip update (client eventually gets complete)
 			}
 		}
 	}
 
-	// Mutex for thread-safe writes to DataSources and Errors
+	// Concurrency Control
 	var mu sync.Mutex
 	var wg sync.WaitGroup
+	// Limit concurrently active groups to prevent exploding goroutines
+	// Since each group spawns sub-routines, limiting groups is effective.
+	const maxConcurrency = 4
+	sem := make(chan struct{}, maxConcurrency)
 
-	// Helper to handle panic recovery in goroutines
 	safeGo := func(fn func()) {
+		sem <- struct{}{} // Acquire semaphore (blocks if full)
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			defer func() { <-sem }() // Release semaphore
 			defer func() {
 				if r := recover(); r != nil {
-					logutil.Debugf("[AGGREGATOR] Panic recovered in goroutine: %v", r)
+					logutil.Debugf("[AGGREGATOR] Panic recovered: %v", r)
 				}
 			}()
 			fn()
@@ -227,54 +227,34 @@ func (pa *PropertyAggregator) AggregatePropertyDataWithOptions(ctx context.Conte
 	}
 
 	// Launch parallel fetchers
-
-	// Group 1: Property Data
 	safeGo(func() { pa.fetchPropertyData(ctx, cfg, &mu, data, bagID, lat, lon, reportProgress) })
-
-	// Group 2: Environmental Data
 	safeGo(func() { pa.fetchEnvironmentalData(ctx, cfg, &mu, data, lat, lon, reportProgress) })
-
-	// Group 3: Energy Data
 	safeGo(func() { pa.fetchEnergyData(ctx, cfg, &mu, data, bagID, reportProgress) })
-
-	// Group 4: Risk Data
 	safeGo(func() { pa.fetchRiskData(ctx, cfg, &mu, data, lat, lon, neighborhoodCode, reportProgress) })
-
-	// Group 5: Mobility Data
 	safeGo(func() { pa.fetchMobilityData(ctx, cfg, &mu, data, lat, lon, reportProgress) })
-
-	// Group 6: Demographics Data
 	safeGo(func() {
 		pa.fetchDemographicsData(ctx, cfg, &mu, data, lat, lon, neighborhoodCode, regionCode, reportProgress)
 	})
-
-	// Group 7: Infrastructure Data
 	safeGo(func() { pa.fetchInfrastructureData(ctx, cfg, &mu, data, lat, lon, reportProgress) })
-
-	// Group 8: Platform Data
 	safeGo(func() { pa.fetchPlatformData(ctx, cfg, &mu, data, lat, lon, reportProgress) })
 
-	// Wait for all data fetching to complete
 	wg.Wait()
 
-	// AI Summary (Gemini) - called after all data is collected (as it summarizes the data)
-	// We pass the context here too
+	// AI Summary (Sequential)
 	if aiSummary, err := pa.apiClient.GenerateLocationSummary(ctx, cfg, data); err == nil {
 		data.AISummary = aiSummary
 		if aiSummary.Generated {
-			// No need for mutex here as we are back to single thread (after wait)
 			data.DataSources = append(data.DataSources, "Gemini AI")
 			reportProgress("Gemini AI", "success")
 		}
 	} else {
-		logutil.Debugf("[AGGREGATOR] Gemini AI summary failed: %v", err)
 		if data.Errors != nil {
 			data.Errors["Gemini AI"] = err.Error()
 		}
 		reportProgress("Gemini AI", "error")
 	}
 
-	// Cache the aggregated result (if caching is available)
+	// Cache the aggregated result
 	if pa.cache != nil {
 		cacheKey := cache.CacheKey{}.AggregatedKey(postcode, houseNumber)
 		pa.cache.Set(cacheKey, data, cache.PropertyDataTTL)

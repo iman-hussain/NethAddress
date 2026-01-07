@@ -238,8 +238,25 @@ document.addEventListener('DOMContentLoaded', function () {
 			map.setPadding({ left: 0, right: 0, top: 0, bottom: 0 });
 		}
 	};
+	// Debounce helper
+	function debounce(func, wait) {
+		let timeout;
+		return function executedFunction(...args) {
+			const later = () => {
+				clearTimeout(timeout);
+				func(...args);
+			};
+			clearTimeout(timeout);
+			timeout = setTimeout(later, wait);
+		};
+	}
+
+	// Debounce map padding updates to prevent layout thrashing
+	const debouncedMapPadding = debounce(applyMapPadding, 150);
+	window.addEventListener('resize', debouncedMapPadding);
+
+	// Initial padding application
 	applyMapPadding();
-	window.addEventListener('resize', applyMapPadding);
 
 
 	// Form is now handled by onsubmit="handleSearch(event)" in HTML for SSE streaming
@@ -324,6 +341,18 @@ document.addEventListener('DOMContentLoaded', function () {
 		console.log('Starting EventSource:', url);
 		const evtSource = new EventSource(url);
 		window.currentEventSource = evtSource;
+		window.tempStreamData = null; // Reset temp data
+
+		// Listen for optimized data event (JSON)
+		evtSource.addEventListener('data', function (event) {
+			try {
+				window.tempStreamData = JSON.parse(event.data);
+				// Also update map immediately if GeoJSON is present?
+				// No, wait for complete to render layout first.
+			} catch (e) {
+				console.error('Error parsing data event:', e);
+			}
+		});
 
 		evtSource.onmessage = function (event) {
 			try {
@@ -427,7 +456,13 @@ document.addEventListener('DOMContentLoaded', function () {
 			const responseStr = dataHolder.getAttribute('data-response');
 			if (responseStr) {
 				currentResponse = JSON.parse(responseStr);
+			} else if (window.tempStreamData) {
+				// Use data received via optimized SSE event
+				currentResponse = window.tempStreamData;
+				window.tempStreamData = null;
+			}
 
+			if (currentResponse) {
 				if (currentResponse.coordinates && currentResponse.coordinates.length >= 2) {
 					setPropertyLocation(currentResponse.coordinates);
 					clearAllPOILayers();
