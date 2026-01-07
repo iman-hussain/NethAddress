@@ -1583,12 +1583,24 @@ body:not(.has-results) .desktop-results {
 
 .sidebar-content {
 	padding: 1rem 1.5rem;
-	pointer-events: none;
+	pointer-events: auto;
+	/* Enable interaction for scrolling */
 	height: 100%;
 	display: flex;
 	flex-direction: column;
-	max-width: 500px;
-	/* Floating panel width on desktop */
+	max-width: 650px;
+	/* Wider Floating panel on desktop */
+	overflow-y: auto;
+	/* Allow vertical scrolling */
+	padding-bottom: 150px;
+	/* Generous bottom padding to allow scrolling past last card */
+	scrollbar-width: none;
+	/* Hide scrollbar for cleaner look (Firefox) */
+}
+
+/* Hide scrollbar for Chrome/Safari/Edge */
+.sidebar-content::-webkit-scrollbar {
+	display: none;
 }
 
 .sidebar-content>* {
@@ -1739,11 +1751,6 @@ body:not(.has-results) .desktop-results {
 
 	/* Ensure sidebar overlay doesn't block right side map interaction */
 	/* .sidebar-overlay pointer-events: none handles this */
-	/* Layout: Floating panel left */
-	.sidebar-overlay {
-		/* width 100% and height 100% from global is fine */
-	}
-
 	/* Navbar also glass (Liquid Style) */
 	.navbar.is-primary {
 		background: rgba(15, 23, 42, 0.7);
@@ -1751,10 +1758,31 @@ body:not(.has-results) .desktop-results {
 		-webkit-backdrop-filter: blur(25px) saturate(180%);
 	}
 
-	/* Settings Grid */
+	/* Settings Grid - Keep 2 columns for API selection */
 	.api-results-grid {
-		grid-template-columns: repeat(2, 1fr);
+		grid-template-columns: 1fr;
+		/* Single column for results on desktop (650px width) */
 		gap: 2rem;
+	}
+
+	/* Liquid Glass Cards on Desktop */
+	.result-card,
+	.box:not(.search-panel .box) {
+		background: rgba(255, 255, 255, 0.65) !important;
+		backdrop-filter: blur(25px) saturate(180%);
+		-webkit-backdrop-filter: blur(25px) saturate(180%);
+		border: 1px solid rgba(255, 255, 255, 0.4) !important;
+		box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
+		padding: 1.5rem !important;
+		/* Restore padding and ensure spacing */
+		border-radius: 24px !important;
+	}
+
+	[data-theme="dark"] .result-card,
+	[data-theme="dark"] .box:not(.search-panel .box) {
+		background: rgba(30, 41, 59, 0.6) !important;
+		border-color: rgba(255, 255, 255, 0.1) !important;
+		box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
 	}
 }
 
