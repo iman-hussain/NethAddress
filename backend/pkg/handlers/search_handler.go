@@ -110,6 +110,10 @@ func (h *SearchHandler) HandleSearch(w http.ResponseWriter, r *http.Request) {
 		houseNumber = parts[1]
 	}
 
+	// Normalize inputs for consistent caching
+	postcode = strings.ToUpper(strings.ReplaceAll(postcode, " ", ""))
+	houseNumber = strings.TrimSpace(houseNumber)
+
 	// Security: Only allow cache bypass if authenticated as admin
 	if bypassCache {
 		adminSecret := os.Getenv("ADMIN_SECRET")
@@ -138,8 +142,9 @@ func (h *SearchHandler) HandleSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Aggregate all API data
-	comprehensiveData, err := h.aggregator.AggregatePropertyDataWithOptions(r.Context(), postcode, houseNumber, bypassCache, nil)
+	// Aggregate all API data (no user keys for regular POST/GET for now, only stream)
+	// TODO: Add user keys support for regular endpoints if needed, for new just nil
+	comprehensiveData, err := h.aggregator.AggregatePropertyDataWithOptions(r.Context(), postcode, houseNumber, bypassCache, nil, nil)
 	if err != nil {
 		logutil.Errorf("Error aggregating property data: %v", err)
 		// Continue with basic BAG data only

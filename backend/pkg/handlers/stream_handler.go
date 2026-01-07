@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/aggregator"
@@ -27,13 +28,22 @@ func (h *SearchHandler) HandleSearchStream(w http.ResponseWriter, r *http.Reques
 	}
 	flusher.Flush()
 
-	postcode := r.URL.Query().Get("postcode")
-	houseNumber := r.URL.Query().Get("houseNumber")
+	// Normalize inputs for consistent caching
+	postcode := strings.ToUpper(strings.ReplaceAll(r.URL.Query().Get("postcode"), " ", ""))
+	houseNumber := strings.TrimSpace(r.URL.Query().Get("houseNumber"))
 	bypassCache := r.URL.Query().Get("bypassCache") == "true"
 
 	if postcode == "" || houseNumber == "" {
 		sendSSEError(w, flusher, "Missing postcode or houseNumber")
 		return
+	}
+
+	// Parse optional user provided API keys
+	var userKeys map[string]string
+	if keysParam := r.URL.Query().Get("apiKeys"); keysParam != "" {
+		if err := json.Unmarshal([]byte(keysParam), &userKeys); err != nil {
+			logutil.Warnf("Failed to parse user API keys: %v", err)
+		}
 	}
 
 	// Validate admin secret for cache bypass
@@ -73,7 +83,7 @@ func (h *SearchHandler) HandleSearchStream(w http.ResponseWriter, r *http.Reques
 		// (though we use request context for fetch operations)
 
 		// Use request context for fetching so client disconnect cancels work
-		data, err := h.aggregator.AggregatePropertyDataWithOptions(r.Context(), postcode, houseNumber, bypassCache, progressCh)
+		data, err := h.aggregator.AggregatePropertyDataWithOptions(r.Context(), postcode, houseNumber, bypassCache, progressCh, userKeys)
 		if err != nil {
 			// If context was cancelled, err will effectively be ignored by receiver loop
 			errCh <- err

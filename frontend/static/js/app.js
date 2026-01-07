@@ -12,8 +12,43 @@ let map;
 let currentResponse = null;
 let currentGeoJSON = null; // Store GeoJSON separately for map redrawing
 let enabledAPIs = new Set();
+let userApiKeys = {}; // Store user-provided API keys
 let hideUnconfigured = false; // Hide APIs requiring configuration/keys
 let apiHost = '';
+let currentTheme = 'auto';
+
+// Apply the current theme to the document
+function applyTheme() {
+	let themeToApply = currentTheme;
+	if (currentTheme === 'auto') {
+		const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+		themeToApply = prefersDark ? 'dark' : 'light';
+	}
+
+	if (themeToApply === 'dark') {
+		document.documentElement.setAttribute('data-theme', 'dark');
+	} else {
+		document.documentElement.removeAttribute('data-theme');
+	}
+}
+
+// Toggle theme: Auto -> Dark -> Light -> Auto
+window.toggleTheme = function () {
+	if (currentTheme === 'auto') currentTheme = 'dark';
+	else if (currentTheme === 'dark') currentTheme = 'light';
+	else currentTheme = 'auto';
+
+	localStorage.setItem('theme', currentTheme);
+	applyTheme();
+
+	// Update button if modal is open
+	const btn = document.getElementById('theme-toggle-btn');
+	if (btn) {
+		const themeIcon = currentTheme === 'auto' ? '🌗' : currentTheme === 'dark' ? '🌙' : '☀️';
+		const themeLabel = currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1);
+		btn.innerHTML = `<span>${themeIcon} Theme: <strong>${themeLabel}</strong></span>`;
+	}
+};
 
 // Fetch build info from API
 async function fetchBuildInfo() {
@@ -227,7 +262,10 @@ document.addEventListener('DOMContentLoaded', function () {
 		const params = new URLSearchParams({
 			postcode: postcode,
 			houseNumber: houseNumber,
-			bypassCache: bypassCache
+			postcode: postcode,
+			houseNumber: houseNumber,
+			bypassCache: bypassCache,
+			apiKeys: JSON.stringify(userApiKeys)
 		});
 
 		// Close existing source if any
@@ -509,11 +547,34 @@ document.addEventListener('DOMContentLoaded', function () {
 		]);
 	}
 
+	// Load user API keys
+	const savedKeys = localStorage.getItem('userApiKeys');
+	if (savedKeys) {
+		try {
+			userApiKeys = JSON.parse(savedKeys);
+		} catch (e) {
+			console.error('Failed to load user API keys', e);
+			userApiKeys = {};
+		}
+	}
+
 	// Load hide unconfigured preference
 	const savedHideUnconfigured = localStorage.getItem('hideUnconfigured');
 	if (savedHideUnconfigured !== null) {
 		hideUnconfigured = savedHideUnconfigured === 'true';
 	}
+
+	// Load saved theme preference
+	const savedTheme = localStorage.getItem('theme');
+	if (savedTheme) {
+		currentTheme = savedTheme;
+	}
+	applyTheme();
+
+	// Listen for system theme changes
+	window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+		if (currentTheme === 'auto') applyTheme();
+	});
 });
 
 // HTMX event listeners
@@ -772,7 +833,6 @@ function renderApiResults() {
         </div>
         <div class="address-actions">
             <button class="btn btn-primary" onclick="exportCSV()">📥 Export CSV</button>
-            <button class="btn" onclick="openSettings()">⚙️ Settings</button>
         </div>
     </div>`;
 
@@ -922,22 +982,36 @@ window.exportCSV = function () {
 
 // Open settings modal
 window.openSettings = function () {
-	if (!currentResponse) {
-		alert('Search for an address first');
-		return;
-	}
+	// Allow opening without response for theme settings
+	const hasResponse = !!currentResponse;
 
-	const grouped = currentResponse.apiResults;
+	const themeIcon = currentTheme === 'auto' ? '🌗' : currentTheme === 'dark' ? '🌙' : '☀️';
+	const themeLabel = currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1);
 
 	let html = `
         <div class="modal is-active" id="settings-modal">
             <div class="modal-background" onclick="closeSettings()"></div>
             <div class="modal-card">
                 <header class="modal-card-head">
-                    <p class="modal-card-title">⚙️ API Data Sources</p>
+                    <p class="modal-card-title">⚙️ Settings</p>
                     <button class="delete" onclick="closeSettings()"></button>
                 </header>
                 <section class="modal-card-body">
+                    <div class="mb-5">
+                       <h5 class="title is-6 mb-2">Theme</h5>
+                       <button class="button is-fullwidth" onclick="toggleTheme()" id="theme-toggle-btn">
+                          <span>${themeIcon} Theme: <strong>${themeLabel}</strong></span>
+                       </button>
+                    </div>
+
+                    <h5 class="title is-6 mb-2">API Data Sources</h5>
+        `;
+
+	if (!hasResponse) {
+		html += `<div class="notification is-info is-light">Perform a search to configure specific data sources.</div>`;
+	} else {
+		const grouped = currentResponse.apiResults;
+		html += `
                     <div class="buttons mb-3">
                         <button class="button is-success is-small" onclick="selectAllAPIs()">✓ Select All</button>
                         <button class="button is-danger is-small" onclick="deselectAllAPIs()">✗ Deselect All</button>
@@ -945,35 +1019,57 @@ window.openSettings = function () {
                     <div id="api-checkboxes">
         `;
 
-	// Group by tier with visual separators
-	const tiers = [
-		{ name: '🆓 Free APIs', apis: grouped.free, tier: 'free' },
-		{ name: '💎 Freemium APIs', apis: grouped.freemium, tier: 'freemium' },
-		{ name: '👑 Premium APIs', apis: grouped.premium, tier: 'premium' }
-	];
+		// Group by tier with visual separators
+		const tiers = [
+			{ name: '🆓 Free APIs', apis: grouped.free, tier: 'free' },
+			{ name: '💎 Freemium APIs', apis: grouped.freemium, tier: 'freemium' },
+			{ name: '👑 Premium APIs', apis: grouped.premium, tier: 'premium' }
+		];
 
-	tiers.forEach((tier, idx) => {
-		if (tier.apis.length > 0) {
-			html += `<div class="api-tier-group">`;
-			html += `<div class="api-tier-label">${tier.name} (${tier.apis.length})</div>`;
+		tiers.forEach((tier, idx) => {
+			if (tier.apis.length > 0) {
+				html += `<div class="api-tier-group">`;
+				html += `<div class="api-tier-label">${tier.name} (${tier.apis.length})</div>`;
 
-			tier.apis.forEach(result => {
-				const apiName = result.name;
-				const checked = enabledAPIs.has(apiName) ? 'checked' : '';
-				html += `
-                    <label class="checkbox is-block mb-2">
-                        <input type="checkbox" value="${apiName}" ${checked} onchange="toggleAPI('${apiName}')">
-                        ${apiName}
-                    </label>
-                `;
-			});
+				tier.apis.forEach(result => {
+					const apiName = result.name;
+					const checked = enabledAPIs.has(apiName) ? 'checked' : '';
+					const hasKey = userApiKeys[apiName] ? 'style="opacity: 1;"' : 'style="opacity: 0.5;"';
+					const keyInputValue = userApiKeys[apiName] || '';
 
-			html += `</div>`;
-		}
-	});
+					html += `
+                        <div class="field mb-2">
+                             <div class="is-flex is-align-items-center mb-1">
+                                <label class="checkbox mr-2">
+                                    <input type="checkbox" value="${apiName}" ${checked} onchange="toggleAPI('${apiName}')">
+                                    ${apiName}
+                                </label>
+                                <button class="button is-small is-text p-1" ${hasKey} onclick="toggleKeyInput('${apiName}')" title="Enter custom API key">🔑</button>
+                             </div>
+                             <div id="key-input-${apiName.replace(/[^a-zA-Z0-9]/g, '-')}" class="key-input-container is-hidden ml-4 pl-2" style="border-left: 2px solid var(--border);">
+                                 <div class="field has-addons">
+                                     <div class="control is-expanded">
+                                         <input class="input is-small" type="password" id="input-${apiName.replace(/[^a-zA-Z0-9]/g, '-')}" placeholder="Enter API Key" value="${keyInputValue}">
+                                     </div>
+                                     <div class="control">
+                                         <button class="button is-small is-primary" onclick="saveAPIKey('${apiName}')">💾</button>
+                                     </div>
+                                 </div>
+                                 <p class="help is-size-7">The key is not stored on the website, but is stored in the browser cache so when returning to the website the key is still entered until cache is cleared.</p>
+                             </div>
+                        </div>
+                    `;
+				});
+
+				html += `</div>`;
+			}
+		});
+
+		html += `
+                    </div>`;
+	}
 
 	html += `
-                    </div>
                 </section>
                 <footer class="modal-card-foot">
                     <button class="button is-success" onclick="saveSettings()">💾 Save Changes</button>
@@ -984,6 +1080,43 @@ window.openSettings = function () {
     `;
 
 	document.getElementById('modal-target').innerHTML = html;
+};
+
+window.toggleKeyInput = function (apiName) {
+	const id = apiName.replace(/[^a-zA-Z0-9]/g, '-');
+	const el = document.getElementById(`key-input-${id}`);
+	if (el) {
+		el.classList.toggle('is-hidden');
+	}
+};
+
+window.saveAPIKey = function (apiName) {
+	const id = apiName.replace(/[^a-zA-Z0-9]/g, '-');
+	const input = document.getElementById(`input-${id}`);
+	if (input) {
+		const key = input.value.trim();
+		if (key) {
+			userApiKeys[apiName] = key;
+		} else {
+			delete userApiKeys[apiName];
+		}
+		localStorage.setItem('userApiKeys', JSON.stringify(userApiKeys));
+
+		// Update key icon opacity to show status
+		const btn = document.querySelector(`button[onclick="toggleKeyInput('${apiName}')"]`);
+		if (btn) {
+			btn.style.opacity = key ? '1' : '0.5';
+		}
+
+		// Flash success
+		const originalText = input.value;
+		const btnSave = input.parentElement.nextElementSibling.querySelector('button');
+		const originalBtnText = btnSave.innerHTML;
+		btnSave.innerHTML = '✅';
+		setTimeout(() => {
+			btnSave.innerHTML = originalBtnText;
+		}, 1500);
+	}
 };
 
 window.closeSettings = function () {

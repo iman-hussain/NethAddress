@@ -35,7 +35,7 @@ REM Step 2.5: Start Backend Locally with localhost overrides
 echo [2.5/3] Starting Backend locally...
 REM Clear REDIS_URL if Docker not running to avoid connection attempts
 if %ERRORLEVEL% NEQ 0 (
-    start "AddressIQ Backend" cmd /k "set REDIS_URL= && cd backend && backend.exe"
+    start "AddressIQ Backend" cmd /k "cd backend && backend.exe"
 ) else (
     start "AddressIQ Backend" cmd /k "set DATABASE_URL=postgres://addressiq_user:addressiq_password@localhost:5432/addressiq_db?sslmode=disable && set REDIS_URL=redis://localhost:6379 && cd backend && backend.exe"
 )

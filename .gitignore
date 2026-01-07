@@ -24,3 +24,13 @@ addressiq-*
 /frontend/static/icons/node_modules/
 /frontend/static/icons/package.json
 /frontend/static/icons/package-lock.json
+
+# Node modules (global)
+node_modules/
+package-lock.json
+
+# Local exports and test output
+*.csv
+api_output.json
+final_test.json
+test_output.txt

@@ -107,6 +107,39 @@ func LoadConfig() (*Config, error) {
 	if cfg.BagApiURL == "" {
 		return nil, fmt.Errorf("required environment variable BAG_API_URL is not set")
 	}
-
 	return &cfg, nil
+}
+
+// ApplyUserLocalKeys updates configuration with user-provided keys
+func (c *Config) ApplyUserLocalKeys(userKeys map[string]string) {
+	if val, ok := userKeys["Kadaster Object Info"]; ok {
+		c.KadasterObjectInfoApiKey = val
+	}
+	if val, ok := userKeys["Altum WOZ"]; ok {
+		c.AltumWOZApiKey = val
+	}
+	if val, ok := userKeys["Matrixian Property Value+"]; ok {
+		c.MatrixianApiKey = val
+	}
+	if val, ok := userKeys["Altum Transactions"]; ok {
+		c.AltumTransactionApiKey = val
+	}
+	if val, ok := userKeys["KNMI Weather"]; ok {
+		c.KNMIWeatherApiKey = val
+	}
+	if val, ok := userKeys["KNMI Solar"]; ok {
+		c.KNMISolarApiKey = val
+	}
+	if val, ok := userKeys["Altum Energy & Climate"]; ok {
+		c.AltumEnergyApiKey = val
+	}
+	if val, ok := userKeys["Altum Sustainability"]; ok {
+		c.AltumSustainabilityApiKey = val
+	}
+	if val, ok := userKeys["Schiphol Flight Noise"]; ok {
+		c.SchipholApiKey = val
+	}
+	if val, ok := userKeys["Stratopo Environment"]; ok {
+		c.StratopoApiKey = val
+	}
 }
