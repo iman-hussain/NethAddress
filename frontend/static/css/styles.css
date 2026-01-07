@@ -795,8 +795,8 @@ body:not(.has-results) .desktop-results {
 
 @media screen and (min-width: 1024px) {
 	.modal-card {
-		max-width: 1100px;
-		/* Wide enough for 3-4 columns */
+		max-width: 1600px;
+		width: 92%;
 	}
 }
 
@@ -1566,37 +1566,236 @@ body:not(.has-results) .desktop-results {
 	padding-bottom: 0.25rem;
 }
 
-/* Mobile Info Cards Updates */
+/* --- Mobile Premium Polish --- */
+/* --- Global Premium Polish (Mobile & Desktop) --- */
+
+/* 1. Layout & Safe Areas */
+.sidebar-overlay {
+	/* Gradient Scrim for readability of transparent cards */
+	background: linear-gradient(to right, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.05) 400px, transparent 100%);
+	pointer-events: none;
+	width: 100%;
+	height: 100%;
+	/* Safe areas */
+	padding-top: env(safe-area-inset-top);
+	padding-bottom: env(safe-area-inset-bottom);
+}
+
+.sidebar-content {
+	padding: 1rem 1.5rem;
+	pointer-events: none;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	max-width: 500px;
+	/* Floating panel width on desktop */
+}
+
+.sidebar-content>* {
+	pointer-events: auto;
+}
+
+/* 2. Search Panel - Floating Glass Card (Liquid Style) */
+.search-panel {
+	position: sticky;
+	top: 1rem;
+	z-index: 50;
+	margin-bottom: 2rem;
+}
+
+.search-panel .box {
+	background: rgba(255, 255, 255, 0.65);
+	/* More transparent for liquid effect */
+	backdrop-filter: blur(25px) saturate(180%);
+	-webkit-backdrop-filter: blur(25px) saturate(180%);
+	border: 1px solid rgba(255, 255, 255, 0.4) !important;
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
+	/* Softer, deeper shadow */
+	border-radius: 24px !important;
+	padding: 1rem !important;
+}
+
+[data-theme="dark"] .search-panel .box {
+	background: rgba(30, 41, 59, 0.6);
+	border-color: rgba(255, 255, 255, 0.1) !important;
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3) !important;
+}
+
+.search-form-row {
+	gap: 0.75rem;
+}
+
+.search-panel .input {
+	height: 48px;
+	font-size: 16px;
+	border-radius: 12px;
+	background: rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="dark"] .search-panel .input {
+	background: rgba(0, 0, 0, 0.2);
+}
+
+.search-panel .button {
+	height: 48px;
+	border-radius: 12px;
+	font-weight: 700;
+}
+
+/* 3. Results - Transparent & Beautiful Typography */
+.result-card,
+.box:not(.search-panel .box) {
+	background: transparent !important;
+	border: none !important;
+	box-shadow: none !important;
+	padding: 0 !important;
+	margin-bottom: 2.5rem !important;
+}
+
+.card-header-title {
+	font-size: 1.5rem;
+	margin-bottom: 0.5rem;
+	padding: 0;
+	text-shadow: 0 2px 8px rgba(255, 255, 255, 1);
+}
+
+[data-theme="dark"] .card-header-title {
+	text-shadow: 0 2px 8px rgba(0, 0, 0, 1);
+}
+
+.metric-display {
+	margin-top: 0.5rem;
+}
+
+.metric-value {
+	font-size: 3.5rem;
+	letter-spacing: -0.04em;
+	text-shadow: 0 4px 12px rgba(255, 255, 255, 0.8);
+}
+
+[data-theme="dark"] .metric-value {
+	text-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
+}
+
+.metric-label {
+	font-size: 0.85rem;
+	opacity: 0.8;
+	font-weight: 700;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+}
+
+[data-theme="dark"] .metric-label {
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* 4. Map & Interactions - Platform Specific */
 @media screen and (max-width: 768px) {
-
-	.result-card,
-	.box {
-		/* Remove background/borders for cleaner look on mobile if requested */
-		background: transparent !important;
-		border: none !important;
-		box-shadow: none !important;
-		padding-left: 0 !important;
-		padding-right: 0 !important;
+	.sidebar-overlay {
+		background: linear-gradient(to top, rgba(0, 0, 0, 0.05) 0%, transparent 20%);
 	}
 
-	/* Ensure text keeps some contrast or just rely on text color */
-	/* Maybe add backdrop blur if user wants "glass"? User said "remove background". */
-	/* We obey strict removal. */
-
-	.metric-value,
-	.card-header-title {
-		/* Ensure readability if map is behind? But map is bottom layer. */
-		/* The whole results area has a background? No, .sidebar-content is transparent. */
-		/* If result-card is transparent, you see the map? */
-		/* Actually, the sidebar overlay is covering the map. */
-		/* If sidebar-overlay background is transparent (from previous step), then yes, map is visible. */
-		/* Text might be hard to read. I'll add a subtle text-shadow just in case. */
-		text-shadow: 0 1px 4px rgba(255, 255, 255, 0.9);
+	.sidebar-content {
+		max-width: 100%;
+		padding: 1rem 1.25rem;
 	}
 
-	[data-theme="dark"] .metric-value,
-	[data-theme="dark"] .card-header-title,
-	[data-theme="dark"] .section-header h4 {
-		text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
+	.map-style-switcher {
+		top: calc(1rem + env(safe-area-inset-top));
+		right: 1rem;
+		transform: scale(0.9);
+		margin-top: 60px;
 	}
+
+	.api-results-grid {
+		grid-template-columns: 1fr;
+		gap: 2rem;
+	}
+
+	.navbar.is-primary {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		z-index: 40;
+		padding-top: env(safe-area-inset-top);
+		background: rgba(15, 23, 42, 0.65);
+		backdrop-filter: blur(25px) saturate(180%);
+		-webkit-backdrop-filter: blur(25px) saturate(180%);
+	}
+
+	.full-height-columns {
+		padding-top: calc(52px + env(safe-area-inset-top));
+	}
+
+	.api-tier-group {
+		grid-template-columns: 1fr;
+	}
+}
+
+/* Desktop Polish */
+@media screen and (min-width: 769px) {
+
+	/* Ensure sidebar overlay doesn't block right side map interaction */
+	/* .sidebar-overlay pointer-events: none handles this */
+	/* Layout: Floating panel left */
+	.sidebar-overlay {
+		/* width 100% and height 100% from global is fine */
+	}
+
+	/* Navbar also glass (Liquid Style) */
+	.navbar.is-primary {
+		background: rgba(15, 23, 42, 0.7);
+		backdrop-filter: blur(25px) saturate(180%);
+		-webkit-backdrop-filter: blur(25px) saturate(180%);
+	}
+
+	/* Settings Grid */
+	.api-results-grid {
+		grid-template-columns: repeat(2, 1fr);
+		gap: 2rem;
+	}
+}
+
+/* Accessibility: Reduce Transparency */
+body.reduce-transparency .sidebar-overlay {
+	background: none !important;
+	/* Remove gradient scrim */
+}
+
+body.reduce-transparency .search-panel .box,
+body.reduce-transparency .navbar.is-primary {
+	background: rgba(255, 255, 255, 0.98) !important;
+	backdrop-filter: none !important;
+	-webkit-backdrop-filter: none !important;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+	border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+body.reduce-transparency[data-theme="dark"] .search-panel .box,
+body.reduce-transparency[data-theme="dark"] .navbar.is-primary {
+	background: rgba(30, 41, 59, 1) !important;
+	border: 1px solid rgba(255, 255, 255, 0.15) !important;
+}
+
+body.reduce-transparency .result-card,
+body.reduce-transparency .box:not(.search-panel .box) {
+	background: rgba(255, 255, 255, 0.95) !important;
+	padding: 1rem !important;
+	border-radius: 12px !important;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+	margin-bottom: 1.5rem !important;
+}
+
+body.reduce-transparency[data-theme="dark"] .result-card,
+body.reduce-transparency[data-theme="dark"] .box:not(.search-panel .box) {
+	background: rgba(30, 41, 59, 0.95) !important;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+body.reduce-transparency .card-header-title,
+body.reduce-transparency .metric-value,
+body.reduce-transparency .metric-label {
+	text-shadow: none !important;
 }

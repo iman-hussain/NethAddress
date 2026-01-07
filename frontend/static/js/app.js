@@ -16,7 +16,7 @@ let userApiKeys = {}; // Store user-provided API keys
 let hideUnconfigured = false; // Hide APIs requiring configuration/keys
 let apiHost = '';
 let currentTheme = 'auto';
-
+let reduceTransparency = localStorage.getItem('reduceTransparency') === 'true'; // Load preference
 const ENABLE_LOGS = true;
 
 // Define available APIs and their tiers statically for settings
@@ -96,6 +96,19 @@ window.toggleTheme = function () {
 		btn.innerHTML = `<span>${themeIcon} Theme: <strong>${themeLabel}</strong></span>`;
 	}
 };
+
+// Transparency Toggle
+window.toggleTransparency = function () {
+	reduceTransparency = !reduceTransparency;
+	if (reduceTransparency) {
+		document.body.classList.add('reduce-transparency');
+	} else {
+		document.body.classList.remove('reduce-transparency');
+	}
+	localStorage.setItem('reduceTransparency', reduceTransparency);
+	openSettings(); // Refresh modal to show icon update
+};
+
 
 // Fetch build info from API
 async function fetchBuildInfo() {
@@ -653,6 +666,11 @@ document.addEventListener('DOMContentLoaded', function () {
 	}
 	applyTheme();
 
+	// Apply transparency preference
+	if (reduceTransparency) {
+		document.body.classList.add('reduce-transparency');
+	}
+
 	// Listen for system theme changes
 	window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
 		if (currentTheme === 'auto') applyTheme();
@@ -1147,6 +1165,9 @@ window.openSettings = function () {
 	const themeIcon = currentTheme === 'auto' ? '🌗' : currentTheme === 'dark' ? '🌙' : '☀️';
 	const themeLabel = currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1);
 
+	const transIcon = reduceTransparency ? '🧊' : '💧';
+	const transLabel = reduceTransparency ? 'Frosted Glass' : 'Liquid Glass';
+
 	// Restore tiers logic
 	const useStatic = true;
 	const tiers = useStatic ? [
@@ -1169,10 +1190,19 @@ window.openSettings = function () {
                 </header>
                 <section class="modal-card-body">
                     <div class="mb-5">
-                       <h5 class="title is-6 mb-2">Theme</h5>
-                       <button class="button is-fullwidth" onclick="toggleTheme()" id="theme-toggle-btn">
-                          <span>${themeIcon} Theme: <strong>${themeLabel}</strong></span>
-                       </button>
+                       <h5 class="title is-6 mb-2">Display & Accessibility</h5>
+                       <div class="columns is-mobile">
+                           <div class="column">
+                               <button class="button is-fullwidth" onclick="toggleTheme()" id="theme-toggle-btn">
+                                  <span>${themeIcon} Theme: <strong>${themeLabel}</strong></span>
+                               </button>
+                           </div>
+                           <div class="column">
+                               <button class="button is-fullwidth" onclick="toggleTransparency()" title="Toggle glass effect opacity">
+                                  <span>${transIcon} <strong>${transLabel}</strong></span>
+                               </button>
+                           </div>
+                       </div>
                     </div>
 
                     <h5 class="title is-6 mb-2">API Data Sources</h5>
