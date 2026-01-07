@@ -782,15 +782,21 @@ body:not(.has-results) .desktop-results {
 
 .modal-card {
 	width: 90%;
-	/* Responsive default */
 	max-width: 540px;
-	/* Mobile/Tablet default */
-	background: var(--bg-card);
+	/* Liquid Glass Style */
+	background: rgba(255, 255, 255, 0.65);
+	backdrop-filter: blur(25px) saturate(180%);
+	-webkit-backdrop-filter: blur(25px) saturate(180%);
 	border-radius: var(--radius-lg);
-	box-shadow: var(--shadow-lg);
-	border: 1px solid var(--border);
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+	border: 1px solid rgba(255, 255, 255, 0.4);
 	margin: 0 auto;
-	/* Center it */
+}
+
+[data-theme="dark"] .modal-card {
+	background: rgba(30, 41, 59, 0.6);
+	border-color: rgba(255, 255, 255, 0.1);
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 @media screen and (min-width: 1024px) {
@@ -801,10 +807,14 @@ body:not(.has-results) .desktop-results {
 }
 
 .modal-card-head {
-	background: var(--bg-card);
-	border-bottom: 2px solid var(--border);
+	background: transparent;
+	border-bottom: 1px solid rgba(0, 0, 0, 0.1);
 	padding: 1.25rem 1.5rem;
 	border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+[data-theme="dark"] .modal-card-head {
+	border-bottom-color: rgba(255, 255, 255, 0.1);
 }
 
 .modal-card-title {
@@ -816,9 +826,13 @@ body:not(.has-results) .desktop-results {
 }
 
 .modal-card-head .delete {
-	background: var(--bg-card-alt);
-	border: 1px solid var(--border);
+	background: rgba(0, 0, 0, 0.05);
+	border: 1px solid transparent;
 	transition: all 0.15s ease;
+}
+
+[data-theme="dark"] .modal-card-head .delete {
+	background: rgba(255, 255, 255, 0.1);
 }
 
 .modal-card-head .delete:hover {
@@ -837,20 +851,24 @@ body:not(.has-results) .desktop-results {
 }
 
 .modal-card-body {
-	background: var(--bg-card);
+	background: transparent;
 	padding: 1.5rem;
 	max-height: calc(100vh - 240px);
 	overflow-y: auto;
 }
 
 .modal-card-foot {
-	background: var(--bg-card);
-	border-top: 2px solid var(--border);
+	background: transparent;
+	border-top: 1px solid rgba(0, 0, 0, 0.1);
 	padding: 1.25rem 1.5rem;
 	border-radius: 0 0 var(--radius-lg) var(--radius-lg);
 	display: flex;
 	gap: 0.75rem;
 	justify-content: flex-end;
+}
+
+[data-theme="dark"] .modal-card-foot {
+	border-top-color: rgba(255, 255, 255, 0.1);
 }
 
 .modal-card-foot .button {
@@ -1758,10 +1776,9 @@ body:not(.has-results) .desktop-results {
 		-webkit-backdrop-filter: blur(25px) saturate(180%);
 	}
 
-	/* Settings Grid - Keep 2 columns for API selection */
+	/* Settings Grid - Auto fit columns */
 	.api-results-grid {
-		grid-template-columns: 1fr;
-		/* Single column for results on desktop (650px width) */
+		grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 		gap: 2rem;
 	}
 
