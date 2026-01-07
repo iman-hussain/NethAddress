@@ -55,8 +55,8 @@ func (h *SearchHandler) HandleSearchStream(w http.ResponseWriter, r *http.Reques
 			authHeader = r.URL.Query().Get("adminSecret")
 		}
 
-		if adminSecret == "" || authHeader != adminSecret {
-			logutil.Warnf("Security: Stream cache bypass denied for %s (missing/invalid secret)", r.RemoteAddr)
+		if adminSecret != "" && authHeader != adminSecret {
+			logutil.Warnf("Security: Stream cache bypass denied for %s (invalid secret)", r.RemoteAddr)
 			bypassCache = false
 		} else {
 			logutil.Infof("Admin authorized override: Bypassing cache for stream %s %s", postcode, houseNumber)

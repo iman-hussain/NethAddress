@@ -114,12 +114,12 @@ func (h *SearchHandler) HandleSearch(w http.ResponseWriter, r *http.Request) {
 	postcode = strings.ToUpper(strings.ReplaceAll(postcode, " ", ""))
 	houseNumber = strings.TrimSpace(houseNumber)
 
-	// Security: Only allow cache bypass if authenticated as admin
+	// Security: Only allow cache bypass if authenticated as admin (or if no secret is configured)
 	if bypassCache {
 		adminSecret := os.Getenv("ADMIN_SECRET")
 		authHeader := r.Header.Get("X-Admin-Secret")
-		if adminSecret == "" || authHeader != adminSecret {
-			logutil.Warnf("Security: Cache bypass denied for %s (missing/invalid X-Admin-Secret)", r.RemoteAddr)
+		if adminSecret != "" && authHeader != adminSecret {
+			logutil.Warnf("Security: Cache bypass denied for %s (invalid X-Admin-Secret)", r.RemoteAddr)
 			bypassCache = false
 		} else {
 			logutil.Infof("Admin authorized override: Bypassing cache for %s %s", postcode, houseNumber)

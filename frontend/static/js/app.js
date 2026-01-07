@@ -17,6 +17,53 @@ let hideUnconfigured = false; // Hide APIs requiring configuration/keys
 let apiHost = '';
 let currentTheme = 'auto';
 
+const ENABLE_LOGS = true;
+
+// Define available APIs and their tiers statically for settings
+const AVAILABLE_APIS = {
+	free: [
+		{ name: 'BAG Address' },
+		{ name: 'KNMI Weather' },
+		{ name: 'KNMI Solar' },
+		{ name: 'Luchtmeetnet Air Quality' },
+		{ name: 'CBS Population' },
+		{ name: 'CBS Square Statistics' },
+		{ name: 'BRO Soil Map' },
+		{ name: 'NDW Traffic' },
+		{ name: 'openOV Public Transport' },
+		{ name: 'Flood Risk' },
+		{ name: 'Green Spaces' },
+		{ name: 'Education Facilities' },
+		{ name: 'Facilities & Amenities' },
+		{ name: 'AHN Height Model' },
+		{ name: 'Monument Status' },
+		{ name: 'PDOK Platform' },
+		{ name: 'Land Use & Zoning' }
+	],
+	freemium: [
+		{ name: 'Noise Pollution' },
+		{ name: 'WUR Soil Physicals' },
+		{ name: 'Soil Quality' },
+		{ name: 'Parking Availability' },
+		{ name: 'Digital Delta Water Quality' },
+		{ name: 'CBS Safety Experience' },
+		{ name: 'Building Permits' }
+	],
+	premium: [
+		{ name: 'Kadaster Object Info' },
+		{ name: 'Altum WOZ' },
+		{ name: 'Matrixian Property Value+' },
+		{ name: 'Altum Transactions' },
+		{ name: 'SkyGeo Subsidence' },
+		{ name: 'Altum Energy & Climate' },
+		{ name: 'Altum Sustainability' },
+		{ name: 'Schiphol Flight Noise' },
+		{ name: 'Stratopo Environment' }
+	]
+};
+
+const DEFAULT_ENABLED_APIS = [...AVAILABLE_APIS.free, ...AVAILABLE_APIS.freemium, ...AVAILABLE_APIS.premium];
+
 // Apply the current theme to the document
 function applyTheme() {
 	let themeToApply = currentTheme;
@@ -1007,67 +1054,82 @@ window.openSettings = function () {
                     <h5 class="title is-6 mb-2">API Data Sources</h5>
         `;
 
+	/*
 	if (!hasResponse) {
 		html += `<div class="notification is-info is-light">Perform a search to configure specific data sources.</div>`;
 	} else {
-		const grouped = currentResponse.apiResults;
-		html += `
-                    <div class="buttons mb-3">
-                        <button class="button is-success is-small" onclick="selectAllAPIs()">✓ Select All</button>
-                        <button class="button is-danger is-small" onclick="deselectAllAPIs()">✗ Deselect All</button>
-                    </div>
-                    <div id="api-checkboxes">
-        `;
+    */
+	// Always show available APIs, using live response if available (for exact count/naming if dynamic)
+	// or static list if not. Since names are static, we can just use the static list or response structure.
+	// However, the original code used response to show what WAS returned.
+	// The requirement is to configure keys BEFORE search. So we must use static list.
 
-		// Group by tier with visual separators
-		const tiers = [
-			{ name: '🆓 Free APIs', apis: grouped.free, tier: 'free' },
-			{ name: '💎 Freemium APIs', apis: grouped.freemium, tier: 'freemium' },
-			{ name: '👑 Premium APIs', apis: grouped.premium, tier: 'premium' }
-		];
+	// Merge static definition with any dynamic state if needed?
+	// Actually, just use AVAILABLE_APIS structure for the settings list grouping.
 
-		tiers.forEach((tier, idx) => {
-			if (tier.apis.length > 0) {
-				html += `<div class="api-tier-group">`;
-				html += `<div class="api-tier-label">${tier.name} (${tier.apis.length})</div>`;
+	const useStatic = true; // Always use static definition for configuration consistency
 
-				tier.apis.forEach(result => {
-					const apiName = result.name;
-					const checked = enabledAPIs.has(apiName) ? 'checked' : '';
-					const hasKey = userApiKeys[apiName] ? 'style="opacity: 1;"' : 'style="opacity: 0.5;"';
-					const keyInputValue = userApiKeys[apiName] || '';
+	const tiers = useStatic ? [
+		{ name: '🆓 Free APIs', apis: AVAILABLE_APIS.free, tier: 'free' },
+		{ name: '💎 Freemium APIs', apis: AVAILABLE_APIS.freemium, tier: 'freemium' },
+		{ name: '👑 Premium APIs', apis: AVAILABLE_APIS.premium, tier: 'premium' }
+	] : [
+		{ name: '🆓 Free APIs', apis: currentResponse.apiResults.free, tier: 'free' },
+		{ name: '💎 Freemium APIs', apis: currentResponse.apiResults.freemium, tier: 'freemium' },
+		{ name: '👑 Premium APIs', apis: currentResponse.apiResults.premium, tier: 'premium' }
+	];
 
-					html += `
-                        <div class="field mb-2">
-                             <div class="is-flex is-align-items-center mb-1">
-                                <label class="checkbox mr-2">
+	html += `
+        <div class="buttons mb-3">
+            <button class="button is-success is-small" onclick="selectAllAPIs()">✓ Select All</button>
+            <button class="button is-danger is-small" onclick="deselectAllAPIs()">✗ Deselect All</button>
+        </div>
+        <div id="api-checkboxes">
+    `;
+
+	tiers.forEach((tier, idx) => {
+		if (tier.apis.length > 0) {
+			html += `<div class="api-tier-group">`;
+			html += `<div class="api-tier-label">${tier.name} (${tier.apis.length})</div>`;
+
+			tier.apis.forEach(result => {
+				const apiName = result.name;
+				const checked = enabledAPIs.has(apiName) ? 'checked' : '';
+				const hasKey = userApiKeys[apiName] && userApiKeys[apiName] !== '';
+				const keyInputValue = userApiKeys[apiName] || '';
+				const id = apiName.replace(/[^a-zA-Z0-9]/g, '-');
+
+				html += `
+                        <div class="api-item-row">
+                             <div class="api-item-header">
+                                <label class="api-item-label">
                                     <input type="checkbox" value="${apiName}" ${checked} onchange="toggleAPI('${apiName}')">
                                     ${apiName}
                                 </label>
-                                <button class="button is-small is-text p-1" ${hasKey} onclick="toggleKeyInput('${apiName}')" title="Enter custom API key">🔑</button>
+                                <button class="key-toggle-btn ${hasKey ? 'has-key' : ''}" onclick="toggleKeyInput('${apiName}')" title="Configure API Key">
+                                    ${hasKey ? '<span>Key Configured</span>' : '<span>Add Key</span>'}
+                                    <span class="icon is-small">🔑</span>
+                                </button>
                              </div>
-                             <div id="key-input-${apiName.replace(/[^a-zA-Z0-9]/g, '-')}" class="key-input-container is-hidden ml-4 pl-2" style="border-left: 2px solid var(--border);">
-                                 <div class="field has-addons">
-                                     <div class="control is-expanded">
-                                         <input class="input is-small" type="password" id="input-${apiName.replace(/[^a-zA-Z0-9]/g, '-')}" placeholder="Enter API Key" value="${keyInputValue}">
-                                     </div>
-                                     <div class="control">
-                                         <button class="button is-small is-primary" onclick="saveAPIKey('${apiName}')">💾</button>
-                                     </div>
+                             <div id="key-input-${id}" class="key-input-container is-hidden">
+                                 <div class="key-input-wrapper">
+                                     <input class="key-input-field" type="password" id="input-${id}" placeholder="Paste your API key here" value="${keyInputValue}">
+                                     <button class="button is-primary is-small" onclick="saveAPIKey('${apiName}')" style="height: auto;">Save</button>
                                  </div>
-                                 <p class="help is-size-7">The key is not stored on the website, but is stored in the browser cache so when returning to the website the key is still entered until cache is cleared.</p>
+                                 <p class="help is-size-7 mt-2" style="color: var(--text-muted);">
+                                    Keys are stored locally in your browser logic. They are never saved to our servers.
+                                 </p>
                              </div>
                         </div>
                     `;
-				});
+			});
 
-				html += `</div>`;
-			}
-		});
+			html += `</div>`;
+		}
+	});
 
-		html += `
-                    </div>`;
-	}
+	html += `</div>`;
+
 
 	html += `
                 </section>
@@ -1132,10 +1194,12 @@ window.toggleAPI = function (apiName) {
 	renderApiResults();
 };
 
+// (Moved to top)
+
 window.selectAllAPIs = function () {
-	if (!currentResponse) return;
-	const grouped = currentResponse.apiResults;
-	const allAPIs = [...grouped.free, ...grouped.freemium, ...grouped.premium];
+	// if (!currentResponse) return; // No longer dependent on currentResponse for API list
+	// const grouped = currentResponse.apiResults; // No longer using currentResponse for API list
+	const allAPIs = [...AVAILABLE_APIS.free, ...AVAILABLE_APIS.freemium, ...AVAILABLE_APIS.premium];
 	allAPIs.forEach(r => enabledAPIs.add(r.name));
 	document.querySelectorAll('#api-checkboxes input[type="checkbox"]').forEach(cb => cb.checked = true);
 	renderApiResults();
