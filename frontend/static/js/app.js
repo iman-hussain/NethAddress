@@ -1062,6 +1062,83 @@ window.exportCSV = function () {
 	document.body.removeChild(link);
 };
 
+// Export Keys to CSV
+window.exportAPIKeys = function () {
+	let csvContent = "data:text/csv;charset=utf-8,Service,API Key\n";
+	Object.entries(userApiKeys).forEach(([service, key]) => {
+		if (key) {
+			const safeService = service.replace(/"/g, '""');
+			csvContent += `"${safeService}","${key}"\n`;
+		}
+	});
+	const encodedUri = encodeURI(csvContent);
+	const link = document.createElement("a");
+	link.setAttribute("href", encodedUri);
+	link.setAttribute("download", "addressiq_api_keys.csv");
+	document.body.appendChild(link);
+	link.click();
+	document.body.removeChild(link);
+};
+
+// Import Keys from CSV (Secure)
+window.importAPIKeys = function (input) {
+	const file = input.files[0];
+	if (!file) return;
+
+	// Security Check 1: File Size Limit (50KB is plenty for keys)
+	if (file.size > 51200) {
+		alert('File too large. Only small CSV files are accepted.');
+		input.value = ''; // Reset
+		return;
+	}
+
+	const reader = new FileReader();
+	reader.onload = function (e) {
+		const text = e.target.result;
+		// Security Check 2: Basic content validation (prevent execution of scripts if someone tries weird stuff)
+		// We only parse text, never eval.
+
+		const lines = text.split('\n');
+		let importedCount = 0;
+
+		lines.forEach((line, index) => {
+			if (index === 0) return; // Skip header
+			if (!line.trim()) return;
+
+			// Strict CSV Parse regex for "Service","Key" format
+			// Prevents weird injection attacks by only capturing non-quote chars roughly
+			const match = line.match(/^"?(.*?)"?,? ?"?([^"]*)"?$/);
+			if (match) {
+				const service = match[1].replace(/^"|"$/g, '').trim();
+				const key = match[2].replace(/^"|"$/g, '').trim();
+
+				// Validate key format (alphanumeric + standard symbols, no scripts)
+				if (service && key && /^[A-Za-z0-9_\-\.]+$/.test(key)) {
+					userApiKeys[service] = key;
+					importedCount++;
+				} else if (service && key) {
+					// Allow but warn if complex chars? actually keys can have +/=
+					// Just ensure no html tags
+					if (!/[<>]/.test(key)) {
+						userApiKeys[service] = key;
+						importedCount++;
+					}
+				}
+			}
+		});
+
+		if (importedCount > 0) {
+			localStorage.setItem('userApiKeys', JSON.stringify(userApiKeys));
+			alert(`Successfully imported ${importedCount} keys!`);
+			openSettings();
+		} else {
+			alert('No valid keys found or format incorrect.');
+		}
+		input.value = ''; // Reset
+	};
+	reader.readAsText(file);
+};
+
 // Open settings modal
 window.openSettings = function () {
 	// Allow opening without response for theme settings
@@ -1069,6 +1146,18 @@ window.openSettings = function () {
 
 	const themeIcon = currentTheme === 'auto' ? '🌗' : currentTheme === 'dark' ? '🌙' : '☀️';
 	const themeLabel = currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1);
+
+	// Restore tiers logic
+	const useStatic = true;
+	const tiers = useStatic ? [
+		{ name: '🆓 Free APIs', apis: AVAILABLE_APIS.free, tier: 'free' },
+		{ name: '💎 Freemium APIs', apis: AVAILABLE_APIS.freemium, tier: 'freemium' },
+		{ name: '👑 Premium APIs', apis: AVAILABLE_APIS.premium, tier: 'premium' }
+	] : [
+		{ name: '🆓 Free APIs', apis: currentResponse.apiResults.free, tier: 'free' },
+		{ name: '💎 Freemium APIs', apis: currentResponse.apiResults.freemium, tier: 'freemium' },
+		{ name: '👑 Premium APIs', apis: currentResponse.apiResults.premium, tier: 'premium' }
+	];
 
 	let html = `
         <div class="modal is-active" id="settings-modal">
@@ -1087,39 +1176,28 @@ window.openSettings = function () {
                     </div>
 
                     <h5 class="title is-6 mb-2">API Data Sources</h5>
-        `;
 
-	/*
-	if (!hasResponse) {
-		html += `<div class="notification is-info is-light">Perform a search to configure specific data sources.</div>`;
-	} else {
-    */
-	// Always show available APIs, using live response if available (for exact count/naming if dynamic)
-	// or static list if not. Since names are static, we can just use the static list or response structure.
-	// However, the original code used response to show what WAS returned.
-	// The requirement is to configure keys BEFORE search. So we must use static list.
+                    <div class="level is-mobile mb-3">
+                        <div class="level-left">
+                             <div class="buttons">
+                                <button class="button is-success is-small" onclick="selectAllAPIs()">✓ Select All</button>
+                                <button class="button is-danger is-small" onclick="deselectAllAPIs()">✗ Deselect All</button>
+                             </div>
+                        </div>
+                        <div class="level-right">
+                            <div class="buttons">
+                                <button class="button is-info is-small is-light" onclick="exportAPIKeys()" title="Download keys as CSV">
+                                    ⬇️ Export Keys
+                                </button>
+                                <button class="button is-info is-small is-light" onclick="document.getElementById('import-keys-input').click()" title="Import keys from CSV">
+                                    ⬆️ Import Keys
+                                </button>
+                                <input type="file" id="import-keys-input" style="display:none" accept=".csv" onchange="importAPIKeys(this)">
+                            </div>
+                        </div>
+                    </div>
 
-	// Merge static definition with any dynamic state if needed?
-	// Actually, just use AVAILABLE_APIS structure for the settings list grouping.
-
-	const useStatic = true; // Always use static definition for configuration consistency
-
-	const tiers = useStatic ? [
-		{ name: '🆓 Free APIs', apis: AVAILABLE_APIS.free, tier: 'free' },
-		{ name: '💎 Freemium APIs', apis: AVAILABLE_APIS.freemium, tier: 'freemium' },
-		{ name: '👑 Premium APIs', apis: AVAILABLE_APIS.premium, tier: 'premium' }
-	] : [
-		{ name: '🆓 Free APIs', apis: currentResponse.apiResults.free, tier: 'free' },
-		{ name: '💎 Freemium APIs', apis: currentResponse.apiResults.freemium, tier: 'freemium' },
-		{ name: '👑 Premium APIs', apis: currentResponse.apiResults.premium, tier: 'premium' }
-	];
-
-	html += `
-        <div class="buttons mb-3">
-            <button class="button is-success is-small" onclick="selectAllAPIs()">✓ Select All</button>
-            <button class="button is-danger is-small" onclick="deselectAllAPIs()">✗ Deselect All</button>
-        </div>
-        <div id="api-checkboxes">
+                    <div id="api-checkboxes">
     `;
 
 	tiers.forEach((tier, idx) => {

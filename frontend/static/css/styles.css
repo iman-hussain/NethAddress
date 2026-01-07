@@ -781,11 +781,23 @@ body:not(.has-results) .desktop-results {
 }
 
 .modal-card {
+	width: 90%;
+	/* Responsive default */
 	max-width: 540px;
+	/* Mobile/Tablet default */
 	background: var(--bg-card);
 	border-radius: var(--radius-lg);
 	box-shadow: var(--shadow-lg);
 	border: 1px solid var(--border);
+	margin: 0 auto;
+	/* Center it */
+}
+
+@media screen and (min-width: 1024px) {
+	.modal-card {
+		max-width: 1100px;
+		/* Wide enough for 3-4 columns */
+	}
 }
 
 .modal-card-head {
@@ -1452,7 +1464,9 @@ body:not(.has-results) .desktop-results {
 	border-radius: var(--radius-sm);
 	font-size: 0.875rem;
 	box-shadow: var(--shadow-md);
-}/* Logo Styling */
+}
+
+/* Logo Styling */
 .logo-icon-img {
 	height: 32px;
 	width: 32px;
@@ -1532,11 +1546,13 @@ body:not(.has-results) .desktop-results {
 		grid-template-columns: 1fr;
 	}
 }
+
 /* Settings Grid Layout */
 .api-tier-group {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-	gap: 0.75rem;
+	/* Allow smaller cards (250px) to fit 4 in 1100px (1100/4 = 275) */
+	grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+	gap: 1rem;
 	margin-bottom: 1.5rem;
 }
 
