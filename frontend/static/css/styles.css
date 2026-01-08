@@ -50,20 +50,20 @@
 	/* Cards, Modals, Panels */
 
 	/* Apple Liquid Glass Material */
-	/* Light: Blur 30px, Saturate 180%, White 50% opacity (More Liquid) */
-	--glass-bg-light: rgba(255, 255, 255, 0.50);
+	/* Light: Blur 30px, Saturate 180%, White 25% opacity (Double Transparency) */
+	--glass-bg-light: rgba(255, 255, 255, 0.25);
 	--glass-border-light: rgba(255, 255, 255, 0.5);
 	--glass-shadow-light: 0 8px 32px rgba(0, 0, 0, 0.12);
 
-	/* Dark: Blur 30px, Saturate 180%, Slate 60% opacity */
-	--glass-bg-dark: rgba(30, 41, 59, 0.60);
+	/* Dark: Blur 30px, Saturate 180%, Slate 30% opacity (Double Transparency) */
+	--glass-bg-dark: rgba(30, 41, 59, 0.30);
 	--glass-border-dark: rgba(255, 255, 255, 0.1);
 	--glass-shadow-dark: 0 8px 32px rgba(0, 0, 0, 0.3);
 
 	/* Apple Frosted Glass Material (Accessibility Mode) */
 	--frosted-bg-light: rgba(255, 255, 255, 0.98);
-	--frosted-bg-dark: #1e293b;
-	/* Slate-800 opaque */
+	--frosted-bg-dark: #0f172a;
+	/* Slate-900 opaque */
 
 	--backdrop-filter: blur(30px) saturate(180%);
 	--webkit-backdrop-filter: blur(30px) saturate(180%);
@@ -85,10 +85,71 @@
 .poi-toggle-btn,
 .box:not(.search-panel .box) {
 	background: var(--glass-bg-light) !important;
-	backdrop-filter: var(--backdrop-filter);
-	-webkit-backdrop-filter: var(--webkit-backdrop-filter);
+	background-color: var(--glass-bg-light) !important;
+	/* Double-force for Bulma override */
+	backdrop-filter: var(--backdrop-filter) !important;
+	-webkit-backdrop-filter: var(--webkit-backdrop-filter) !important;
 	border: 1px solid var(--glass-border-light) !important;
 	box-shadow: var(--glass-shadow-light) !important;
+	color: var(--text-primary) !important;
+	/* Force dark text on light glass */
+}
+
+/* Ensure links in navbar inherit this color */
+.navbar.is-primary .navbar-brand .navbar-item,
+.navbar.is-primary .navbar-start .navbar-item,
+.navbar.is-primary .navbar-end .navbar-item {
+	color: var(--text-primary) !important;
+}
+
+/* Global Navbar Layout Hardening (Prevents wrapping) */
+.navbar.is-primary {
+	display: flex !important;
+	flex-wrap: nowrap !important;
+	justify-content: space-between !important;
+	align-items: center !important;
+}
+
+.navbar.is-primary .navbar-item:hover {
+	color: var(--primary) !important;
+	/* Interactive hover state */
+	background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Global "Made by" Link Styling */
+.made-by-link {
+	color: var(--text-primary) !important;
+	/* Force dark text to match navbar */
+	font-weight: 500;
+	font-size: 0.9rem;
+	text-decoration: none;
+	transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.made-by-link:hover {
+	opacity: 1;
+	color: var(--primary) !important;
+	/* Brand color on hover */
+}
+
+/* GitHub Link Styling */
+.github-link {
+	display: inline-flex;
+	align-items: center;
+	margin-left: 1rem;
+	color: var(--text-primary) !important;
+	opacity: 0.7;
+	transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.github-link:hover {
+	opacity: 1;
+	color: var(--primary) !important;
+}
+
+.github-link svg {
+	width: 20px;
+	height: 20px;
 }
 
 [data-theme="dark"] .glass-liquid,
@@ -101,6 +162,8 @@
 [data-theme="dark"] .poi-toggle-btn,
 [data-theme="dark"] .box:not(.search-panel .box) {
 	background: var(--glass-bg-dark) !important;
+	background-color: var(--glass-bg-dark) !important;
+	/* Double-force for Bulma override */
 	border-color: var(--glass-border-dark) !important;
 	box-shadow: var(--glass-shadow-dark) !important;
 }
@@ -122,15 +185,15 @@ body.reduce-transparency .box:not(.search-panel .box) {
 	border: 1px solid rgba(0, 0, 0, 0.1) !important;
 }
 
-body.reduce-transparency[data-theme="dark"] .glass-liquid,
-body.reduce-transparency[data-theme="dark"] .navbar.is-primary,
-body.reduce-transparency[data-theme="dark"] .map-style-switcher,
-body.reduce-transparency[data-theme="dark"] .search-panel .box,
-body.reduce-transparency[data-theme="dark"] .result-card,
-body.reduce-transparency[data-theme="dark"] .modal-card,
-body.reduce-transparency[data-theme="dark"] .active-layers-panel,
-body.reduce-transparency[data-theme="dark"] .poi-toggle-btn,
-body.reduce-transparency[data-theme="dark"] .box:not(.search-panel .box) {
+[data-theme="dark"] body.reduce-transparency .glass-liquid,
+[data-theme="dark"] body.reduce-transparency .navbar.is-primary,
+[data-theme="dark"] body.reduce-transparency .map-style-switcher,
+[data-theme="dark"] body.reduce-transparency .search-panel .box,
+[data-theme="dark"] body.reduce-transparency .result-card,
+[data-theme="dark"] body.reduce-transparency .modal-card,
+[data-theme="dark"] body.reduce-transparency .active-layers-panel,
+[data-theme="dark"] body.reduce-transparency .poi-toggle-btn,
+[data-theme="dark"] body.reduce-transparency .box:not(.search-panel .box) {
 	background: var(--frosted-bg-dark) !important;
 	border: 1px solid rgba(255, 255, 255, 0.15) !important;
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
@@ -199,19 +262,25 @@ body {
 
 /* Navbar */
 .navbar.is-primary {
-	background: var(--bg-dark);
-	box-shadow: none;
+	/* Background handled by glass utility */
 	padding: 0;
 	min-height: 52px;
+	position: absolute;
+	/* Overlay map for glass effect */
+	width: 100%;
+	top: 0;
+	z-index: 40;
 }
 
 .navbar-brand .navbar-item {
 	font-weight: 700;
 	font-size: 1.375rem;
 	letter-spacing: -0.3px;
-	color: white !important;
+	/* Color handled by glass utility (--text-primary) */
 	gap: 0.5rem;
-	padding: 0 1.25rem;
+	padding: 0 1.25rem 0 0;
+	/* Flush left for logo */
+	overflow: hidden;
 }
 
 .navbar-brand .navbar-item:hover {
@@ -247,16 +316,15 @@ body {
 /* Map Style Switcher */
 .map-style-switcher {
 	position: absolute;
-	top: 1rem;
+	top: 72px;
+	/* Clear absolute navbar */
 	right: 1rem;
 	z-index: 10;
 	display: flex;
 	gap: 0.5rem;
-	background: var(--bg-card);
+	/* Glass properties handled by utility */
 	padding: 0.5rem;
 	border-radius: var(--radius-md);
-	box-shadow: var(--shadow-md);
-	border: 1px solid var(--border);
 }
 
 .map-style-btn {
@@ -298,7 +366,8 @@ body {
 .sidebar-content {
 	height: 100%;
 	overflow-y: auto;
-	padding: 1rem 1.5rem 1.5rem;
+	padding: 100px 1.5rem 1.5rem;
+	/* Top padding to clear absolute navbar with gap */
 	pointer-events: auto;
 	direction: rtl;
 	display: flex;
@@ -315,19 +384,7 @@ body {
 	background: transparent;
 }
 
-/* Scrollbar */
-.sidebar-content::-webkit-scrollbar {
-	width: 6px;
-}
-
-.sidebar-content::-webkit-scrollbar-track {
-	background: transparent;
-}
-
-.sidebar-content::-webkit-scrollbar-thumb {
-	background: var(--border-strong);
-	border-radius: 3px;
-}
+/* Scrollbar hidden by later rule for cleaner look */
 
 /* Search Panel - Full Width */
 .search-panel {
@@ -335,10 +392,8 @@ body {
 }
 
 .search-panel .box {
-	background: var(--bg-card);
+	/* Glass properties handled by utility */
 	border-radius: var(--radius-md);
-	box-shadow: var(--shadow-md);
-	border: 1px solid var(--border);
 	padding: 1.25rem;
 }
 
@@ -615,10 +670,8 @@ body:not(.has-results) .desktop-results {
 
 /* Result Cards */
 .result-card {
-	background: var(--bg-card) !important;
+	/* Background/border/shadow handled by glass utility */
 	border-radius: var(--radius-md) !important;
-	box-shadow: var(--shadow-sm);
-	border: 1px solid var(--border) !important;
 	padding: 1.125rem 1.25rem !important;
 	transition: box-shadow 0.15s ease, border-color 0.15s ease;
 	margin: 0 !important;
@@ -875,26 +928,12 @@ body:not(.has-results) .desktop-results {
 .modal-card {
 	width: 90%;
 	max-width: 540px;
-	/* Liquid Glass - Apple Standard */
-	background: var(--glass-bg-light);
-	backdrop-filter: var(--backdrop-filter);
-	-webkit-backdrop-filter: var(--webkit-backdrop-filter);
+	/* Glass properties handled by utility at top of file */
 	border-radius: var(--radius-lg);
-	box-shadow: var(--glass-shadow-light);
-	border: 1px solid var(--glass-border-light);
 	margin: 0 auto;
 }
 
-[data-theme="dark"] .modal-card {
-	background: var(--glass-bg-dark);
-	border-color: var(--glass-border-dark);
-}
-
-[data-theme="dark"] .modal-card {
-	background: rgba(30, 41, 59, 0.6);
-	border-color: rgba(255, 255, 255, 0.1);
-	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-}
+/* Dark mode glass handled by utility */
 
 @media screen and (min-width: 1024px) {
 	.modal-card {
@@ -1277,7 +1316,8 @@ body:not(.has-results) .desktop-results {
 		padding: 0;
 		z-index: 30;
 		margin-top: 0;
-		background: var(--bg-page);
+		background: transparent !important;
+		/* MUST be transparent for glass effect */
 	}
 
 	.sidebar-content {
@@ -1620,12 +1660,16 @@ body:not(.has-results) .desktop-results {
 
 /* Logo Styling */
 .logo-icon-img {
-	height: 32px;
-	width: 32px;
-	margin-right: 0.75rem;
-	border-radius: 8px;
+	height: 52px;
+	width: 52px;
+	margin-right: 0.5rem;
+	border-radius: 0;
+	/* No rounding for edge-to-edge */
 	vertical-align: middle;
-	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	object-fit: cover;
+	/* Cover usually fills better than contain for this */
+	transform: scale(1.4);
+	/* Zoom in to make 'A' fill space */
 }
 
 /* Better Pointer Events for Sidebar (Click through to map) */
@@ -1723,8 +1767,8 @@ body:not(.has-results) .desktop-results {
 
 /* 1. Layout & Safe Areas */
 .sidebar-overlay {
-	/* Gradient Scrim for readability of transparent cards */
-	background: linear-gradient(to right, rgba(0, 0, 0, 0.1) 0%, rgba(0, 0, 0, 0.05) 400px, transparent 100%);
+	/* Background MUST be transparent for glass effect */
+	background: transparent !important;
 	pointer-events: none;
 	width: 100%;
 	height: 100%;
@@ -1765,7 +1809,8 @@ body:not(.has-results) .desktop-results {
 /* 2. Search Panel - Floating Glass Card (Liquid Style) */
 .search-panel {
 	position: sticky;
-	top: 1rem;
+	top: 72px;
+	/* Stick below navbar (52px + 20px gap) */
 	z-index: 50;
 	margin-bottom: 2rem;
 }
@@ -1775,6 +1820,8 @@ body:not(.has-results) .desktop-results {
 	/* Softer, deeper shadow */
 	border-radius: var(--radius-surface) !important;
 	padding: 1rem !important;
+	min-width: 320px;
+	/* Prevent button cutoff on narrow widths */
 }
 
 /* [data-theme="dark"] .search-panel .box handled by utility */
@@ -1897,6 +1944,28 @@ body:not(.has-results) .desktop-results {
 	.sidebar-content {
 		max-width: 100%;
 		padding: 1rem 1.25rem;
+		background: transparent !important;
+		/* Ensure floating effect */
+		pointer-events: none;
+		/* Let clicks pass through empty areas */
+	}
+
+	.sidebar-content>* {
+		pointer-events: auto;
+		/* Re-enable for children */
+	}
+
+	/* Prevent Search Box from shrinking/cutting off content */
+	.search-panel {
+		background: transparent !important;
+		/* Fix for blue background report */
+		flex-shrink: 0;
+		height: auto !important;
+		min-height: fit-content;
+	}
+
+	.search-panel .box {
+		height: auto !important;
 	}
 
 	/* Mobile Polish: Stack Search Form */
@@ -1943,36 +2012,46 @@ body:not(.has-results) .desktop-results {
 	}
 
 	.navbar.is-primary {
-		position: fixed;
+		/* Force Glass on Mobile */
+		background: var(--glass-bg-light) !important;
+		backdrop-filter: var(--backdrop-filter) !important;
+		-webkit-backdrop-filter: var(--webkit-backdrop-filter) !important;
+		border-bottom: 1px solid var(--glass-border-light) !important;
+
+		/* Layout */
+		position: absolute;
+		/* Consistent with desktop */
 		top: 0;
 		left: 0;
 		right: 0;
 		z-index: 40;
 		padding-top: env(safe-area-inset-top);
-		/* Glass properties handled by utility */
-		/* Force Single Row Layout */
-		display: flex;
-		flex-direction: row;
-		justify-content: space-between;
-		align-items: center;
-		flex-wrap: nowrap;
+	}
+
+	/* Ensure no interfering backgrounds */
+	.navbar-brand,
+	.navbar-menu,
+	.navbar-end,
+	.navbar-item {
+		background: transparent !important;
 	}
 
 	.navbar-brand {
 		flex-grow: 1;
 		display: flex;
 		align-items: center;
-		justify-content: space-between;
-		width: 100%;
+		justify-content: flex-start;
+		/* Logo is left aligned */
+		width: auto;
+		/* Allow siblings */
 	}
 
 	[data-theme="dark"] .navbar.is-primary {
-		/* Handled by utility */
+		background: var(--glass-bg-dark) !important;
+		border-bottom: 1px solid var(--glass-border-dark) !important;
 	}
 
-	.full-height-columns {
-		padding-top: calc(52px + env(safe-area-inset-top));
-	}
+	/* full-height-columns padding removed to allow map underlay */
 
 	.api-tier-group {
 		grid-template-columns: 1fr;
@@ -1988,18 +2067,8 @@ body:not(.has-results) .desktop-results {
 	/* Navbar also glass (Liquid Style) */
 	/* Navbar also glass (Liquid Style) - Handled by utility */
 
-	.made-by-link {
-		color: rgba(255, 255, 255, 0.8) !important;
-		font-weight: 500;
-		font-size: 0.9rem;
-		text-decoration: none;
-		transition: opacity 0.2s ease;
-	}
-
-	.made-by-link:hover {
-		opacity: 1;
-		color: #fff !important;
-	}
+	/* Ensure sidebar overlay doesn't block right side map interaction */
+	/* Navbar glass - Handled by utility */
 
 	/* Settings Grid - Auto fit columns */
 	.api-results-grid {
@@ -2036,25 +2105,15 @@ body:not(.has-results) .desktop-results {
 		gap: 1.5rem;
 	}
 
-	/* Liquid Glass Cards on Desktop */
+	/* Desktop Result Card Polish */
 	.result-card,
 	.box:not(.search-panel .box) {
-		background: var(--glass-bg-light) !important;
-		backdrop-filter: var(--backdrop-filter);
-		-webkit-backdrop-filter: var(--webkit-backdrop-filter);
-		border: 1px solid var(--glass-border-light) !important;
-		box-shadow: var(--glass-shadow-light) !important;
+		/* Glass properties handled by utility at top of file */
 		padding: 1.5rem !important;
-		/* Restore padding and ensure spacing */
 		border-radius: var(--radius-surface) !important;
 	}
 
-	[data-theme="dark"] .result-card,
-	[data-theme="dark"] .box:not(.search-panel .box) {
-		background: var(--glass-bg-dark) !important;
-		border-color: var(--glass-border-dark) !important;
-		box-shadow: var(--glass-shadow-dark) !important;
-	}
+	/* Dark mode handled by glass utility */
 }
 
 /* Accessibility Overrides Handled by Utility System at Top of File */
