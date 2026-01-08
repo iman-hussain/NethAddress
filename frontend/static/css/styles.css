@@ -69,6 +69,73 @@
 	--webkit-backdrop-filter: blur(30px) saturate(180%);
 }
 
+/* -----------------------------------------------------------------------------
+   GLASS UTILITY SYSTEM
+   Single Source of Truth for Liquid and Frosted variants
+   ----------------------------------------------------------------------------- */
+
+/* Archetype: Liquid Glass (Default) */
+.glass-liquid,
+.navbar.is-primary,
+.map-style-switcher,
+.search-panel .box,
+.result-card,
+.modal-card,
+.active-layers-panel,
+.poi-toggle-btn,
+.box:not(.search-panel .box) {
+	background: var(--glass-bg-light) !important;
+	backdrop-filter: var(--backdrop-filter);
+	-webkit-backdrop-filter: var(--webkit-backdrop-filter);
+	border: 1px solid var(--glass-border-light) !important;
+	box-shadow: var(--glass-shadow-light) !important;
+}
+
+[data-theme="dark"] .glass-liquid,
+[data-theme="dark"] .navbar.is-primary,
+[data-theme="dark"] .map-style-switcher,
+[data-theme="dark"] .search-panel .box,
+[data-theme="dark"] .result-card,
+[data-theme="dark"] .modal-card,
+[data-theme="dark"] .active-layers-panel,
+[data-theme="dark"] .poi-toggle-btn,
+[data-theme="dark"] .box:not(.search-panel .box) {
+	background: var(--glass-bg-dark) !important;
+	border-color: var(--glass-border-dark) !important;
+	box-shadow: var(--glass-shadow-dark) !important;
+}
+
+/* Archetype: Frosted Glass (Accessibility / Override) */
+body.reduce-transparency .glass-liquid,
+body.reduce-transparency .navbar.is-primary,
+body.reduce-transparency .map-style-switcher,
+body.reduce-transparency .search-panel .box,
+body.reduce-transparency .result-card,
+body.reduce-transparency .modal-card,
+body.reduce-transparency .active-layers-panel,
+body.reduce-transparency .poi-toggle-btn,
+body.reduce-transparency .box:not(.search-panel .box) {
+	background: var(--frosted-bg-light) !important;
+	backdrop-filter: none !important;
+	-webkit-backdrop-filter: none !important;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+	border: 1px solid rgba(0, 0, 0, 0.1) !important;
+}
+
+body.reduce-transparency[data-theme="dark"] .glass-liquid,
+body.reduce-transparency[data-theme="dark"] .navbar.is-primary,
+body.reduce-transparency[data-theme="dark"] .map-style-switcher,
+body.reduce-transparency[data-theme="dark"] .search-panel .box,
+body.reduce-transparency[data-theme="dark"] .result-card,
+body.reduce-transparency[data-theme="dark"] .modal-card,
+body.reduce-transparency[data-theme="dark"] .active-layers-panel,
+body.reduce-transparency[data-theme="dark"] .poi-toggle-btn,
+body.reduce-transparency[data-theme="dark"] .box:not(.search-panel .box) {
+	background: var(--frosted-bg-dark) !important;
+	border: 1px solid rgba(255, 255, 255, 0.15) !important;
+	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
 [data-theme="dark"] {
 	/* Muted dark palette */
 	--bg-page: #111827;
@@ -1704,22 +1771,13 @@ body:not(.has-results) .desktop-results {
 }
 
 .search-panel .box {
-	/* Liquid Glass - Apple Standard */
-	background: var(--glass-bg-light);
-	backdrop-filter: var(--backdrop-filter);
-	-webkit-backdrop-filter: var(--webkit-backdrop-filter);
-	border: 1px solid var(--glass-border-light) !important;
-	box-shadow: var(--glass-shadow-light) !important;
+	/* Glass properties handled by utility */
 	/* Softer, deeper shadow */
 	border-radius: var(--radius-surface) !important;
 	padding: 1rem !important;
 }
 
-[data-theme="dark"] .search-panel .box {
-	background: var(--glass-bg-dark);
-	border-color: var(--glass-border-dark) !important;
-	box-shadow: var(--glass-shadow-dark) !important;
-}
+/* [data-theme="dark"] .search-panel .box handled by utility */
 
 .search-form-row {
 	gap: 0.75rem;
@@ -1745,23 +1803,13 @@ body:not(.has-results) .desktop-results {
 /* 3. Results - Transparent & Beautiful Typography */
 .result-card,
 .box:not(.search-panel .box) {
-	/* Liquid Glass - Apple Standard (Global) */
-	background: var(--glass-bg-light) !important;
-	backdrop-filter: var(--backdrop-filter);
-	-webkit-backdrop-filter: var(--webkit-backdrop-filter);
-	border: 1px solid var(--glass-border-light) !important;
-	box-shadow: var(--glass-shadow-light) !important;
+	/* Glass properties handled by utility */
 	padding: 1rem !important;
 	border-radius: var(--radius-surface) !important;
 	margin-bottom: 1.5rem !important;
 }
 
-[data-theme="dark"] .result-card,
-[data-theme="dark"] .box:not(.search-panel .box) {
-	background: var(--glass-bg-dark) !important;
-	border-color: var(--glass-border-dark) !important;
-	box-shadow: var(--glass-shadow-dark) !important;
-}
+/* [data-theme="dark"] .result-card handled by utility */
 
 .card-header-title {
 	font-size: 1.5rem;
@@ -1882,21 +1930,12 @@ body:not(.has-results) .desktop-results {
 		transform: scale(0.9);
 		margin-top: 0;
 		/* Remove excessive margin */
-		/* Glass Style Unification */
-		background: var(--glass-bg-light) !important;
-		backdrop-filter: var(--backdrop-filter);
-		-webkit-backdrop-filter: var(--webkit-backdrop-filter);
-		border: 1px solid var(--glass-border-light) !important;
-		box-shadow: var(--glass-shadow-light) !important;
 		padding: 4px;
 		border-radius: var(--radius-interaction);
+		/* Glass properties handled by utility */
 	}
 
-	[data-theme="dark"] .map-style-switcher {
-		background: var(--glass-bg-dark) !important;
-		border-color: var(--glass-border-dark) !important;
-		box-shadow: var(--glass-shadow-dark) !important;
-	}
+	/* [data-theme="dark"] .map-style-switcher handled by utility */
 
 	.api-results-grid {
 		grid-template-columns: 1fr;
@@ -1910,12 +1949,7 @@ body:not(.has-results) .desktop-results {
 		right: 0;
 		z-index: 40;
 		padding-top: env(safe-area-inset-top);
-		/* Liquid Glass - Apple Standard */
-		background: var(--glass-bg-light) !important;
-		backdrop-filter: var(--backdrop-filter);
-		-webkit-backdrop-filter: var(--webkit-backdrop-filter);
-		border-bottom: 1px solid var(--glass-border-light);
-		box-shadow: var(--glass-shadow-light) !important;
+		/* Glass properties handled by utility */
 		/* Force Single Row Layout */
 		display: flex;
 		flex-direction: row;
@@ -1933,9 +1967,7 @@ body:not(.has-results) .desktop-results {
 	}
 
 	[data-theme="dark"] .navbar.is-primary {
-		background: var(--glass-bg-dark) !important;
-		border-color: var(--glass-border-dark);
-		box-shadow: var(--glass-shadow-dark) !important;
+		/* Handled by utility */
 	}
 
 	.full-height-columns {
@@ -1954,19 +1986,7 @@ body:not(.has-results) .desktop-results {
 	/* .sidebar-overlay pointer-events: none handles this */
 	/* Navbar also glass (Liquid Style) */
 	/* Navbar also glass (Liquid Style) */
-	.navbar.is-primary {
-		background: var(--glass-bg-light) !important;
-		backdrop-filter: var(--backdrop-filter);
-		-webkit-backdrop-filter: var(--webkit-backdrop-filter);
-		border-bottom: 1px solid var(--glass-border-light);
-		box-shadow: var(--glass-shadow-light) !important;
-	}
-
-	[data-theme="dark"] .navbar.is-primary {
-		background: var(--glass-bg-dark) !important;
-		border-color: var(--glass-border-dark);
-		box-shadow: var(--glass-shadow-dark) !important;
-	}
+	/* Navbar also glass (Liquid Style) - Handled by utility */
 
 	.made-by-link {
 		color: rgba(255, 255, 255, 0.8) !important;
@@ -2037,63 +2057,4 @@ body:not(.has-results) .desktop-results {
 	}
 }
 
-/* Accessibility: Reduce Transparency (Frosted Mode) */
-body.reduce-transparency .sidebar-overlay {
-	background: none !important;
-}
-
-body.reduce-transparency .search-panel .box,
-body.reduce-transparency .navbar.is-primary {
-	background: rgba(255, 255, 255, 0.98) !important;
-	backdrop-filter: none !important;
-	-webkit-backdrop-filter: none !important;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-	border: 1px solid rgba(0, 0, 0, 0.1) !important;
-}
-
-body.reduce-transparency[data-theme="dark"] .search-panel .box,
-body.reduce-transparency[data-theme="dark"] .navbar.is-primary {
-	background: rgba(30, 41, 59, 1) !important;
-	border: 1px solid rgba(255, 255, 255, 0.15) !important;
-}
-
-
-
-body.reduce-transparency .card-header-title,
-body.reduce-transparency .metric-value,
-body.reduce-transparency .metric-label {
-	text-shadow: none !important;
-}
-
-/* Comprehensive Frosted Override (Appended) */
-body.reduce-transparency .navbar.is-primary,
-body.reduce-transparency .search-panel .box,
-body.reduce-transparency .result-card,
-body.reduce-transparency .box:not(.search-panel .box),
-body.reduce-transparency .modal-card,
-body.reduce-transparency .active-layers-panel,
-body.reduce-transparency .maplibregl-popup-content,
-body.reduce-transparency .poi-toggle-btn,
-body.reduce-transparency .modal-card .button.is-light,
-body.reduce-transparency .map-style-switcher {
-	background: var(--frosted-bg-light) !important;
-	backdrop-filter: none !important;
-	-webkit-backdrop-filter: none !important;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-	border: 1px solid rgba(0, 0, 0, 0.1) !important;
-}
-
-[data-theme="dark"] body.reduce-transparency .navbar.is-primary,
-[data-theme="dark"] body.reduce-transparency .search-panel .box,
-[data-theme="dark"] body.reduce-transparency .result-card,
-[data-theme="dark"] body.reduce-transparency .box:not(.search-panel .box),
-[data-theme="dark"] body.reduce-transparency .modal-card,
-[data-theme="dark"] body.reduce-transparency .active-layers-panel,
-[data-theme="dark"] body.reduce-transparency .maplibregl-popup-content,
-[data-theme="dark"] body.reduce-transparency .poi-toggle-btn,
-[data-theme="dark"] body.reduce-transparency .modal-card .button.is-light,
-[data-theme="dark"] body.reduce-transparency .map-style-switcher {
-	background: var(--frosted-bg-dark) !important;
-	border: 1px solid rgba(255, 255, 255, 0.15) !important;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-}
+/* Accessibility Overrides Handled by Utility System at Top of File */
