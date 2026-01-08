@@ -664,7 +664,12 @@ body {
 }
 
 body:not(.has-results) .results-wrapper {
-	display: none;
+	display: none !important;
+}
+
+body.has-results .results-wrapper {
+	display: block !important;
+	width: 100%;
 }
 
 /* API Results Grid */
@@ -1287,6 +1292,8 @@ body:not(.has-results) .results-wrapper {
 		display: flex;
 		flex-direction: column;
 		flex: 1;
+		overflow: visible !important;
+		/* Allow body scroll */
 	}
 
 	/* Map is FULL SCREEN on mobile (like desktop) for glass effect */
@@ -1307,15 +1314,17 @@ body:not(.has-results) .results-wrapper {
 
 	/* Map style switcher repositioned for mobile */
 	.map-style-switcher {
-		top: auto;
-		bottom: 0.75rem;
+		top: 180px;
+		/* Adjusted to sit below the search box area */
+		bottom: auto;
 		right: 0.75rem;
 	}
 
 	/* Sidebar FLOATS over map on mobile for glass effect */
-	/* CHANGED: Position absolute allows it to scroll with the body */
+	/* Sidebar FLOATS over map on mobile for glass effect */
+	/* CHANGED: Position relative so it takes up styling space and enables BODY scrolling */
 	.sidebar-overlay {
-		position: absolute;
+		position: relative;
 		top: 0;
 		left: 0;
 		right: 0;
@@ -1393,13 +1402,15 @@ body:not(.has-results) .results-wrapper {
 
 	/* Unified results wrapper for mobile */
 	.results-wrapper {
-		margin: 40vh 0.875rem 2rem;
+		margin: 30vh 0.875rem 2rem;
 		/* Large top gap for map visibility */
-		padding-bottom: 1rem;
-		/* Standard padding */
+		padding-bottom: 2rem;
+		/* Extra padding for bottom */
 		pointer-events: auto;
 		display: block;
 		flex-shrink: 0;
+		width: 100%;
+		/* Ensure full width */
 	}
 
 	.results-wrapper .api-results-grid {
