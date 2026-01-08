@@ -1386,7 +1386,8 @@ body:not(.has-results) .desktop-results {
 	}
 
 	.mobile-results {
-		margin: 0 0.875rem;
+		margin: 40vh 0.875rem 6.5rem;
+		/* Large top gap for map visibility + bottom space for fixed search */
 		pointer-events: auto;
 		display: block;
 		flex-shrink: 0;
@@ -2049,10 +2050,7 @@ body:not(.has-results) .desktop-results {
 		/* Allow siblings */
 	}
 
-	[data-theme="dark"] .navbar.is-primary {
-		background: var(--glass-bg-dark) !important;
-		border-bottom: 1px solid var(--glass-border-dark) !important;
-	}
+
 
 	/* full-height-columns padding removed to allow map underlay */
 
@@ -2064,14 +2062,8 @@ body:not(.has-results) .desktop-results {
 /* Desktop Polish */
 @media screen and (min-width: 769px) {
 
-	/* Ensure sidebar overlay doesn't block right side map interaction */
-	/* .sidebar-overlay pointer-events: none handles this */
-	/* Navbar also glass (Liquid Style) */
-	/* Navbar also glass (Liquid Style) */
-	/* Navbar also glass (Liquid Style) - Handled by utility */
-
-	/* Ensure sidebar overlay doesn't block right side map interaction */
-	/* Navbar glass - Handled by utility */
+	/* Ensure sidebar overlay doesn't block right side map interaction (handled globally) */
+	/* Navbar glass (Liquid Style) - Handled by utility */
 
 	/* Settings Grid - Auto fit columns */
 	.api-results-grid {
