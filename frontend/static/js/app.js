@@ -316,8 +316,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	function startSearchStream(postcode, houseNumber, bypassCache) {
 		// 1. Prepare UI
 		document.body.classList.remove('has-results');
-		const isMobile = window.innerWidth <= 768;
-		const targetContainer = isMobile ? document.getElementById('results-mobile') : document.getElementById('results-desktop');
+		const targetContainer = document.getElementById('results-container-main');
 
 		if (targetContainer) {
 			// Show progress UI
@@ -691,8 +690,7 @@ document.body.addEventListener('htmx:beforeRequest', function (event) {
 	const trigger = event.target;
 	if (trigger && trigger.tagName === 'FORM' && trigger.getAttribute('hx-target') === '#results-container') {
 		document.body.classList.remove('has-results');
-		const isMobile = window.innerWidth <= 768;
-		const targetContainer = isMobile ? document.getElementById('results-mobile') : document.getElementById('results-desktop');
+		const targetContainer = document.getElementById('results-container-main');
 		if (targetContainer) {
 			// Show loading animation
 			targetContainer.innerHTML = `

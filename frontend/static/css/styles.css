@@ -660,17 +660,10 @@ body {
 .results-wrapper {
 	margin-top: 0;
 	pointer-events: auto;
-}
-
-.desktop-results {
 	min-height: 0;
 }
 
-body:not(.has-results) .desktop-results {
-	display: none;
-}
-
-.mobile-results {
+body:not(.has-results) .results-wrapper {
 	display: none;
 }
 
@@ -1320,17 +1313,18 @@ body:not(.has-results) .desktop-results {
 	}
 
 	/* Sidebar FLOATS over map on mobile for glass effect */
+	/* CHANGED: Position absolute allows it to scroll with the body */
 	.sidebar-overlay {
-		position: fixed;
+		position: absolute;
 		top: 0;
 		left: 0;
 		right: 0;
-		bottom: 0;
+		bottom: auto;
 		width: 100%;
-		height: 100%;
+		min-height: 100%;
 		display: block;
 		pointer-events: none;
-		/* Allow clicks through to map */
+		/* Allow clicks through to map in gaps */
 		padding: 0;
 		z-index: 30;
 		background: transparent !important;
@@ -1340,13 +1334,16 @@ body:not(.has-results) .desktop-results {
 		direction: ltr;
 		padding: 80px 1rem 1.5rem;
 		/* Clear navbar + gap */
-		height: 100%;
+		height: auto;
+		/* Let content dictate height */
 		width: 100%;
-		overflow-y: auto;
+		overflow: visible;
+		/* Disable internal scroll, use body scroll */
 		display: flex;
 		flex-direction: column;
 		gap: 0.75rem;
-		pointer-events: auto;
+		pointer-events: none;
+		/* Gap touches fall through to map */
 		background: transparent !important;
 	}
 
@@ -1394,13 +1391,10 @@ body:not(.has-results) .desktop-results {
 		width: 100%;
 	}
 
-	.desktop-results {
-		display: none !important;
-	}
-
-	.mobile-results {
-		margin: 0 0.875rem 2rem;
-		/* Natural flow margin */
+	/* Unified results wrapper for mobile */
+	.results-wrapper {
+		margin: 40vh 0.875rem 2rem;
+		/* Large top gap for map visibility */
 		padding-bottom: 1rem;
 		/* Standard padding */
 		pointer-events: auto;
@@ -1408,31 +1402,27 @@ body:not(.has-results) .desktop-results {
 		flex-shrink: 0;
 	}
 
-	body:not(.has-results) .mobile-results {
-		display: none;
-	}
-
-	.mobile-results .api-results-grid {
+	.results-wrapper .api-results-grid {
 		grid-template-columns: 1fr !important;
 	}
 
-	.mobile-results .address-header-card {
+	.results-wrapper .address-header-card {
 		flex-direction: column;
 		align-items: flex-start;
 		padding: 1rem;
 		margin-bottom: 0.75rem;
 	}
 
-	.mobile-results .address-title {
+	.results-wrapper .address-title {
 		font-size: 1.375rem;
 	}
 
-	.mobile-results .address-actions {
+	.results-wrapper .address-actions {
 		margin-top: 0.75rem;
 		width: 100%;
 	}
 
-	.mobile-results .address-actions .btn {
+	.results-wrapper .address-actions .btn {
 		flex: 1;
 		justify-content: center;
 	}
