@@ -1189,6 +1189,13 @@ window.openSettings = function () {
                     <button class="delete" onclick="closeSettings()"></button>
                 </header>
                 <section class="modal-card-body">
+					<!-- Build Info (Top) -->
+					<div class="has-text-centered mb-4">
+						<span class="tag is-light is-rounded is-small build-info-settings" style="opacity: 0.7;">
+							${document.getElementById('build-info').textContent || 'Build v1.0.0'}
+						</span>
+					</div>
+
                     <div class="mb-5">
                        <h5 class="title is-6 mb-2">Display & Accessibility</h5>
                        <div class="columns is-mobile">

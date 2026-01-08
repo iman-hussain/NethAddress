@@ -1,40 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!--
-    Maskable icon for Android Adaptive Icons
-    Safe zone is the inner 80% (40px padding on each side for 512px)
-    Content is centred within safe zone to prevent clipping
-  -->
   <defs>
-    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#4A90D9"/>
-      <stop offset="100%" style="stop-color:#357ABD"/>
-    </linearGradient>
-    <linearGradient id="textGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" style="stop-color:#FFFFFF"/>
-      <stop offset="100%" style="stop-color:#F0F0F0"/>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2DD4BF"/>
+      <stop offset="100%" style="stop-color:#0F766E"/>
     </linearGradient>
   </defs>
-
-  <!-- Full bleed background - no rounded corners as mask will be applied -->
-  <rect width="512" height="512" fill="url(#bgGradient)"/>
-
-  <!-- Content scaled down and centred to fit within 80% safe zone -->
-  <g transform="translate(51.2, 51.2) scale(0.8)">
-    <!-- Main "A" letter - centred -->
-    <text x="256" y="400"
-          font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
-          font-size="420"
-          font-weight="800"
-          text-anchor="middle"
-          fill="url(#textGradient)">A</text>
-
-    <!-- "IQ" - centred between the legs of the A -->
-    <text x="256" y="395"
-          font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
-          font-size="85"
-          font-weight="700"
-          text-anchor="middle"
-          fill="url(#textGradient)"
-          opacity="0.95">IQ</text>
-  </g>
+  <rect width="512" height="512" rx="0" ry="0" fill="url(#bgGrad)"/>
+  <text x="256" y="364"
+        font-family="Inter, Arial, sans-serif"
+        font-size="315"
+        font-weight="800"
+        text-anchor="middle"
+        fill="#FFFFFF">A</text>
+  <text x="256" y="360"
+        font-family="Inter, Arial, sans-serif"
+        font-size="65"
+        font-weight="700"
+        text-anchor="middle"
+        fill="#FFFFFF"
+        opacity="0.95">IQ</text>
 </svg>

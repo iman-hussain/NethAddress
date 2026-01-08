@@ -16,8 +16,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Brand colours
-const GRADIENT_START = '#4A90D9';
-const GRADIENT_END = '#357ABD';
+// Brand colours
+const GRADIENT_START = '#2DD4BF';
+const GRADIENT_END = '#0F766E';
 
 /**
  * Creates an SVG icon with the AddressIQ branding
@@ -260,43 +261,54 @@ async function generateFavicon(filename, size) {
 	console.log(`✓ Generated ${filename} (${size}×${size}) [maximized]`);
 }
 
+// ... (keep creating functions same, just updated colors will apply via constants)
+
+async function writeSVG(filename, svgContent) {
+	const outputPath = join(__dirname, filename);
+	writeFileSync(outputPath, svgContent);
+	console.log(`✓ Saved source SVG: ${filename}`);
+}
+
 async function main() {
 	console.log('Generating AddressIQ icons...\n');
 
 	try {
-		// Standard icons (default/light appearance) - with background for Android/general use
-		console.log('Default icons (with background):');
+		// 1. Standard PWA Icons (Teal Gradient Background)
+		console.log('Standard icons (Teal Gradient):');
+		const iconSVG = createIconSVG(512); // Master SVG
+		await writeSVG('icon.svg', iconSVG); // Save source
+
 		await generateIcon('icon-192.png', 192);
 		await generateIcon('icon-512.png', 512);
 
-		// Maskable icons (Android adaptive)
+		// 2. Maskable Icons (Teal Gradient)
 		console.log('\nAndroid adaptive icons:');
+		const maskableSVG = createIconSVG(512, true); // Master Maskable SVG
+		await writeSVG('icon-maskable.svg', maskableSVG); // Save source
+
 		await generateIcon('icon-maskable-192.png', 192, true);
 		await generateIcon('icon-maskable-512.png', 512, true);
 
-		// Apple touch icons - transparent background for iOS 18 Liquid Glass
-		// These work with default, clear, and tinted modes
-		console.log('\nApple touch icons (transparent - iOS 18 Liquid Glass):');
+		// 3. Apple touch icons (Transparent/Teal for "Liquid" look)
+		console.log('\nApple touch icons (Transparent - iOS Liquid):');
 		await generateAppleIcon('apple-touch-icon-152.png', 152);
 		await generateAppleIcon('apple-touch-icon-167.png', 167);
 		await generateAppleIcon('apple-touch-icon-180.png', 180);
+		// Note: We generally don't need to save these SVGs as they are derived, but we could.
 
-		// Apple touch icons - dark mode variant (white on transparent)
-		console.log('\nApple touch icons (dark - iOS 18):');
-		await generateDarkIcon('apple-touch-icon-dark-152.png', 152);
-		await generateDarkIcon('apple-touch-icon-dark-167.png', 167);
-		await generateDarkIcon('apple-touch-icon-dark-180.png', 180);
-
-		// Apple touch icons - tinted mode (pure black on transparent for colorisation)
-		console.log('\nApple touch icons (tinted - iOS 18):');
-		await generateTintedIcon('apple-touch-icon-tinted-152.png', 152);
-		await generateTintedIcon('apple-touch-icon-tinted-167.png', 167);
-		await generateTintedIcon('apple-touch-icon-tinted-180.png', 180);
-
-		// Favicons (using maximized generator)
+		// 4. Favicons (Teal on Transparent)
 		console.log('\nFavicons:');
+		const faviconSVG = createFaviconSVG(512); // Master Favicon SVG
+		await writeSVG('favicon.svg', faviconSVG); // Update the SVG file served to browsers!
+
 		await generateFavicon('favicon-32.png', 32);
 		await generateFavicon('favicon-16.png', 16);
+
+		// 5. Variants
+		await generateDarkIcon('apple-touch-icon-dark.svg', 512); // Just testing/saving if needed?
+		// Actually generateDarkIcon outputs PNG. Let's just run the PNG gens.
+		await generateDarkIcon('apple-touch-icon-dark-180.png', 180);
+		await generateTintedIcon('apple-touch-icon-tinted-180.png', 180);
 
 		console.log('\n✅ All icons generated successfully!');
 		console.log('Icons are ready in: frontend/static/icons/');
