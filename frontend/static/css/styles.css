@@ -401,6 +401,12 @@ body {
 /* Search Panel - Full Width */
 .search-panel {
 	pointer-events: auto;
+	/* Desktop: Sticky search */
+	position: sticky;
+	top: -80px;
+	/* Offset to sit nicely under navbar padding */
+	z-index: 30;
+	margin-bottom: 1rem;
 }
 
 .search-panel .box {
@@ -1249,8 +1255,8 @@ body:not(.has-results) .desktop-results {
 	background: var(--text-muted);
 }
 
-/* Mobile Layout */
-@media screen and (max-width: 768px) {
+/* Mobile & Tablet Layout (Landscape Phones included) */
+@media screen and (max-width: 1023px) {
 
 	html,
 	body {
@@ -1344,23 +1350,25 @@ body:not(.has-results) .desktop-results {
 		background: transparent !important;
 	}
 
-	/* Search panel at BOTTOM of screen for reachability */
+	/* Search panel within flow on mobile to allow scrolling */
 	.search-panel {
-		position: fixed;
-		bottom: 0;
-		left: 0;
-		right: 0;
-		z-index: 100;
+		position: relative !important;
+		/* Force unstuck on mobile */
+		top: auto;
+		bottom: auto;
+		left: auto;
+		right: auto;
+		z-index: 30;
 		pointer-events: auto;
-		margin: 0;
-		border-radius: 0;
+		margin: 0 0 1rem 0;
+		border-radius: var(--radius-lg);
 	}
 
 	.search-panel .box {
-		border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+		border-radius: var(--radius-lg);
 		margin: 0;
-		box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
-		padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+		box-shadow: var(--shadow-md);
+		padding-bottom: 1.25rem;
 	}
 
 	body:not(.has-results) .search-panel {
@@ -1391,10 +1399,10 @@ body:not(.has-results) .desktop-results {
 	}
 
 	.mobile-results {
-		margin: 40vh 0.875rem 8.5rem;
-		/* Large top gap for map visibility + bottom space for fixed search */
-		padding-bottom: 2rem;
-		/* Extra padding to prevent overlap */
+		margin: 0 0.875rem 2rem;
+		/* Natural flow margin */
+		padding-bottom: 1rem;
+		/* Standard padding */
 		pointer-events: auto;
 		display: block;
 		flex-shrink: 0;
