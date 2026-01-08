@@ -50,8 +50,8 @@
 	/* Cards, Modals, Panels */
 
 	/* Apple Liquid Glass Material */
-	/* Light: Blur 30px, Saturate 180%, White 72% opacity */
-	--glass-bg-light: rgba(255, 255, 255, 0.72);
+	/* Light: Blur 30px, Saturate 180%, White 60% opacity (More Liquid) */
+	--glass-bg-light: rgba(255, 255, 255, 0.60);
 	--glass-border-light: rgba(255, 255, 255, 0.5);
 	--glass-shadow-light: 0 8px 32px rgba(0, 0, 0, 0.12);
 
@@ -1673,6 +1673,8 @@ body:not(.has-results) .desktop-results {
 	height: 100%;
 	display: flex;
 	flex-direction: column;
+	width: 100%;
+	/* Ensure full utilization */
 	max-width: 40vw;
 	/* 2/5 width */
 	/* Wider Floating panel on desktop */
@@ -1799,6 +1801,21 @@ body:not(.has-results) .desktop-results {
 	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
+/* Themed Import/Export Buttons - Liquid Glass */
+.modal-card .button.is-light {
+	background: var(--glass-bg-light) !important;
+	backdrop-filter: var(--backdrop-filter);
+	-webkit-backdrop-filter: var(--webkit-backdrop-filter);
+	border: 1px solid var(--glass-border-light) !important;
+	color: var(--text-primary) !important;
+}
+
+[data-theme="dark"] .modal-card .button.is-light {
+	background: var(--glass-bg-dark) !important;
+	border-color: var(--glass-border-dark) !important;
+	color: #fff !important;
+}
+
 /* 4. Map & Interactions - Platform Specific */
 @media screen and (max-width: 768px) {
 	.sidebar-overlay {
@@ -1890,15 +1907,16 @@ body:not(.has-results) .desktop-results {
 
 	/* Settings Grid - Auto fit columns */
 	.api-results-grid {
-		grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+		grid-template-columns: repeat(auto-fit, minmax(max(280px, 48%), 1fr));
+		/* Max 2 columns (48% * 2 ~= 96%) */
 		gap: 1rem;
 		/* Reduced gap */
 	}
 
-	/* Widen Settings Modal for Fluid Grid (1.5x) */
+	/* Widen Settings Modal for Fluid Grid (75vw) */
 	.modal-card {
 		width: 95%;
-		max-width: 1400px;
+		max-width: 75vw;
 	}
 
 	/* Fluid 3-Column Grid (Max 3, breaks to 2 or 1) */
@@ -1964,7 +1982,8 @@ body.reduce-transparency .box:not(.search-panel .box),
 body.reduce-transparency .modal-card,
 body.reduce-transparency .active-layers-panel,
 body.reduce-transparency .maplibregl-popup-content,
-body.reduce-transparency .poi-toggle-btn {
+body.reduce-transparency .poi-toggle-btn,
+body.reduce-transparency .modal-card .button.is-light {
 	background: var(--frosted-bg-light) !important;
 	backdrop-filter: none !important;
 	-webkit-backdrop-filter: none !important;
@@ -1979,7 +1998,8 @@ body.reduce-transparency .poi-toggle-btn {
 [data-theme="dark"] body.reduce-transparency .modal-card,
 [data-theme="dark"] body.reduce-transparency .active-layers-panel,
 [data-theme="dark"] body.reduce-transparency .maplibregl-popup-content,
-[data-theme="dark"] body.reduce-transparency .poi-toggle-btn {
+[data-theme="dark"] body.reduce-transparency .poi-toggle-btn,
+[data-theme="dark"] body.reduce-transparency .modal-card .button.is-light {
 	background: var(--frosted-bg-dark) !important;
 	border: 1px solid rgba(255, 255, 255, 0.15) !important;
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
