@@ -98,6 +98,11 @@
 	/* Force dark text on light glass */
 }
 
+/* Ensure notifications match the rounded aesthetic */
+.notification {
+	border-radius: var(--radius-lg) !important;
+}
+
 /* Ensure links in navbar inherit this color */
 .navbar.is-primary .navbar-brand .navbar-item,
 .navbar.is-primary .navbar-start .navbar-item,

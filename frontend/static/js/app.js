@@ -175,18 +175,44 @@ document.addEventListener('DOMContentLoaded', function () {
 		style: {
 			version: 8,
 			sources: {
-				osm: {
+				'esri-satellite': {
 					type: 'raster',
-					tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+					tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
 					tileSize: 256,
-					attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+					attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
+				},
+				'stamen-labels': {
+					type: 'raster',
+					tiles: ['https://tiles.stadiamaps.com/tiles/stamen_terrain_labels/{z}/{x}/{y}.png'],
+					tileSize: 256,
+					attribution: 'Labels &copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://stamen.com/">Stamen Design</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+				},
+				'esri-reference': {
+					type: 'raster',
+					tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}'],
+					tileSize: 256,
+					attribution: 'Esri World Transportation'
 				}
 			},
 			layers: [
 				{
-					id: 'osm',
+					id: 'satellite-base',
 					type: 'raster',
-					source: 'osm',
+					source: 'esri-satellite',
+					minzoom: 0,
+					maxzoom: 19
+				},
+				{
+					id: 'roads-overlay',
+					type: 'raster',
+					source: 'esri-reference',
+					minzoom: 0,
+					maxzoom: 19
+				},
+				{
+					id: 'labels-overlay',
+					type: 'raster',
+					source: 'stamen-labels',
 					minzoom: 0,
 					maxzoom: 19
 				}
@@ -403,7 +429,7 @@ document.addEventListener('DOMContentLoaded', function () {
 			} catch (e) {
 				console.error('Error processing complete event:', e);
 				if (targetContainer) {
-					targetContainer.innerHTML = `<div class="notification is-danger glass-frosted">Error rendering results: ${e.message}</div>`;
+					targetContainer.innerHTML = `<div class="notification is-danger glass-liquid">Error rendering results: ${e.message}</div>`;
 				}
 			}
 		});
@@ -415,10 +441,10 @@ document.addEventListener('DOMContentLoaded', function () {
 				try {
 					const errData = JSON.parse(event.data);
 					if (targetContainer) {
-						targetContainer.innerHTML = `<div class="notification is-danger glass-frosted">Search failed: ${errData.message}</div>`;
+						targetContainer.innerHTML = `<div class="notification is-danger glass-liquid">Search failed: ${errData.message}</div>`;
 					}
 				} catch (e) {
-					if (targetContainer) targetContainer.innerHTML = `<div class="notification is-danger glass-frosted">Search failed.</div>`;
+					if (targetContainer) targetContainer.innerHTML = `<div class="notification is-danger glass-liquid">Search failed.</div>`;
 				}
 				evtSource.close();
 			} else if (evtSource.readyState === EventSource.CLOSED) {
@@ -428,7 +454,7 @@ document.addEventListener('DOMContentLoaded', function () {
 				console.error('EventSource connection error');
 				// Only show error if we haven't received completeness
 				if (targetContainer && targetContainer.querySelector('.progress-container')) {
-					targetContainer.innerHTML = `<div class="notification is-danger glass-frosted">Connection lost. Please try again.</div>`;
+					targetContainer.innerHTML = `<div class="notification is-danger glass-liquid">Connection lost. Please try again.</div>`;
 				}
 				evtSource.close();
 			}
@@ -551,11 +577,11 @@ document.addEventListener('DOMContentLoaded', function () {
 					tileSize: 256,
 					attribution: 'Labels &copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://stamen.com/">Stamen Design</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 				},
-				'carto-roads': {
+				'esri-reference': {
 					type: 'raster',
-					tiles: ['https://a.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png'],
+					tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}'],
 					tileSize: 256,
-					attribution: 'Roads &copy; <a href="https://carto.com/attributions">CARTO</a>'
+					attribution: 'Esri World Transportation'
 				}
 			},
 			layers: [
@@ -569,12 +595,9 @@ document.addEventListener('DOMContentLoaded', function () {
 				{
 					id: 'roads-overlay',
 					type: 'raster',
-					source: 'carto-roads',
+					source: 'esri-reference',
 					minzoom: 0,
-					maxzoom: 19,
-					paint: {
-						'raster-opacity': 0.5
-					}
+					maxzoom: 19
 				},
 				{
 					id: 'labels-overlay',
@@ -626,7 +649,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	};
 
 	// Load saved map style preference
-	const savedStyle = localStorage.getItem('mapStyle') || 'osm';
+	const savedStyle = localStorage.getItem('mapStyle') || 'hybrid';
 	setTimeout(() => {
 		const btn = document.querySelector(`.map-style-btn[onclick*="${savedStyle}"]`);
 		if (btn) btn.classList.add('active');
