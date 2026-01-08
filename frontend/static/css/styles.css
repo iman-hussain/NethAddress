@@ -50,13 +50,13 @@
 	/* Cards, Modals, Panels */
 
 	/* Apple Liquid Glass Material */
-	/* Light: Blur 30px, Saturate 180%, White 60% opacity (More Liquid) */
-	--glass-bg-light: rgba(255, 255, 255, 0.60);
+	/* Light: Blur 30px, Saturate 180%, White 50% opacity (More Liquid) */
+	--glass-bg-light: rgba(255, 255, 255, 0.50);
 	--glass-border-light: rgba(255, 255, 255, 0.5);
 	--glass-shadow-light: 0 8px 32px rgba(0, 0, 0, 0.12);
 
-	/* Dark: Blur 30px, Saturate 180%, Slate 70% opacity */
-	--glass-bg-dark: rgba(30, 41, 59, 0.70);
+	/* Dark: Blur 30px, Saturate 180%, Slate 60% opacity */
+	--glass-bg-dark: rgba(30, 41, 59, 0.60);
 	--glass-border-dark: rgba(255, 255, 255, 0.1);
 	--glass-shadow-dark: 0 8px 32px rgba(0, 0, 0, 0.3);
 
@@ -1851,12 +1851,51 @@ body:not(.has-results) .desktop-results {
 		padding: 1rem 1.25rem;
 	}
 
+	/* Mobile Polish: Stack Search Form */
+	.search-form-row {
+		display: flex;
+		flex-direction: column !important;
+		gap: 0.5rem;
+	}
+
+	.search-form-row .field {
+		width: 100%;
+	}
+
+	/* Ensure buttons fill width or align nicely */
+	.search-form-row .control {
+		width: 100%;
+		justify-content: flex-start;
+		/* Or space-between? flex-start matches inputs */
+	}
+
+	/* Label adjustment for stacked layout - hide empty label spacer if needed? */
+	/* Actually the button field label is &nbsp; so it takes space. On mobile that might be ugly vertical gap. */
+	/* Let's hide the empty label on mobile for the button group */
+	.search-form-row .field:last-child label {
+		display: none;
+	}
+
 	.map-style-switcher {
 		top: calc(1rem + env(safe-area-inset-top));
 		right: 1rem;
 		transform: scale(0.9);
 		margin-top: 0;
 		/* Remove excessive margin */
+		/* Glass Style Unification */
+		background: var(--glass-bg-light) !important;
+		backdrop-filter: var(--backdrop-filter);
+		-webkit-backdrop-filter: var(--webkit-backdrop-filter);
+		border: 1px solid var(--glass-border-light) !important;
+		box-shadow: var(--glass-shadow-light) !important;
+		padding: 4px;
+		border-radius: var(--radius-interaction);
+	}
+
+	[data-theme="dark"] .map-style-switcher {
+		background: var(--glass-bg-dark) !important;
+		border-color: var(--glass-border-dark) !important;
+		box-shadow: var(--glass-shadow-dark) !important;
 	}
 
 	.api-results-grid {
@@ -1877,6 +1916,20 @@ body:not(.has-results) .desktop-results {
 		-webkit-backdrop-filter: var(--webkit-backdrop-filter);
 		border-bottom: 1px solid var(--glass-border-light);
 		box-shadow: var(--glass-shadow-light) !important;
+		/* Force Single Row Layout */
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		align-items: center;
+		flex-wrap: nowrap;
+	}
+
+	.navbar-brand {
+		flex-grow: 1;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		width: 100%;
 	}
 
 	[data-theme="dark"] .navbar.is-primary {
@@ -2021,7 +2074,8 @@ body.reduce-transparency .modal-card,
 body.reduce-transparency .active-layers-panel,
 body.reduce-transparency .maplibregl-popup-content,
 body.reduce-transparency .poi-toggle-btn,
-body.reduce-transparency .modal-card .button.is-light {
+body.reduce-transparency .modal-card .button.is-light,
+body.reduce-transparency .map-style-switcher {
 	background: var(--frosted-bg-light) !important;
 	backdrop-filter: none !important;
 	-webkit-backdrop-filter: none !important;
@@ -2037,7 +2091,8 @@ body.reduce-transparency .modal-card .button.is-light {
 [data-theme="dark"] body.reduce-transparency .active-layers-panel,
 [data-theme="dark"] body.reduce-transparency .maplibregl-popup-content,
 [data-theme="dark"] body.reduce-transparency .poi-toggle-btn,
-[data-theme="dark"] body.reduce-transparency .modal-card .button.is-light {
+[data-theme="dark"] body.reduce-transparency .modal-card .button.is-light,
+[data-theme="dark"] body.reduce-transparency .map-style-switcher {
 	background: var(--frosted-bg-dark) !important;
 	border: 1px solid rgba(255, 255, 255, 0.15) !important;
 	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;

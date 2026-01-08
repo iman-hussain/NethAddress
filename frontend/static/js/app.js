@@ -392,6 +392,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
 				// Process results
 				processSearchResults(tempDiv, targetContainer);
+
+				// Mobile Polish: Show Refresh (Keep Search Visible)
+				if (window.innerWidth <= 768) {
+					// const btnSearch = document.getElementById('btn-search'); // Always keep visible
+					const btnRefresh = document.getElementById('btn-refresh');
+					// if (btnSearch) btnSearch.style.display = 'none'; // User Request: Always have search
+					if (btnRefresh) btnRefresh.style.display = 'inline-flex';
+				}
+
 			} catch (e) {
 				console.error('Error processing complete event:', e);
 				if (targetContainer) {
