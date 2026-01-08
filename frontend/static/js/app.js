@@ -808,13 +808,8 @@ document.body.addEventListener('htmx:afterSwap', function (event) {
 		const dataHolder = container.querySelector('[data-geojson]');
 
 		if (resultsContent) {
-			// Only populate the appropriate container based on screen size
-			const isMobile = window.innerWidth <= 768;
-			if (isMobile) {
-				document.getElementById('results-mobile').innerHTML = resultsContent.innerHTML;
-			} else {
-				document.getElementById('results-desktop').innerHTML = resultsContent.innerHTML;
-			}
+			// Populate the unified container
+			document.getElementById('results-container-main').innerHTML = resultsContent.innerHTML;
 		}
 
 		if (dataHolder) {
@@ -878,8 +873,7 @@ function formatApiData(apiName, data) {
 
 // Render API results
 function renderApiResults() {
-	const isMobile = window.innerWidth <= 768;
-	const targetContainer = isMobile ? document.getElementById('results-mobile') : document.getElementById('results-desktop');
+	const targetContainer = document.getElementById('results-container-main');
 
 	if (!targetContainer) {
 		return;
