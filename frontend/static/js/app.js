@@ -22,15 +22,15 @@ const ENABLE_LOGS = true;
 // Define available APIs and their tiers statically for settings
 const AVAILABLE_APIS = {
 	free: [
-		{ name: 'BAG Address' },
 		{ name: 'KNMI Weather' },
-		{ name: 'KNMI Solar' },
-		{ name: 'Luchtmeetnet Air Quality' },
 		{ name: 'CBS Population' },
+		{ name: 'openOV Public Transport' },
+		{ name: 'Luchtmeetnet Air Quality' },
+		{ name: 'BAG Address' },
+		{ name: 'KNMI Solar' },
 		{ name: 'CBS Square Statistics' },
 		{ name: 'BRO Soil Map' },
 		{ name: 'NDW Traffic' },
-		{ name: 'openOV Public Transport' },
 		{ name: 'Flood Risk' },
 		{ name: 'Green Spaces' },
 		{ name: 'Education Facilities' },
