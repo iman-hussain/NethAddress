@@ -1774,6 +1774,29 @@ body:not(.has-results) .desktop-results {
 	text-shadow: 0 2px 8px rgba(0, 0, 0, 1);
 }
 
+/* Modal Internal Unification - Single Sheet Glass */
+.modal-card-head,
+.modal-card-body,
+.modal-card-foot {
+	background: transparent !important;
+	border-color: var(--glass-border-light) !important;
+}
+
+[data-theme="dark"] .modal-card-head,
+[data-theme="dark"] .modal-card-body,
+[data-theme="dark"] .modal-card-foot {
+	border-color: var(--glass-border-dark) !important;
+}
+
+/* Navbar Internal Unification - Single Sheet Glass (Fixes Mismatch) */
+.navbar-brand,
+.navbar-menu,
+.navbar-start,
+.navbar-end,
+.navbar-item {
+	background: transparent !important;
+}
+
 .metric-display {
 	margin-top: 0.5rem;
 }
@@ -1917,6 +1940,21 @@ body:not(.has-results) .desktop-results {
 	.modal-card {
 		width: 95%;
 		max-width: 75vw;
+	}
+
+	/* Build Info Visibility */
+	.build-info-settings {
+		opacity: 1 !important;
+		font-weight: 600;
+		color: var(--text-secondary) !important;
+		background-color: rgba(0, 0, 0, 0.06) !important;
+		border: 1px solid rgba(0, 0, 0, 0.05);
+	}
+
+	[data-theme="dark"] .build-info-settings {
+		color: rgba(255, 255, 255, 0.9) !important;
+		background-color: rgba(255, 255, 255, 0.15) !important;
+		border: 1px solid rgba(255, 255, 255, 0.1);
 	}
 
 	/* Fluid 3-Column Grid (Max 3, breaks to 2 or 1) */
