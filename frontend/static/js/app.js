@@ -322,7 +322,7 @@ document.addEventListener('DOMContentLoaded', function () {
 		if (targetContainer) {
 			// Show progress UI
 			targetContainer.innerHTML = `
-                <div class="progress-container box" style="text-align: center; padding: 3rem 2rem; background-color: white;">
+                <div class="progress-container box glass-liquid" style="text-align: center; padding: 3rem 2rem;">
                     <h4 class="title is-4 mb-4">Searching AddressIQ...</h4>
                     <div class="is-flex is-justify-content-space-between mb-1" style="font-size: 0.85rem;">
                         <span id="progress-status-text">Connecting...</span>
@@ -404,7 +404,7 @@ document.addEventListener('DOMContentLoaded', function () {
 			} catch (e) {
 				console.error('Error processing complete event:', e);
 				if (targetContainer) {
-					targetContainer.innerHTML = `<div class="notification is-danger">Error rendering results: ${e.message}</div>`;
+					targetContainer.innerHTML = `<div class="notification is-danger glass-frosted">Error rendering results: ${e.message}</div>`;
 				}
 			}
 		});
@@ -416,10 +416,10 @@ document.addEventListener('DOMContentLoaded', function () {
 				try {
 					const errData = JSON.parse(event.data);
 					if (targetContainer) {
-						targetContainer.innerHTML = `<div class="notification is-danger">Search failed: ${errData.message}</div>`;
+						targetContainer.innerHTML = `<div class="notification is-danger glass-frosted">Search failed: ${errData.message}</div>`;
 					}
 				} catch (e) {
-					if (targetContainer) targetContainer.innerHTML = `<div class="notification is-danger">Search failed.</div>`;
+					if (targetContainer) targetContainer.innerHTML = `<div class="notification is-danger glass-frosted">Search failed.</div>`;
 				}
 				evtSource.close();
 			} else if (evtSource.readyState === EventSource.CLOSED) {
@@ -429,7 +429,7 @@ document.addEventListener('DOMContentLoaded', function () {
 				console.error('EventSource connection error');
 				// Only show error if we haven't received completeness
 				if (targetContainer && targetContainer.querySelector('.progress-container')) {
-					targetContainer.innerHTML = `<div class="notification is-danger">Connection lost. Please try again.</div>`;
+					targetContainer.innerHTML = `<div class="notification is-danger glass-frosted">Connection lost. Please try again.</div>`;
 				}
 				evtSource.close();
 			}

@@ -264,7 +264,8 @@ body {
 .navbar.is-primary {
 	/* Background handled by glass utility */
 	padding: 0;
-	min-height: 52px;
+	min-height: 72px;
+	/* Increased to fit scaled logo */
 	position: absolute;
 	/* Overlay map for glass effect */
 	width: 100%;
@@ -280,7 +281,8 @@ body {
 	gap: 0.5rem;
 	padding: 0 1.25rem 0 0;
 	/* Flush left for logo */
-	overflow: hidden;
+	overflow: visible;
+	/* Allow logo to show fully */
 }
 
 .navbar-brand .navbar-item:hover {
@@ -316,8 +318,8 @@ body {
 /* Map Style Switcher */
 .map-style-switcher {
 	position: absolute;
-	top: 72px;
-	/* Clear absolute navbar */
+	top: 100px;
+	/* Aligned with search box top */
 	right: 1rem;
 	z-index: 10;
 	display: flex;
@@ -372,7 +374,8 @@ body {
 	direction: rtl;
 	display: flex;
 	flex-direction: column;
-	gap: 1rem;
+	gap: 1.5rem;
+	/* Standardized gap */
 }
 
 .sidebar-content>* {
@@ -1282,17 +1285,16 @@ body:not(.has-results) .desktop-results {
 		flex: 1;
 	}
 
-	/* Map scrolls with content, not fixed */
+	/* Map is FULL SCREEN on mobile (like desktop) for glass effect */
 	#map-container {
-		position: relative;
-		top: auto;
-		left: auto;
-		right: auto;
-		height: 50vh;
-		min-height: 250px;
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
 		width: 100%;
+		height: 100%;
 		z-index: 1;
-		flex-shrink: 0;
 	}
 
 	#map {
@@ -1306,46 +1308,54 @@ body:not(.has-results) .desktop-results {
 		right: 0.75rem;
 	}
 
-	/* Sidebar flows after map */
+	/* Sidebar FLOATS over map on mobile for glass effect */
 	.sidebar-overlay {
-		position: relative;
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
 		width: 100%;
-		height: auto;
+		height: 100%;
 		display: block;
-		pointer-events: auto;
+		pointer-events: none;
+		/* Allow clicks through to map */
 		padding: 0;
 		z-index: 30;
-		margin-top: 0;
 		background: transparent !important;
-		/* MUST be transparent for glass effect */
 	}
 
 	.sidebar-content {
 		direction: ltr;
-		padding: 0;
-		height: auto;
+		padding: 80px 1rem 1.5rem;
+		/* Clear navbar + gap */
+		height: 100%;
 		width: 100%;
-		overflow: visible;
+		overflow-y: auto;
 		display: flex;
 		flex-direction: column;
 		gap: 0.75rem;
 		pointer-events: auto;
-		padding-top: 0;
-		padding-bottom: 2rem;
+		background: transparent !important;
 	}
 
-	/* Search panel at top of scrollable area */
+	/* Search panel at BOTTOM of screen for reachability */
 	.search-panel {
+		position: fixed;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		z-index: 100;
 		pointer-events: auto;
 		margin: 0;
-		flex-shrink: 0;
 		border-radius: 0;
 	}
 
 	.search-panel .box {
-		border-radius: 0;
+		border-radius: var(--radius-lg) var(--radius-lg) 0 0;
 		margin: 0;
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+		box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+		padding-bottom: calc(1rem + env(safe-area-inset-bottom));
 	}
 
 	body:not(.has-results) .search-panel {
@@ -1664,12 +1674,9 @@ body:not(.has-results) .desktop-results {
 	width: 52px;
 	margin-right: 0.5rem;
 	border-radius: 0;
-	/* No rounding for edge-to-edge */
 	vertical-align: middle;
 	object-fit: cover;
-	/* Cover usually fills better than contain for this */
 	transform: scale(1.4);
-	/* Zoom in to make 'A' fill space */
 }
 
 /* Better Pointer Events for Sidebar (Click through to map) */
@@ -1812,7 +1819,8 @@ body:not(.has-results) .desktop-results {
 	top: 72px;
 	/* Stick below navbar (52px + 20px gap) */
 	z-index: 50;
-	margin-bottom: 2rem;
+	margin-bottom: 1.5rem;
+	/* Standardized gap matching sidebar */
 }
 
 .search-panel .box {
@@ -1826,8 +1834,35 @@ body:not(.has-results) .desktop-results {
 
 /* [data-theme="dark"] .search-panel .box handled by utility */
 
+/* Desktop: Two row layout - inputs top, buttons bottom */
 .search-form-row {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	/* Equal columns at all widths */
 	gap: 0.75rem;
+}
+
+/* Button field takes full width on second row */
+.search-form-row .field:last-child {
+	grid-column: 1 / -1;
+}
+
+/* Hide the empty label spacer on desktop too */
+.search-form-row .field:last-child .label {
+	display: none;
+}
+
+/* Button container styling - 50/50 split like inputs */
+.search-form-row .field:last-child .control {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	/* Equal columns at all widths */
+	gap: 0.75rem;
+}
+
+/* Hidden buttons (like Refresh) shouldn't break layout */
+.search-form-row .field:last-child .control .button[style*="display: none"] {
+	display: none !important;
 }
 
 .search-panel .input {
@@ -1968,37 +2003,17 @@ body:not(.has-results) .desktop-results {
 		height: auto !important;
 	}
 
-	/* Mobile Polish: Stack Search Form */
-	.search-form-row {
-		display: flex;
-		flex-direction: column !important;
-		gap: 0.5rem;
-	}
+	/* Search form uses same layout as desktop - no overrides needed */
 
-	.search-form-row .field {
-		width: 100%;
-	}
-
-	/* Ensure buttons fill width or align nicely */
-	.search-form-row .control {
-		width: 100%;
-		justify-content: flex-start;
-		/* Or space-between? flex-start matches inputs */
-	}
-
-	/* Label adjustment for stacked layout - hide empty label spacer if needed? */
-	/* Actually the button field label is &nbsp; so it takes space. On mobile that might be ugly vertical gap. */
-	/* Let's hide the empty label on mobile for the button group */
-	.search-form-row .field:last-child label {
-		display: none;
-	}
-
+	/* Map switcher at TOP on mobile, below navbar */
 	.map-style-switcher {
-		top: calc(1rem + env(safe-area-inset-top));
+		position: fixed;
+		top: calc(100px + env(safe-area-inset-top));
+		/* Same as desktop + safe area */
+		bottom: auto;
 		right: 1rem;
+		z-index: 99;
 		transform: scale(0.9);
-		margin-top: 0;
-		/* Remove excessive margin */
 		padding: 4px;
 		border-radius: var(--radius-interaction);
 		/* Glass properties handled by utility */
@@ -2011,20 +2026,8 @@ body:not(.has-results) .desktop-results {
 		gap: 2rem;
 	}
 
+	/* Navbar - inherits everything from global, just add safe area */
 	.navbar.is-primary {
-		/* Force Glass on Mobile */
-		background: var(--glass-bg-light) !important;
-		backdrop-filter: var(--backdrop-filter) !important;
-		-webkit-backdrop-filter: var(--webkit-backdrop-filter) !important;
-		border-bottom: 1px solid var(--glass-border-light) !important;
-
-		/* Layout */
-		position: absolute;
-		/* Consistent with desktop */
-		top: 0;
-		left: 0;
-		right: 0;
-		z-index: 40;
 		padding-top: env(safe-area-inset-top);
 	}
 
