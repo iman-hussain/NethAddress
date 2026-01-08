@@ -658,7 +658,7 @@ body {
 
 /* Results container */
 .results-wrapper {
-	margin-top: 0;
+	margin-top: 1.5rem;
 	pointer-events: auto;
 	min-height: 0;
 }
@@ -1258,7 +1258,7 @@ body.has-results .results-wrapper {
 
 	html,
 	body {
-		font-size: 16px;
+		font-size: 15px;
 		overflow-x: hidden;
 		overflow-y: auto;
 		height: auto;
@@ -1314,7 +1314,7 @@ body.has-results .results-wrapper {
 
 	/* Map style switcher repositioned for mobile */
 	.map-style-switcher {
-		top: 180px;
+		top: 420px;
 		/* Adjusted to sit below the search box area */
 		bottom: auto;
 		right: 0.75rem;
@@ -1374,7 +1374,7 @@ body.has-results .results-wrapper {
 		border-radius: var(--radius-lg);
 		margin: 0;
 		box-shadow: var(--shadow-md);
-		padding-bottom: 1.25rem;
+		padding-bottom: 1.5rem;
 	}
 
 	body:not(.has-results) .search-panel {
@@ -1425,7 +1425,7 @@ body.has-results .results-wrapper {
 	}
 
 	.results-wrapper .address-title {
-		font-size: 1.375rem;
+		font-size: 1.25rem;
 	}
 
 	.results-wrapper .address-actions {
@@ -1439,7 +1439,7 @@ body.has-results .results-wrapper {
 	}
 
 	.metric-value {
-		font-size: 2.25rem;
+		font-size: 2rem;
 	}
 
 	/* Active layers panel at bottom on mobile for easy access while scrolling */
