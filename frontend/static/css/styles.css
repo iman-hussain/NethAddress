@@ -129,9 +129,12 @@
 	color: var(--text-primary) !important;
 	/* Force dark text to match navbar */
 	font-weight: 500;
-	font-size: 0.9rem;
+	font-size: 1.2rem;
 	text-decoration: none;
 	transition: opacity 0.2s ease, color 0.2s ease;
+	display: inline-flex;
+	align-items: center;
+	white-space: nowrap;
 }
 
 .made-by-link:hover {
@@ -148,6 +151,7 @@
 	color: var(--text-primary) !important;
 	opacity: 0.7;
 	transition: opacity 0.2s ease, color 0.2s ease;
+	vertical-align: middle;
 }
 
 .github-link:hover {
@@ -156,8 +160,8 @@
 }
 
 .github-link svg {
-	width: 20px;
-	height: 20px;
+	width: 28px;
+	height: 28px;
 }
 
 [data-theme="dark"] .glass-liquid,
@@ -289,7 +293,7 @@ body {
 
 .navbar-brand .navbar-item {
 	font-weight: 700;
-	font-size: 1.375rem;
+	font-size: 1.75rem;
 	letter-spacing: -0.3px;
 	/* Color handled by glass utility (--text-primary) */
 	gap: 0.5rem;
@@ -304,7 +308,7 @@ body {
 }
 
 .logo-icon {
-	font-size: 1.5rem;
+	font-size: 2rem;
 }
 
 .navbar-end .tag {
@@ -1258,12 +1262,13 @@ body.has-results .results-wrapper {
 	background: var(--text-muted);
 }
 
-/* Mobile & Tablet Layout (Landscape Phones included) */
-@media screen and (max-width: 1023px) {
+/* Mobile Layout (Phone Only) - Unified Breakpoint */
+@media screen and (max-width: 768px) {
 
 	html,
 	body {
 		font-size: 15px;
+		/* Scaled down base font */
 		overflow-x: hidden;
 		overflow-y: auto;
 		height: auto;
@@ -1276,11 +1281,27 @@ body.has-results .results-wrapper {
 		left: 0;
 		right: 0;
 		z-index: 40;
-		min-height: 48px;
+		min-height: 40px !important;
+		padding: 0.25rem 0.5rem !important;
 	}
 
+	/* Navbar Scaling for Mobile */
 	.navbar-brand .navbar-item {
 		font-size: 1.25rem;
+		padding: 0.5rem 0.75rem !important;
+	}
+
+	.logo-icon {
+		font-size: 1.5rem;
+	}
+
+	.made-by-link {
+		font-size: 0.9rem;
+	}
+
+	.github-link svg {
+		width: 20px;
+		height: 20px;
 	}
 
 	.full-height-columns {
@@ -1288,7 +1309,7 @@ body.has-results .results-wrapper {
 		min-height: 100vh;
 		display: flex;
 		flex-direction: column;
-		padding-top: 48px;
+		padding-top: 40px;
 		/* Space for fixed navbar */
 	}
 
@@ -1318,9 +1339,10 @@ body.has-results .results-wrapper {
 	}
 
 	/* Map style switcher repositioned for mobile */
+	/* Map style switcher repositioned for mobile */
 	.map-style-switcher {
-		top: 420px;
-		/* Adjusted to sit below the search box area */
+		top: 320px;
+		/* Positioned below search box */
 		bottom: auto;
 		right: 0.75rem;
 	}
@@ -1346,12 +1368,12 @@ body.has-results .results-wrapper {
 
 	.sidebar-content {
 		direction: ltr;
-		padding: 80px 1rem 1.5rem;
+		padding: 50px 1rem 1.5rem;
 		/* Clear navbar + gap */
 		height: auto;
 		/* Let content dictate height */
 		width: 100%;
-		overflow: visible;
+		overflow: visible !important;
 		/* Disable internal scroll, use body scroll */
 		display: flex;
 		flex-direction: column;
@@ -1369,17 +1391,43 @@ body.has-results .results-wrapper {
 		bottom: auto;
 		left: auto;
 		right: auto;
-		z-index: 30;
+		z-index: 50;
 		pointer-events: auto;
 		margin: 0 0 1rem 0;
+		margin-top: 0.5rem;
+		/* Extra space below navbar */
 		border-radius: var(--radius-lg);
+		overflow: visible;
+		height: auto;
 	}
 
 	.search-panel .box {
 		border-radius: var(--radius-lg);
 		margin: 0;
 		box-shadow: var(--shadow-md);
-		padding-bottom: 1.5rem;
+		padding: 1rem 1rem 1.5rem;
+		/* Reduced top/side padding */
+		/* Increased to prevent cutoff */
+		min-height: auto;
+		overflow: visible !important;
+	}
+
+	/* Scale down form elements on mobile */
+	.search-panel .label {
+		font-size: 0.875rem;
+		margin-bottom: 0.25rem;
+	}
+
+	.search-panel .input {
+		font-size: 0.9375rem;
+		padding: 0.5rem 0.75rem;
+		height: auto;
+	}
+
+	.search-panel .button {
+		font-size: 0.9375rem;
+		padding: 0.5rem 1rem;
+		height: auto;
 	}
 
 	body:not(.has-results) .search-panel {
@@ -2131,5 +2179,7 @@ body.has-results .results-wrapper {
 
 	/* Dark mode handled by glass utility */
 }
+
+/* Accessibility Overrides Handled by Utility System at Top of File */
 
 /* Accessibility Overrides Handled by Utility System at Top of File */

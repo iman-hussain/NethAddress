@@ -607,6 +607,139 @@ document.addEventListener('DOMContentLoaded', function () {
 					maxzoom: 19
 				}
 			]
+		},
+		terrain: {
+			version: 8,
+			sources: {
+				'stamen-terrain': {
+					type: 'raster',
+					tiles: ['https://tiles.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}.png'],
+					tileSize: 256,
+					attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://stamen.com/">Stamen Design</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+				}
+			},
+			layers: [
+				{
+					id: 'terrain',
+					type: 'raster',
+					source: 'stamen-terrain',
+					minzoom: 0,
+					maxzoom: 18
+				}
+			]
+		},
+		pdok: {
+			version: 8,
+			sources: {
+				'pdok-aerial': {
+					type: 'raster',
+					tiles: ['https://service.pdok.nl/hwh/luchtfotorgb/wmts/v1_0/Actueel_orthoHR/EPSG:3857/{z}/{x}/{y}.png'],
+					tileSize: 256,
+					attribution: '&copy; <a href="https://www.pdok.nl/">PDOK</a> - Dutch Government'
+				}
+			},
+			layers: [
+				{
+					id: 'pdok-aerial',
+					type: 'raster',
+					source: 'pdok-aerial',
+					minzoom: 0,
+					maxzoom: 19
+				}
+			]
+		},
+		watercolor: {
+			version: 8,
+			sources: {
+				'stamen-watercolor': {
+					type: 'raster',
+					tiles: ['https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg'],
+					tileSize: 256,
+					attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://stamen.com/">Stamen Design</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+				}
+			},
+			layers: [
+				{
+					id: 'watercolor',
+					type: 'raster',
+					source: 'stamen-watercolor',
+					minzoom: 0,
+					maxzoom: 18
+				}
+			]
+		},
+		topo: {
+			version: 8,
+			sources: {
+				'opentopomap': {
+					type: 'raster',
+					tiles: ['https://tile.opentopomap.org/{z}/{x}/{y}.png'],
+					tileSize: 256,
+					attribution: '&copy; <a href="https://www.opentopomap.org/">OpenTopoMap</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+				}
+			},
+			layers: [
+				{
+					id: 'topo',
+					type: 'raster',
+					source: 'opentopomap',
+					minzoom: 0,
+					maxzoom: 17
+				}
+			]
+		},
+		cycling: {
+			version: 8,
+			sources: {
+				'cyclosm': {
+					type: 'raster',
+					tiles: ['https://a.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png'],
+					tileSize: 256,
+					attribution: '&copy; <a href="https://www.cyclosm.org/">CyclOSM</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+				}
+			},
+			layers: [
+				{
+					id: 'cycling',
+					type: 'raster',
+					source: 'cyclosm',
+					minzoom: 0,
+					maxzoom: 19
+				}
+			]
+		},
+		railway: {
+			version: 8,
+			sources: {
+				'esri-satellite': {
+					type: 'raster',
+					tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+					tileSize: 256,
+					attribution: 'Tiles &copy; Esri'
+				},
+				'openrailwaymap': {
+					type: 'raster',
+					tiles: ['https://a.tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png'],
+					tileSize: 256,
+					attribution: '&copy; <a href="https://www.openrailwaymap.org/">OpenRailwayMap</a>'
+				}
+			},
+			layers: [
+				{
+					id: 'satellite-base',
+					type: 'raster',
+					source: 'esri-satellite',
+					minzoom: 0,
+					maxzoom: 19
+				},
+				{
+					id: 'railway-overlay',
+					type: 'raster',
+					source: 'openrailwaymap',
+					minzoom: 0,
+					maxzoom: 19
+				}
+			]
 		}
 	};
 
