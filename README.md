@@ -67,28 +67,28 @@ The application uses a streaming architecture to provide immediate feedback.
 
 ```mermaid
 graph TD
-    subgraph External_APIs [External Data Providers]
-        A[PDOK / Kadaster]
-        B[CBS]
-        C[Altum.ai]
-        D[Other APIs]
+    subgraph External_APIs ["External Data Providers"]
+        A["PDOK / Kadaster"]
+        B["CBS"]
+        C["Altum.ai"]
+        D["Other APIs"]
     end
 
-    subgraph Backend [Backend Service (Go)]
-        E[Aggregator (Concurrent)]
-        F[SSE Stream Handler]
+    subgraph Backend ["Backend Service (Go)"]
+        E["Aggregator (Concurrent)"]
+        F["SSE Stream Handler"]
     end
 
-    subgraph Frontend [Frontend (Browser)]
-        G[EventSource Listener]
-        H[Renderer Registry]
+    subgraph Frontend ["Frontend (Browser)"]
+        G["EventSource Listener"]
+        H["Renderer Registry"]
     end
 
-    subgraph Visible_UI [Visible UI]
-        I[Search Input]
-        J[Skeleton Grid]
-        K[Result Cards]
-        L[Interactive Map]
+    subgraph Visible_UI ["Visible UI"]
+        I["Search Input"]
+        J["Skeleton Grid"]
+        K["Result Cards"]
+        L["Interactive Map"]
     end
 
     %% Flow

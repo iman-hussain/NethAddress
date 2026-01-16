@@ -889,6 +889,30 @@ body.has-results .results-wrapper {
 	min-height: 1.5em;
 }
 
+/* Skeleton Loading Animation */
+.skeleton-line {
+	background: linear-gradient(90deg, var(--border) 25%, var(--bg-card-alt) 50%, var(--border) 75%);
+	background-size: 200% 100%;
+	animation: skeleton-shimmer 1.5s ease-in-out infinite;
+	border-radius: var(--radius-sm);
+	height: 1rem;
+}
+
+@keyframes skeleton-shimmer {
+	0% {
+		background-position: 200% 0;
+	}
+
+	100% {
+		background-position: -200% 0;
+	}
+}
+
+[data-theme="dark"] .skeleton-line {
+	background: linear-gradient(90deg, var(--border-strong) 25%, var(--bg-dark) 50%, var(--border-strong) 75%);
+	background-size: 200% 100%;
+}
+
 .section-header h4 {
 	margin: 0;
 	font-size: 1rem;
@@ -2078,7 +2102,7 @@ body.has-results .results-wrapper {
 	/* Map switcher at TOP on mobile, below navbar */
 	.map-style-switcher {
 		position: fixed;
-		top: calc(100px + env(safe-area-inset-top));
+		top: calc(240px + env(safe-area-inset-top));
 		/* Same as desktop + safe area */
 		bottom: auto;
 		right: 1rem;

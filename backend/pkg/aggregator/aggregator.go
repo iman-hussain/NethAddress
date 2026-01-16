@@ -292,12 +292,12 @@ func (pa *PropertyAggregator) fetchPropertyData(ctx context.Context, cfg *config
 	runTask(func() {
 		if kadasterInfo, err := pa.apiClient.FetchKadasterObjectInfo(ctx, cfg, bagID); err == nil {
 			data.KadasterInfo = kadasterInfo
-			safeAppendSource(mu, data, "Kadaster")
-			onProgress("Kadaster", "success", kadasterInfo)
+			safeAppendSource(mu, data, "Kadaster Object Info")
+			onProgress("Kadaster Object Info", "success", kadasterInfo)
 		} else {
 			logutil.Debugf("[AGGREGATOR] Kadaster fetch failed: %v", err)
-			safeRecordError(mu, data, "Kadaster", err.Error())
-			onProgress("Kadaster", "error", nil)
+			safeRecordError(mu, data, "Kadaster Object Info", err.Error())
+			onProgress("Kadaster Object Info", "error", nil)
 		}
 	})
 
@@ -318,12 +318,12 @@ func (pa *PropertyAggregator) fetchPropertyData(ctx context.Context, cfg *config
 	runTask(func() {
 		if valuation, err := pa.apiClient.FetchPropertyValuePlus(ctx, cfg, bagID, lat, lon); err == nil {
 			data.MarketValuation = valuation
-			safeAppendSource(mu, data, "Matrixian")
-			onProgress("Matrixian", "success", valuation)
+			safeAppendSource(mu, data, "Matrixian Property Value+")
+			onProgress("Matrixian Property Value+", "success", valuation)
 		} else {
 			logutil.Debugf("[AGGREGATOR] Matrixian fetch failed: %v", err)
-			safeRecordError(mu, data, "Matrixian", err.Error())
-			onProgress("Matrixian", "error", nil)
+			safeRecordError(mu, data, "Matrixian Property Value+", err.Error())
+			onProgress("Matrixian Property Value+", "error", nil)
 		}
 	})
 
@@ -344,12 +344,12 @@ func (pa *PropertyAggregator) fetchPropertyData(ctx context.Context, cfg *config
 	runTask(func() {
 		if monument, err := pa.apiClient.FetchMonumentDataByCoords(ctx, cfg, lat, lon); err == nil {
 			data.MonumentStatus = monument
-			safeAppendSource(mu, data, "Monument Register")
-			onProgress("Monument Register", "success", monument)
+			safeAppendSource(mu, data, "Monument Status")
+			onProgress("Monument Status", "success", monument)
 		} else {
 			logutil.Debugf("[AGGREGATOR] Monument fetch failed: %v", err)
-			safeRecordError(mu, data, "Monument Register", err.Error())
-			onProgress("Monument Register", "error", nil)
+			safeRecordError(mu, data, "Monument Status", err.Error())
+			onProgress("Monument Status", "error", nil)
 		}
 	})
 }
@@ -385,11 +385,11 @@ func (pa *PropertyAggregator) fetchEnvironmentalData(ctx context.Context, cfg *c
 	runTask(func() {
 		if soil, err := pa.apiClient.FetchWURSoilData(ctx, cfg, lat, lon); err == nil {
 			data.SoilData = soil
-			safeAppendSource(mu, data, "WUR Soil")
-			onProgress("WUR Soil", "success", soil)
+			safeAppendSource(mu, data, "WUR Soil Physicals")
+			onProgress("WUR Soil Physicals", "success", soil)
 		} else {
-			safeRecordError(mu, data, "WUR Soil", err.Error())
-			onProgress("WUR Soil", "error", nil)
+			safeRecordError(mu, data, "WUR Soil Physicals", err.Error())
+			onProgress("WUR Soil Physicals", "error", nil)
 		}
 	})
 
@@ -397,11 +397,11 @@ func (pa *PropertyAggregator) fetchEnvironmentalData(ctx context.Context, cfg *c
 	runTask(func() {
 		if subsidence, err := pa.apiClient.FetchSubsidenceData(ctx, cfg, lat, lon); err == nil {
 			data.Subsidence = subsidence
-			safeAppendSource(mu, data, "SkyGeo")
-			onProgress("SkyGeo", "success", subsidence)
+			safeAppendSource(mu, data, "SkyGeo Subsidence")
+			onProgress("SkyGeo Subsidence", "success", subsidence)
 		} else {
 			safeRecordError(mu, data, "SkyGeo Subsidence", err.Error())
-			onProgress("SkyGeo", "error", nil)
+			onProgress("SkyGeo Subsidence", "error", nil)
 		}
 	})
 
@@ -421,11 +421,11 @@ func (pa *PropertyAggregator) fetchEnvironmentalData(ctx context.Context, cfg *c
 	runTask(func() {
 		if broSoil, err := pa.apiClient.FetchBROSoilMapData(ctx, cfg, lat, lon); err == nil {
 			data.BROSoilMap = broSoil
-			safeAppendSource(mu, data, "BRO")
-			onProgress("BRO", "success", broSoil)
+			safeAppendSource(mu, data, "BRO Soil Map")
+			onProgress("BRO Soil Map", "success", broSoil)
 		} else {
 			safeRecordError(mu, data, "BRO Soil Map", err.Error())
-			onProgress("BRO", "error", nil)
+			onProgress("BRO Soil Map", "error", nil)
 		}
 	})
 
@@ -433,11 +433,11 @@ func (pa *PropertyAggregator) fetchEnvironmentalData(ctx context.Context, cfg *c
 	runTask(func() {
 		if airQuality, err := pa.apiClient.FetchAirQualityData(ctx, cfg, lat, lon); err == nil {
 			data.AirQuality = airQuality
-			safeAppendSource(mu, data, "Air Quality")
-			onProgress("Air Quality", "success", airQuality)
+			safeAppendSource(mu, data, "Luchtmeetnet Air Quality")
+			onProgress("Luchtmeetnet Air Quality", "success", airQuality)
 		} else {
 			safeRecordError(mu, data, "Luchtmeetnet Air Quality", err.Error())
-			onProgress("Air Quality", "error", nil)
+			onProgress("Luchtmeetnet Air Quality", "error", nil)
 		}
 	})
 
@@ -445,11 +445,11 @@ func (pa *PropertyAggregator) fetchEnvironmentalData(ctx context.Context, cfg *c
 	runTask(func() {
 		if noise, err := pa.apiClient.FetchNoisePollutionData(ctx, cfg, lat, lon); err == nil {
 			data.NoisePollution = noise
-			safeAppendSource(mu, data, "Noise Register")
-			onProgress("Noise Register", "success", noise)
+			safeAppendSource(mu, data, "Noise Pollution")
+			onProgress("Noise Pollution", "success", noise)
 		} else {
 			safeRecordError(mu, data, "Noise Pollution", err.Error())
-			onProgress("Noise Register", "error", nil)
+			onProgress("Noise Pollution", "error", nil)
 		}
 	})
 }
@@ -459,11 +459,11 @@ func (pa *PropertyAggregator) fetchEnergyData(ctx context.Context, cfg *config.C
 	runTask(func() {
 		if energy, err := pa.apiClient.FetchEnergyClimateData(ctx, cfg, bagID); err == nil {
 			data.EnergyClimate = energy
-			safeAppendSource(mu, data, "Altum Energy")
-			onProgress("Altum Energy", "success", energy)
+			safeAppendSource(mu, data, "Altum Energy & Climate")
+			onProgress("Altum Energy & Climate", "success", energy)
 		} else {
-			safeRecordError(mu, data, "Altum Energy", err.Error())
-			onProgress("Altum Energy", "error", nil)
+			safeRecordError(mu, data, "Altum Energy & Climate", err.Error())
+			onProgress("Altum Energy & Climate", "error", nil)
 		}
 	})
 
@@ -497,11 +497,11 @@ func (pa *PropertyAggregator) fetchRiskData(ctx context.Context, cfg *config.Con
 	runTask(func() {
 		if water, err := pa.apiClient.FetchWaterQualityData(ctx, cfg, lat, lon); err == nil {
 			data.WaterQuality = water
-			safeAppendSource(mu, data, "Digital Delta")
-			onProgress("Digital Delta", "success", water)
+			safeAppendSource(mu, data, "Digital Delta Water Quality")
+			onProgress("Digital Delta Water Quality", "success", water)
 		} else {
-			safeRecordError(mu, data, "Water Quality", err.Error())
-			onProgress("Digital Delta", "error", nil)
+			safeRecordError(mu, data, "Digital Delta Water Quality", err.Error())
+			onProgress("Digital Delta Water Quality", "error", nil)
 		}
 	})
 
@@ -510,15 +510,15 @@ func (pa *PropertyAggregator) fetchRiskData(ctx context.Context, cfg *config.Con
 		if neighborhoodCode != "" {
 			if safety, err := pa.apiClient.FetchSafetyData(ctx, cfg, neighborhoodCode); err == nil {
 				data.Safety = safety
-				safeAppendSource(mu, data, "CBS Safety")
-				onProgress("CBS Safety", "success", safety)
+				safeAppendSource(mu, data, "CBS Safety Experience")
+				onProgress("CBS Safety Experience", "success", safety)
 			} else {
-				safeRecordError(mu, data, "CBS Safety", err.Error())
-				onProgress("CBS Safety", "error", nil)
+				safeRecordError(mu, data, "CBS Safety Experience", err.Error())
+				onProgress("CBS Safety Experience", "error", nil)
 			}
 		} else {
-			safeRecordError(mu, data, "CBS Safety", "neighborhood code not available")
-			onProgress("CBS Safety", "skipped", nil)
+			safeRecordError(mu, data, "CBS Safety Experience", "neighborhood code not available")
+			onProgress("CBS Safety Experience", "skipped", nil)
 		}
 	})
 
@@ -526,11 +526,11 @@ func (pa *PropertyAggregator) fetchRiskData(ctx context.Context, cfg *config.Con
 	runTask(func() {
 		if flights, err := pa.apiClient.FetchSchipholFlightData(ctx, cfg, lat, lon); err == nil {
 			data.SchipholFlights = flights
-			safeAppendSource(mu, data, "Schiphol")
-			onProgress("Schiphol", "success", flights)
+			safeAppendSource(mu, data, "Schiphol Flight Noise")
+			onProgress("Schiphol Flight Noise", "success", flights)
 		} else {
-			safeRecordError(mu, data, "Schiphol", err.Error())
-			onProgress("Schiphol", "error", nil)
+			safeRecordError(mu, data, "Schiphol Flight Noise", err.Error())
+			onProgress("Schiphol Flight Noise", "error", nil)
 		}
 	})
 }
@@ -552,11 +552,11 @@ func (pa *PropertyAggregator) fetchMobilityData(ctx context.Context, cfg *config
 	runTask(func() {
 		if transport, err := pa.apiClient.FetchOpenOVData(ctx, cfg, lat, lon); err == nil {
 			data.PublicTransport = transport
-			safeAppendSource(mu, data, "OpenOV")
-			onProgress("OpenOV", "success", transport)
+			safeAppendSource(mu, data, "openOV Public Transport")
+			onProgress("openOV Public Transport", "success", transport)
 		} else {
-			safeRecordError(mu, data, "OpenOV", err.Error())
-			onProgress("OpenOV", "error", nil)
+			safeRecordError(mu, data, "openOV Public Transport", err.Error())
+			onProgress("openOV Public Transport", "error", nil)
 		}
 	})
 
@@ -564,11 +564,11 @@ func (pa *PropertyAggregator) fetchMobilityData(ctx context.Context, cfg *config
 	runTask(func() {
 		if parking, err := pa.apiClient.FetchParkingData(ctx, cfg, lat, lon, 500); err == nil {
 			data.ParkingData = parking
-			safeAppendSource(mu, data, "Parking")
-			onProgress("Parking", "success", parking)
+			safeAppendSource(mu, data, "Parking Availability")
+			onProgress("Parking Availability", "success", parking)
 		} else {
-			safeRecordError(mu, data, "Parking", err.Error())
-			onProgress("Parking", "error", nil)
+			safeRecordError(mu, data, "Parking Availability", err.Error())
+			onProgress("Parking Availability", "error", nil)
 		}
 	})
 }
@@ -590,11 +590,11 @@ func (pa *PropertyAggregator) fetchDemographicsData(ctx context.Context, cfg *co
 	runTask(func() {
 		if squareStats, err := pa.apiClient.FetchCBSSquareStats(ctx, cfg, lat, lon); err == nil {
 			data.SquareStats = squareStats
-			safeAppendSource(mu, data, "CBS Square Stats")
-			onProgress("CBS Square Stats", "success", squareStats)
+			safeAppendSource(mu, data, "CBS Square Statistics")
+			onProgress("CBS Square Statistics", "success", squareStats)
 		} else {
-			safeRecordError(mu, data, "CBS Square Stats", err.Error())
-			onProgress("CBS Square Stats", "error", nil)
+			safeRecordError(mu, data, "CBS Square Statistics", err.Error())
+			onProgress("CBS Square Statistics", "error", nil)
 		}
 	})
 
@@ -650,11 +650,11 @@ func (pa *PropertyAggregator) fetchInfrastructureData(ctx context.Context, cfg *
 	runTask(func() {
 		if education, err := pa.apiClient.FetchEducationData(ctx, cfg, lat, lon); err == nil {
 			data.Education = education
-			safeAppendSource(mu, data, "Education")
-			onProgress("Education", "success", education)
+			safeAppendSource(mu, data, "Education Facilities")
+			onProgress("Education Facilities", "success", education)
 		} else {
-			safeRecordError(mu, data, "Education", err.Error())
-			onProgress("Education", "error", nil)
+			safeRecordError(mu, data, "Education Facilities", err.Error())
+			onProgress("Education Facilities", "error", nil)
 		}
 	})
 
@@ -674,11 +674,11 @@ func (pa *PropertyAggregator) fetchInfrastructureData(ctx context.Context, cfg *
 	runTask(func() {
 		if facilities, err := pa.apiClient.FetchFacilitiesData(ctx, cfg, lat, lon); err == nil {
 			data.Facilities = facilities
-			safeAppendSource(mu, data, "Facilities")
-			onProgress("Facilities", "success", facilities)
+			safeAppendSource(mu, data, "Facilities & Amenities")
+			onProgress("Facilities & Amenities", "success", facilities)
 		} else {
-			safeRecordError(mu, data, "Facilities", err.Error())
-			onProgress("Facilities", "error", nil)
+			safeRecordError(mu, data, "Facilities & Amenities", err.Error())
+			onProgress("Facilities & Amenities", "error", nil)
 		}
 	})
 
@@ -686,11 +686,11 @@ func (pa *PropertyAggregator) fetchInfrastructureData(ctx context.Context, cfg *
 	runTask(func() {
 		if elevation, err := pa.apiClient.FetchAHNHeightData(ctx, pa.config, lat, lon); err == nil {
 			data.Elevation = elevation
-			safeAppendSource(mu, data, "AHN")
-			onProgress("AHN", "success", elevation)
+			safeAppendSource(mu, data, "AHN Height Model")
+			onProgress("AHN Height Model", "success", elevation)
 		} else {
-			safeRecordError(mu, data, "AHN Elevation", err.Error())
-			onProgress("AHN", "error", nil)
+			safeRecordError(mu, data, "AHN Height Model", err.Error())
+			onProgress("AHN Height Model", "error", nil)
 		}
 	})
 }

@@ -494,55 +494,66 @@ document.addEventListener('DOMContentLoaded', function () {
 
 	// Render the initial skeleton grid
 	function renderSkeletonGrid(container) {
-		const apis = Array.from(enabledAPIs); // Use enabled APIs
+		const tiers = [
+			{ name: '🆓 Free APIs', apis: AVAILABLE_APIS.free, tier: 'free' },
+			{ name: '💎 Freemium APIs', apis: AVAILABLE_APIS.freemium, tier: 'freemium' },
+			{ name: '👑 Premium APIs', apis: AVAILABLE_APIS.premium, tier: 'premium' }
+		];
 
 		// Header placeholder
 		let html = `
-			<div id="skeleton-header" class="box glass-liquid mb-4">
+			<div id="skeleton-header" class="box glass-liquid mb-4" data-target="header">
 				<div class="skeleton-line" style="width: 50%; height: 2rem; margin-bottom: 0.5rem;"></div>
 				<div class="skeleton-line" style="width: 30%;"></div>
 			</div>
-			<div class="columns is-multiline" id="results-grid">
 		`;
 
-		// Sort APIs to match typical display order if possible, or just list them
-		// TODO: Grouping? For now just flat list like before but skeletonized
-		// Actually, let's just generate a card for every ENABLED api.
+		// Build tier sections matching the existing layout
+		tiers.forEach(tier => {
+			// Filter to only enabled APIs in this tier
+			const enabledInTier = tier.apis.filter(api => enabledAPIs.has(api.name));
+			if (enabledInTier.length === 0) return; // Skip empty tiers
 
-		apis.forEach(apiName => {
-			// Generate a safe ID
-			const cardId = `card-${apiName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`;
 			html += `
-				<div class="column is-12-mobile is-6-tablet is-4-desktop" id="${cardId}">
-					<div class="card glass-liquid h-100">
-						<header class="card-header">
-							<p class="card-header-title">
-								<span class="icon mr-2"><i class="fas fa-circle-notch fa-spin"></i></span>
-								${apiName}
-							</p>
-						</header>
-						<div class="card-content">
-							<div class="content">
-								<div class="skeleton-line is-full"></div>
-								<div class="skeleton-line is-full"></div>
-								<div class="skeleton-line is-half"></div>
-							</div>
+				<div class="tier-section mb-5">
+					<div class="section-header">
+						<span class="section-icon">${tier.name.split(' ')[0]}</span>
+						<h4>${tier.name.split(' ').slice(1).join(' ')}</h4>
+					</div>
+					<div class="api-results-grid">
+			`;
+
+			enabledInTier.forEach(api => {
+				html += `
+					<div class="result-card glass-liquid" data-api-name="${api.name}">
+						<div class="card-header-title">
+							<span class="icon mr-2"><i class="fas fa-circle-notch fa-spin"></i></span>
+							${api.name}
 						</div>
+						<div class="card-content">
+							<div class="skeleton-line" style="width: 100%; height: 1rem; margin-bottom: 0.5rem;"></div>
+							<div class="skeleton-line" style="width: 80%; height: 1rem; margin-bottom: 0.5rem;"></div>
+							<div class="skeleton-line" style="width: 60%; height: 1rem;"></div>
+						</div>
+					</div>
+				`;
+			});
+
+			html += `
 					</div>
 				</div>
 			`;
 		});
 
-		html += `</div>
-		<div data-geojson='' style="display:none;"></div>`; // Placeholder for geojson
+		html += `<div data-geojson='' style="display:none;"></div>`; // Placeholder for geojson
 
 		container.innerHTML = html;
 	}
 
 	// Update a specific card with real data
 	function updateResultCard(sourceName, data) {
-		const cardId = `card-${sourceName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`;
-		const cardContainer = document.getElementById(cardId);
+		// Find card by data-api-name attribute (reliable matching)
+		const cardContainer = document.querySelector(`[data-api-name="${sourceName}"]`);
 
 		if (!cardContainer) {
 			console.warn('Card container not found for:', sourceName);
@@ -553,48 +564,40 @@ document.addEventListener('DOMContentLoaded', function () {
 		const renderer = getRenderer(sourceName);
 		if (!renderer) {
 			console.warn('No renderer found for:', sourceName);
+			// Still update the card to show data was received
+			cardContainer.innerHTML = `
+				<div class="card-header-title">${sourceName}</div>
+				<div class="card-content"><pre>${JSON.stringify(data, null, 2)}</pre></div>
+			`;
 			return;
 		}
 
 		// Render the content
-		// Most renderers return a string of HTML (the full card or content?)
-		// Looking at renderers: they seem to return `div.column` usually.
-		// Let's check a renderer.
-		// `renderKNMIWeather` -> `return createCard(...)`
-		// `createCard` returns `<div class="column ..."><div class="card ...">...</div></div>`
-
 		try {
 			const renderedHTML = renderer(data);
-			// Replace the skeleton column with the rendered column
 			// Create a temp div to parse string to DOM
 			const temp = document.createElement('div');
 			temp.innerHTML = renderedHTML;
 			const newElement = temp.firstElementChild;
 
 			if (newElement) {
-				// Ensure the new element has the ID so subsequent updates work?
-				// Or just replace. The new element from renderer probably has standard classes.
-				// We need to keep the ID if we want to update it again, but usually we don't.
-				// But let's verify if renderers set IDs. They probably don't set the specific ID we used.
-				// So we replace the WHOLE column.
+				// Copy the data-api-name attribute if the new element doesn't have it
+				if (!newElement.hasAttribute('data-api-name')) {
+					newElement.setAttribute('data-api-name', sourceName);
+				}
 				cardContainer.replaceWith(newElement);
-
-				// Re-initialize any scripts/interactions if needed (unlikely for vanilla JS renderers unless they attach listeners)
-				// Most renderers use `onclick` attributes.
 			}
 		} catch (e) {
 			console.error('Error rendering card for', sourceName, e);
 			cardContainer.innerHTML = `
-				<div class="card glass-liquid h-100 has-text-danger">
-					<div class="card-content">Error rendering data.</div>
-				</div>
+				<div class="card-header-title has-text-danger">${sourceName}</div>
+				<div class="card-content"><div class="notification is-danger is-light">Error rendering data.</div></div>
 			`;
 		}
 	}
 
 	function markResultCardError(sourceName) {
-		const cardId = `card-${sourceName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`;
-		const cardContainer = document.getElementById(cardId);
+		const cardContainer = document.querySelector(`[data-api-name="${sourceName}"]`);
 		if (cardContainer) {
 			const content = cardContainer.querySelector('.card-content');
 			if (content) {
