@@ -157,17 +157,14 @@ func (h *SearchHandler) HandleSearchStream(w http.ResponseWriter, r *http.Reques
         <p class="is-size-6"><strong>Coordinates:</strong> %.6f, %.6f</p>
         <p class="is-size-6"><strong>Postcode:</strong> %s | <strong>House Number:</strong> %s</p>
 		<div class="address-buttons mt-3">
-			<button class="button is-success is-small" onclick="exportCSV()">
-				<span class="icon is-small"><i class="fas fa-file-csv"></i></span>
-				<span>Export CSV</span>
+			<button class="button is-small glass-liquid" onclick="exportCSV()">
+				⬇️ Export CSV
 			</button>
-			<button class="button is-warning is-small" onclick="refreshData()">
-				<span class="icon is-small"><i class="fas fa-sync-alt"></i></span>
-				<span>Refresh</span>
+			<button class="button is-small glass-liquid" onclick="refreshData()">
+				🔄 Refresh
 			</button>
-            <button class="button is-info is-small" onclick="openSettings()">
-                <span class="icon is-small"><i class="fas fa-cog"></i></span>
-                <span>Settings</span>
+            <button class="button is-small glass-liquid" onclick="openSettings()">
+                ⚙️ Settings
             </button>
         </div>
     </div>

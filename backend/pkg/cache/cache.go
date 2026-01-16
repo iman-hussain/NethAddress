@@ -182,6 +182,12 @@ func (ck CacheKey) AggregatedKey(postcode, houseNumber string) string {
 	return fmt.Sprintf("aggregated:%s:%s", normalizedPostcode, normalizedHouseNumber)
 }
 
+// ContextKey generates a cache key for postcode-level context data (Phase 1)
+func (ck CacheKey) ContextKey(postcode string) string {
+	normalizedPostcode := strings.ToUpper(strings.ReplaceAll(postcode, " ", ""))
+	return fmt.Sprintf("context:%s", normalizedPostcode)
+}
+
 // ScoresKey generates a cache key for calculated scores
 func (ck CacheKey) ScoresKey(bagID string) string {
 	return fmt.Sprintf("scores:%s", bagID)

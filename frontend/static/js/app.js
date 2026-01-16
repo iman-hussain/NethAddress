@@ -473,9 +473,23 @@ document.addEventListener('DOMContentLoaded', function () {
 		evtSource.addEventListener('data', function (event) {
 			try {
 				const response = JSON.parse(event.data);
-				if (response.apiResults && Array.isArray(response.apiResults)) {
+
+				// Flatten apiResults if it's grouped (backend sends APIResultsGrouped struct)
+				let allResults = [];
+				if (response.apiResults) {
+					if (Array.isArray(response.apiResults)) {
+						allResults = response.apiResults;
+					} else {
+						// Grouped object { free: [], freemium: [], premium: [] }
+						if (response.apiResults.free) allResults.push(...response.apiResults.free);
+						if (response.apiResults.freemium) allResults.push(...response.apiResults.freemium);
+						if (response.apiResults.premium) allResults.push(...response.apiResults.premium);
+					}
+				}
+
+				if (allResults.length > 0) {
 					console.log('Received full data payload, updating all cards...');
-					response.apiResults.forEach(result => {
+					allResults.forEach(result => {
 						updateResultCard(result.source, result.data);
 					});
 
@@ -485,7 +499,7 @@ document.addEventListener('DOMContentLoaded', function () {
 					}
 
 					// Mark missing APIs as unavailable (Timeout/Error)
-					const receivedSources = new Set(response.apiResults.map(r => r.source));
+					const receivedSources = new Set(allResults.map(r => r.source));
 					if (response.AISummary) {
 						receivedSources.add('Gemini AI');
 					}
@@ -608,6 +622,25 @@ document.addEventListener('DOMContentLoaded', function () {
 			<div id="skeleton-header" class="box glass-liquid mb-4" data-target="header">
 				<div class="skeleton-line" style="width: 50%; height: 2rem; margin-bottom: 0.5rem;"></div>
 				<div class="skeleton-line" style="width: 30%;"></div>
+			</div>
+		`;
+
+		// Add AI Summary placeholder (Always visible if feature enabled, or just always)
+		html += `
+			<div class="box glass-liquid mb-5 ai-summary-card" data-api-name="Gemini AI">
+				<div class="columns is-vcentered mb-2">
+					<div class="column">
+						<h4 class="title is-5"><i class="fas fa-sparkles shimmer-text"></i> AI Insights</h4>
+					</div>
+				</div>
+				<div class="content">
+					 <div class="skeleton-text-block">
+						<div class="skeleton-line" style="width: 90%; margin-bottom: 0.5rem;"></div>
+						<div class="skeleton-line" style="width: 95%; margin-bottom: 0.5rem;"></div>
+						<div class="skeleton-line" style="width: 85%;"></div>
+					 </div>
+					 <p class="is-size-7 has-text-grey mt-2"><i class="fas fa-spinner fa-spin"></i> Generating comprehensive summary...</p>
+				</div>
 			</div>
 		`;
 

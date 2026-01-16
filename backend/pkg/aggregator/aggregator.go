@@ -253,16 +253,90 @@ func (pa *PropertyAggregator) AggregatePropertyDataWithOptions(ctx context.Conte
 
 		// Phase 1: High Priority / Fast / Visual (Weather, Environment, Transport, Population)
 		logutil.Debugf("[AGGREGATOR] Starting Phase 1: Environment & Transport")
-		var wg1 sync.WaitGroup
-		runner1 := makeRunner(&wg1)
 
-		runner1(func() { pa.fetchEnvironmentalData(ctx, cfg, &mu, data, lat, lon, reportProgress, runner1) })
-		runner1(func() { pa.fetchMobilityData(ctx, cfg, &mu, data, lat, lon, reportProgress, runner1) })
-		runner1(func() {
-			pa.fetchDemographicsData(ctx, cfg, &mu, data, lat, lon, neighborhoodCode, regionCode, reportProgress, runner1)
-		})
-		runner1(func() { pa.fetchInfrastructureData(ctx, cfg, &mu, data, lat, lon, reportProgress, runner1) })
-		wg1.Wait()
+		contextHit := false
+		if pa.cache != nil { // Context check (even if bypassCache? No, respect bypass)
+			if !bypassCache {
+				ctxKey := cache.CacheKey{}.ContextKey(postcode)
+				var cachedCtx ComprehensivePropertyData
+				if err := pa.cache.Get(ctxKey, &cachedCtx); err == nil {
+					logutil.Debugf("[AGGREGATOR] Context cache hit for %s", postcode)
+					// Copy context fields
+					mu.Lock()
+					data.Weather = cachedCtx.Weather
+					data.SolarPotential = cachedCtx.SolarPotential
+					data.AirQuality = cachedCtx.AirQuality
+					data.NoisePollution = cachedCtx.NoisePollution
+					data.Population = cachedCtx.Population
+					data.SquareStats = cachedCtx.SquareStats
+					data.TrafficData = cachedCtx.TrafficData
+					data.PublicTransport = cachedCtx.PublicTransport
+					data.GreenSpaces = cachedCtx.GreenSpaces
+					data.Education = cachedCtx.Education
+					data.Facilities = cachedCtx.Facilities
+					data.BROSoilMap = cachedCtx.BROSoilMap
+					data.LandUse = cachedCtx.LandUse
+					data.PDOKData = cachedCtx.PDOKData
+					// Report progress for UI so counters update
+					// We fake a generic "Context" update or multiple?
+					// app.js counts "completed/total". If we skip, completed won't increase?
+					// Actually app.js total comes from data.total in progress event.
+					// aggregator.go calculates total based on ENABLED sources.
+					// If we skip fetch, we need to mark them as done?
+					// The 'complete' event eventually sends the full result.
+					// But specifically, the progress bar/text says "Loading data... (X/Y)".
+					// If we don't emit progress, X stays low.
+					// But we don't display a bar anymore, just "Loading data...".
+					// So it's fine.
+					reportProgress("Context Data", "success", "Loaded from cache")
+					mu.Unlock()
+					contextHit = true
+				}
+			}
+		}
+
+		if !contextHit {
+			var wg1 sync.WaitGroup
+			runner1 := makeRunner(&wg1)
+
+			runner1(func() { pa.fetchEnvironmentalData(ctx, cfg, &mu, data, lat, lon, reportProgress, runner1) })
+			runner1(func() { pa.fetchMobilityData(ctx, cfg, &mu, data, lat, lon, reportProgress, runner1) })
+			runner1(func() {
+				pa.fetchDemographicsData(ctx, cfg, &mu, data, lat, lon, neighborhoodCode, regionCode, reportProgress, runner1)
+			})
+			runner1(func() { pa.fetchInfrastructureData(ctx, cfg, &mu, data, lat, lon, reportProgress, runner1) })
+			wg1.Wait()
+
+			// Save to context cache (in background)
+			if pa.cache != nil {
+				go func() {
+					ctxKey := cache.CacheKey{}.ContextKey(postcode)
+					// Create copy with only context fields
+					mu.Lock()
+					ctxData := ComprehensivePropertyData{
+						Weather:         data.Weather,
+						SolarPotential:  data.SolarPotential,
+						AirQuality:      data.AirQuality,
+						NoisePollution:  data.NoisePollution,
+						Population:      data.Population,
+						SquareStats:     data.SquareStats,
+						TrafficData:     data.TrafficData,
+						PublicTransport: data.PublicTransport,
+						GreenSpaces:     data.GreenSpaces,
+						Education:       data.Education,
+						Facilities:      data.Facilities,
+						BROSoilMap:      data.BROSoilMap,
+						LandUse:         data.LandUse,
+						PDOKData:        data.PDOKData,
+						AggregatedAt:    time.Now(),
+					}
+					mu.Unlock()
+					if err := pa.cache.Set(ctxKey, ctxData, cache.PropertyDataTTL); err != nil {
+						logutil.Warnf("Failed to cache context data: %v", err)
+					}
+				}()
+			}
+		}
 
 		// Phase 2: Property Specifics & Risk
 		logutil.Debugf("[AGGREGATOR] Starting Phase 2: Property & Risk")
