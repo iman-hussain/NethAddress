@@ -212,7 +212,7 @@ document.addEventListener('DOMContentLoaded', function () {
 				{
 					id: 'labels-overlay',
 					type: 'raster',
-					source: 'stamen-labels',
+					source: 'carto-labels',
 					minzoom: 0,
 					maxzoom: 19
 				}
