@@ -106,16 +106,32 @@ window.toggleTransparency = function () {
 		document.body.classList.remove('reduce-transparency');
 	}
 	localStorage.setItem('reduceTransparency', reduceTransparency);
-	openSettings(); // Refresh modal to show icon update
+
+	// Update button if modal is open (instead of re-opening the whole modal)
+	const btn = document.getElementById('trans-toggle-btn');
+	if (btn) {
+		const transIcon = reduceTransparency ? '🧊' : '💧';
+		const transLabel = reduceTransparency ? 'Frosted Glass' : 'Liquid Glass';
+		btn.innerHTML = `<span>${transIcon} <strong>${transLabel}</strong></span>`;
+	}
 };
 
 // Load stored preferences with migration logic
 function loadStoredSettings() {
 	// Load 'reduceTransparency'
-	reduceTransparency = localStorage.getItem('reduceTransparency') === 'true';
-	window.toggleTransparency(); // Apply it (this toggles it, so we might double toggle if not careful. Let's just apply class directly)
-	if (reduceTransparency) document.body.classList.add('reduce-transparency');
-	else document.body.classList.remove('reduce-transparency');
+	// Default to true (Frosted Glass) if not set. 'true' means frosted/opaque.
+	const storedTrans = localStorage.getItem('reduceTransparency');
+	if (storedTrans === null) {
+		reduceTransparency = true;
+	} else {
+		reduceTransparency = storedTrans === 'true';
+	}
+
+	if (reduceTransparency) {
+		document.body.classList.add('reduce-transparency');
+	} else {
+		document.body.classList.remove('reduce-transparency');
+	}
 
 	// Load 'enabledAPIs'
 	const storedAPIs = localStorage.getItem('enabledAPIs');
@@ -462,6 +478,24 @@ document.addEventListener('DOMContentLoaded', function () {
 					response.apiResults.forEach(result => {
 						updateResultCard(result.source, result.data);
 					});
+
+					// Handle AI Summary explicitly (it's a top-level field, not in APIResults)
+					if (response.AISummary) {
+						updateResultCard('Gemini AI', response.AISummary);
+					}
+
+					// Mark missing APIs as unavailable (Timeout/Error)
+					const receivedSources = new Set(response.apiResults.map(r => r.source));
+					if (response.AISummary) {
+						receivedSources.add('Gemini AI');
+					}
+
+					enabledAPIs.forEach(apiName => {
+						if (!receivedSources.has(apiName)) {
+							console.warn('Data unavailable for:', apiName);
+							markResultCardUnavailable(apiName);
+						}
+					});
 				}
 			} catch (e) {
 				console.error('Error processing data event:', e);
@@ -686,10 +720,14 @@ document.addEventListener('DOMContentLoaded', function () {
 				if (!newElement.hasAttribute('data-api-name')) {
 					newElement.setAttribute('data-api-name', sourceName);
 				}
-				// Ensure glass-liquid effect is preserved/added
+				// Ensure classes for styling (Liquid Glass + Rounded Corners) are preserved/added
 				if (!newElement.classList.contains('glass-liquid')) {
 					newElement.classList.add('glass-liquid');
 				}
+				if (!newElement.classList.contains('result-card')) {
+					newElement.classList.add('result-card');
+				}
+
 				cardContainer.replaceWith(newElement);
 			}
 		} catch (e) {
@@ -712,6 +750,26 @@ document.addEventListener('DOMContentLoaded', function () {
 			if (icon) {
 				icon.classList.remove('fa-spin', 'fa-circle-notch');
 				icon.classList.add('fa-exclamation-triangle', 'has-text-danger');
+			}
+		}
+	}
+
+	function markResultCardUnavailable(sourceName) {
+		const cardContainer = document.querySelector(`[data-api-name="${sourceName}"]`);
+		if (cardContainer) {
+			const content = cardContainer.querySelector('.card-content');
+			// Only update if it looks like a skeleton (loading state)
+			if (content && content.querySelector('.skeleton-line')) {
+				content.innerHTML = `<div class="notification is-warning is-light">Data unavailable at this time.</div>`;
+			} else if (content && sourceName === 'Gemini AI' && content.querySelector('.skeleton-text-block')) {
+				// specific check for AI shimmer
+				content.innerHTML = `<div class="notification is-warning is-light">Data unavailable at this time.</div>`;
+			}
+
+			const icon = cardContainer.querySelector('.fa-spin') || cardContainer.querySelector('.fa-pulse');
+			if (icon) {
+				icon.classList.remove('fa-spin', 'fa-pulse', 'fa-circle-notch', 'fa-sparkles');
+				icon.classList.add('fa-clock', 'has-text-warning');
 			}
 		}
 	}
@@ -1559,7 +1617,7 @@ window.openSettings = function () {
                                </button>
                            </div>
                            <div class="column">
-                               <button class="button is-fullwidth" onclick="toggleTransparency()" title="Toggle glass effect opacity">
+                               <button class="button is-fullwidth" onclick="toggleTransparency()" id="trans-toggle-btn" title="Toggle glass effect opacity">
                                   <span>${transIcon} <strong>${transLabel}</strong></span>
                                </button>
                            </div>

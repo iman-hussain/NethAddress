@@ -246,36 +246,50 @@ func (pa *PropertyAggregator) AggregatePropertyDataWithOptions(ctx context.Conte
 		}
 	}
 
-	// Phase 1: High Priority / Fast / Visual (Weather, Environment, Transport, Population)
-	logutil.Debugf("[AGGREGATOR] Starting Phase 1: Environment & Transport")
-	var wg1 sync.WaitGroup
-	runner1 := makeRunner(&wg1)
+	// Execute Phases 1-3 with a global timeout for the AI Summary compatibility
+	phasesDone := make(chan struct{})
+	go func() {
+		defer close(phasesDone)
 
-	runner1(func() { pa.fetchEnvironmentalData(ctx, cfg, &mu, data, lat, lon, reportProgress, runner1) })
-	runner1(func() { pa.fetchMobilityData(ctx, cfg, &mu, data, lat, lon, reportProgress, runner1) })
-	runner1(func() {
-		pa.fetchDemographicsData(ctx, cfg, &mu, data, lat, lon, neighborhoodCode, regionCode, reportProgress, runner1)
-	})
-	runner1(func() { pa.fetchInfrastructureData(ctx, cfg, &mu, data, lat, lon, reportProgress, runner1) })
-	wg1.Wait()
+		// Phase 1: High Priority / Fast / Visual (Weather, Environment, Transport, Population)
+		logutil.Debugf("[AGGREGATOR] Starting Phase 1: Environment & Transport")
+		var wg1 sync.WaitGroup
+		runner1 := makeRunner(&wg1)
 
-	// Phase 2: Property Specifics & Risk
-	logutil.Debugf("[AGGREGATOR] Starting Phase 2: Property & Risk")
-	var wg2 sync.WaitGroup
-	runner2 := makeRunner(&wg2)
+		runner1(func() { pa.fetchEnvironmentalData(ctx, cfg, &mu, data, lat, lon, reportProgress, runner1) })
+		runner1(func() { pa.fetchMobilityData(ctx, cfg, &mu, data, lat, lon, reportProgress, runner1) })
+		runner1(func() {
+			pa.fetchDemographicsData(ctx, cfg, &mu, data, lat, lon, neighborhoodCode, regionCode, reportProgress, runner1)
+		})
+		runner1(func() { pa.fetchInfrastructureData(ctx, cfg, &mu, data, lat, lon, reportProgress, runner1) })
+		wg1.Wait()
 
-	runner2(func() { pa.fetchPropertyData(ctx, cfg, &mu, data, bagID, lat, lon, reportProgress, runner2) })
-	runner2(func() { pa.fetchRiskData(ctx, cfg, &mu, data, lat, lon, neighborhoodCode, reportProgress, runner2) })
-	wg2.Wait()
+		// Phase 2: Property Specifics & Risk
+		logutil.Debugf("[AGGREGATOR] Starting Phase 2: Property & Risk")
+		var wg2 sync.WaitGroup
+		runner2 := makeRunner(&wg2)
 
-	// Phase 3: Energy, Platforms, Supplemental
-	logutil.Debugf("[AGGREGATOR] Starting Phase 3: Energy & Platforms")
-	var wg3 sync.WaitGroup
-	runner3 := makeRunner(&wg3)
+		runner2(func() { pa.fetchPropertyData(ctx, cfg, &mu, data, bagID, lat, lon, reportProgress, runner2) })
+		runner2(func() { pa.fetchRiskData(ctx, cfg, &mu, data, lat, lon, neighborhoodCode, reportProgress, runner2) })
+		wg2.Wait()
 
-	runner3(func() { pa.fetchEnergyData(ctx, cfg, &mu, data, bagID, reportProgress, runner3) })
-	runner3(func() { pa.fetchPlatformData(ctx, cfg, &mu, data, lat, lon, reportProgress, runner3) })
-	wg3.Wait()
+		// Phase 3: Energy, Platforms, Supplemental
+		logutil.Debugf("[AGGREGATOR] Starting Phase 3: Energy & Platforms")
+		var wg3 sync.WaitGroup
+		runner3 := makeRunner(&wg3)
+
+		runner3(func() { pa.fetchEnergyData(ctx, cfg, &mu, data, bagID, reportProgress, runner3) })
+		runner3(func() { pa.fetchPlatformData(ctx, cfg, &mu, data, lat, lon, reportProgress, runner3) })
+		wg3.Wait()
+	}()
+
+	// Wait for data collection to finish OR 30s timeout
+	select {
+	case <-phasesDone:
+		logutil.Debugf("[AGGREGATOR] All data phases completed in time")
+	case <-time.After(30 * time.Second):
+		logutil.Warnf("[AGGREGATOR] Data collection timed out (30s); proceeding to AI summary with partial data")
+	}
 
 	// AI Summary (Sequential)
 	if aiSummary, err := pa.apiClient.GenerateLocationSummary(ctx, cfg, data); err == nil {
