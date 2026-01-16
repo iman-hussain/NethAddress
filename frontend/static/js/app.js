@@ -109,8 +109,59 @@ window.toggleTransparency = function () {
 	openSettings(); // Refresh modal to show icon update
 };
 
+// Load stored preferences with migration logic
+function loadStoredSettings() {
+	// Load 'reduceTransparency'
+	reduceTransparency = localStorage.getItem('reduceTransparency') === 'true';
+	window.toggleTransparency(); // Apply it (this toggles it, so we might double toggle if not careful. Let's just apply class directly)
+	if (reduceTransparency) document.body.classList.add('reduce-transparency');
+	else document.body.classList.remove('reduce-transparency');
 
-// Fetch build info from API
+	// Load 'enabledAPIs'
+	const storedAPIs = localStorage.getItem('enabledAPIs');
+	// Check for migration flag
+	const migrated = localStorage.getItem('settings_migrated_v1');
+
+	if (!migrated) {
+		console.log('Migrating settings to v1 (Free APIs default)');
+		// Force default to Free APIs only
+		enabledAPIs = new Set(DEFAULT_ENABLED_APIS.map(a => a.name));
+		// Save immediately
+		localStorage.setItem('enabledAPIs', JSON.stringify([...enabledAPIs]));
+		localStorage.setItem('settings_migrated_v1', 'true');
+	} else if (storedAPIs) {
+		try {
+			const parsed = JSON.parse(storedAPIs);
+			enabledAPIs = new Set(parsed);
+		} catch (e) {
+			console.error('Failed to parse stored APIs, reverting to default', e);
+			enabledAPIs = new Set(DEFAULT_ENABLED_APIS.map(a => a.name));
+		}
+	} else {
+		// No stored settings, use default
+		enabledAPIs = new Set(DEFAULT_ENABLED_APIS.map(a => a.name));
+	}
+
+	// Load user keys
+	const storedKeys = localStorage.getItem('userApiKeys');
+	if (storedKeys) {
+		try {
+			userApiKeys = JSON.parse(storedKeys);
+		} catch (e) {
+			console.error('Failed to parse user keys', e);
+		}
+	}
+
+	// Load hideUnconfigured
+	hideUnconfigured = localStorage.getItem('hideUnconfigured') === 'true';
+
+	// Load theme
+	const storedTheme = localStorage.getItem('theme');
+	if (storedTheme) {
+		currentTheme = storedTheme;
+		applyTheme();
+	}
+}
 async function fetchBuildInfo() {
 	const buildInfoEl = document.getElementById('build-info');
 	if (!buildInfoEl) {
@@ -167,6 +218,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
 	// Populate build info dynamically from API
 	fetchBuildInfo();
+
+	// Load user preferences and enforce defaults
+	loadStoredSettings();
 
 	// Initialize MapLibre map with detailed OpenStreetMap style
 	// Using OpenFreeMap - completely free OSM tiles with building details
@@ -399,6 +453,21 @@ document.addEventListener('DOMContentLoaded', function () {
 			// This might still catch default message events if any
 		};
 
+		// Handle full result payload (sent on cache hit or stream completion)
+		evtSource.addEventListener('data', function (event) {
+			try {
+				const response = JSON.parse(event.data);
+				if (response.apiResults && Array.isArray(response.apiResults)) {
+					console.log('Received full data payload, updating all cards...');
+					response.apiResults.forEach(result => {
+						updateResultCard(result.source, result.data);
+					});
+				}
+			} catch (e) {
+				console.error('Error processing data event:', e);
+			}
+		});
+
 		evtSource.addEventListener('complete', function (event) {
 			console.log('Stream complete');
 			evtSource.close();
@@ -545,6 +614,38 @@ document.addEventListener('DOMContentLoaded', function () {
 			`;
 		});
 
+		// Add AI Summary placeholder (separate from tiers as it's special)
+		if (enabledAPIs.has('Gemini AI')) {
+			html += `
+				<div class="tier-section mb-5">
+					<div class="section-header">
+						<span class="section-icon">✨</span>
+						<h4>AI Summary</h4>
+					</div>
+					<div class="api-results-grid">
+						<div class="result-card glass-liquid" data-api-name="Gemini AI">
+							<div class="card-header-title">
+								<span class="icon mr-2"><i class="fas fa-sparkles fa-pulse"></i></span>
+								Gemini AI
+							</div>
+							<div class="card-content">
+								<div class="skeleton-text-block">
+									<div class="skeleton-line shimmer" style="width: 100%; height: 1rem; margin-bottom: 0.5rem;"></div>
+									<div class="skeleton-line shimmer" style="width: 90%; height: 1rem; margin-bottom: 0.5rem;"></div>
+									<div class="skeleton-line shimmer" style="width: 95%; height: 1rem; margin-bottom: 0.5rem;"></div>
+									<div class="skeleton-line shimmer" style="width: 80%; height: 1rem;"></div>
+								</div>
+								<p class="is-size-7 mt-3 has-text-grey-light is-italic">
+									<span class="icon is-small"><i class="fas fa-cog fa-spin"></i></span>
+									Generating insights from property data...
+								</p>
+							</div>
+						</div>
+					</div>
+				</div>
+			`;
+		}
+
 		html += `<div data-geojson='' style="display:none;"></div>`; // Placeholder for geojson
 
 		container.innerHTML = html;
@@ -584,6 +685,10 @@ document.addEventListener('DOMContentLoaded', function () {
 				// Copy the data-api-name attribute if the new element doesn't have it
 				if (!newElement.hasAttribute('data-api-name')) {
 					newElement.setAttribute('data-api-name', sourceName);
+				}
+				// Ensure glass-liquid effect is preserved/added
+				if (!newElement.classList.contains('glass-liquid')) {
+					newElement.classList.add('glass-liquid');
 				}
 				cardContainer.replaceWith(newElement);
 			}

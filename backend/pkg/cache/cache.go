@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/gob"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -176,7 +177,9 @@ func (ck CacheKey) ElevationKey(lat, lon float64) string {
 
 // AggregatedKey generates a cache key for aggregated property data
 func (ck CacheKey) AggregatedKey(postcode, houseNumber string) string {
-	return fmt.Sprintf("aggregated:%s:%s", postcode, houseNumber)
+	normalizedPostcode := strings.ToUpper(strings.ReplaceAll(postcode, " ", ""))
+	normalizedHouseNumber := strings.TrimSpace(houseNumber)
+	return fmt.Sprintf("aggregated:%s:%s", normalizedPostcode, normalizedHouseNumber)
 }
 
 // ScoresKey generates a cache key for calculated scores

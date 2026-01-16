@@ -206,18 +206,19 @@ func (pa *PropertyAggregator) AggregatePropertyDataWithOptions(ctx context.Conte
 	}
 
 	// Concurrency Control
+	// Data Protection
 	var mu sync.Mutex
-	var wg sync.WaitGroup
 	// Limit concurrently active groups to prevent exploding goroutines
 	// Flattened concurrency: We use a shared semaphore for ALL individual API calls
 	const maxConcurrency = 8
 	sem := make(chan struct{}, maxConcurrency)
 
 	// Runner helper to execute tasks with concurrency limit
-	runTask := func(fn func()) {
-		wg.Add(1)
+	// Runner helper to execute tasks with concurrency limit
+	runTask := func(phaseWg *sync.WaitGroup, fn func()) {
+		phaseWg.Add(1)
 		go func() {
-			defer wg.Done()
+			defer phaseWg.Done()
 			sem <- struct{}{}        // Acquire
 			defer func() { <-sem }() // Release
 			defer func() {
@@ -236,16 +237,45 @@ func (pa *PropertyAggregator) AggregatePropertyDataWithOptions(ctx context.Conte
 	// OR we can schedule them via runTask too, but that would use a semaphore slot for the orchestrator which is fast.
 	// Let's just run them directly since they are non-blocking now!
 
-	pa.fetchPropertyData(ctx, cfg, &mu, data, bagID, lat, lon, reportProgress, runTask)
-	pa.fetchEnvironmentalData(ctx, cfg, &mu, data, lat, lon, reportProgress, runTask)
-	pa.fetchEnergyData(ctx, cfg, &mu, data, bagID, reportProgress, runTask)
-	pa.fetchRiskData(ctx, cfg, &mu, data, lat, lon, neighborhoodCode, reportProgress, runTask)
-	pa.fetchMobilityData(ctx, cfg, &mu, data, lat, lon, reportProgress, runTask)
-	pa.fetchDemographicsData(ctx, cfg, &mu, data, lat, lon, neighborhoodCode, regionCode, reportProgress, runTask)
-	pa.fetchInfrastructureData(ctx, cfg, &mu, data, lat, lon, reportProgress, runTask)
-	pa.fetchPlatformData(ctx, cfg, &mu, data, lat, lon, reportProgress, runTask)
+	// Launch fetchers in prioritized phases
 
-	wg.Wait()
+	// Helper to create a runner bound to a specific WaitGroup
+	makeRunner := func(wg *sync.WaitGroup) func(func()) {
+		return func(fn func()) {
+			runTask(wg, fn)
+		}
+	}
+
+	// Phase 1: High Priority / Fast / Visual (Weather, Environment, Transport, Population)
+	logutil.Debugf("[AGGREGATOR] Starting Phase 1: Environment & Transport")
+	var wg1 sync.WaitGroup
+	runner1 := makeRunner(&wg1)
+
+	runner1(func() { pa.fetchEnvironmentalData(ctx, cfg, &mu, data, lat, lon, reportProgress, runner1) })
+	runner1(func() { pa.fetchMobilityData(ctx, cfg, &mu, data, lat, lon, reportProgress, runner1) })
+	runner1(func() {
+		pa.fetchDemographicsData(ctx, cfg, &mu, data, lat, lon, neighborhoodCode, regionCode, reportProgress, runner1)
+	})
+	runner1(func() { pa.fetchInfrastructureData(ctx, cfg, &mu, data, lat, lon, reportProgress, runner1) })
+	wg1.Wait()
+
+	// Phase 2: Property Specifics & Risk
+	logutil.Debugf("[AGGREGATOR] Starting Phase 2: Property & Risk")
+	var wg2 sync.WaitGroup
+	runner2 := makeRunner(&wg2)
+
+	runner2(func() { pa.fetchPropertyData(ctx, cfg, &mu, data, bagID, lat, lon, reportProgress, runner2) })
+	runner2(func() { pa.fetchRiskData(ctx, cfg, &mu, data, lat, lon, neighborhoodCode, reportProgress, runner2) })
+	wg2.Wait()
+
+	// Phase 3: Energy, Platforms, Supplemental
+	logutil.Debugf("[AGGREGATOR] Starting Phase 3: Energy & Platforms")
+	var wg3 sync.WaitGroup
+	runner3 := makeRunner(&wg3)
+
+	runner3(func() { pa.fetchEnergyData(ctx, cfg, &mu, data, bagID, reportProgress, runner3) })
+	runner3(func() { pa.fetchPlatformData(ctx, cfg, &mu, data, lat, lon, reportProgress, runner3) })
+	wg3.Wait()
 
 	// AI Summary (Sequential)
 	if aiSummary, err := pa.apiClient.GenerateLocationSummary(ctx, cfg, data); err == nil {

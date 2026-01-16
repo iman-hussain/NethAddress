@@ -2227,6 +2227,56 @@ body.has-results .results-wrapper {
 	/* Dark mode handled by glass utility */
 }
 
-/* Accessibility Overrides Handled by Utility System at Top of File */
 
-/* Accessibility Overrides Handled by Utility System at Top of File */
+/* Shimmer Effect */
+@keyframes shimmer {
+	0% {
+		background-position: -1000px 0;
+	}
+
+	100% {
+		background-position: 1000px 0;
+	}
+}
+
+.shimmer {
+	animation: shimmer 2s infinite linear;
+	background: linear-gradient(to right, #eff1f3 4%, #e2e2e2 25%, #eff1f3 36%);
+	background-size: 1000px 100%;
+}
+
+.skeleton-line {
+	background-color: var(--bg-card-alt);
+	border-radius: var(--radius-sm);
+}
+
+.skeleton-text-block {
+	width: 100%;
+}
+
+
+/* Shimmer Effect */
+@keyframes shimmer {
+	0% {
+		background-position: -1000px 0;
+	}
+
+	100% {
+		background-position: 1000px 0;
+	}
+}
+
+.shimmer {
+	animation: shimmer 2s infinite linear;
+	background: linear-gradient(to right, #eff1f3 4%, #e2e2e2 25%, #eff1f3 36%);
+	background-size: 1000px 100%;
+}
+
+.skeleton-line {
+	background-color: var(--bg-card-alt);
+	border-radius: var(--radius-sm);
+}
+
+.skeleton-text-block {
+	width: 100%;
+}
