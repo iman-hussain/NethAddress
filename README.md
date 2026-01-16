@@ -30,6 +30,7 @@ AddressIQ is a property intelligence toolkit for the Netherlands: it looks up an
    - **macOS**: `end_localwebapp.command`
    - **Linux**: `end_localwebapp.sh`
 
+
 ## Project structure
 
 ```text
@@ -49,14 +50,66 @@ AddressIQ/
 │   ├── go.mod
 │   └── main.go
 ├── frontend/
+│   ├── static/              # JS, CSS, Icons
 │   ├── templates/           # HTML templates
 │   └── index.html
 ├── docs/                    # API references, deployment guides
+├── scripts/                 # Utility scripts (build hash, etc.)
 ├── docker-compose.local.yml
 ├── .env.example
 ├── start_localwebapp.*      # Platform-specific startup scripts
 └── end_localwebapp.*        # Platform-specific shutdown scripts
 ```
+
+## Information Flow
+
+The application uses a streaming architecture to provide immediate feedback.
+
+```mermaid
+graph TD
+    subgraph External_APIs [External Data Providers]
+        A[PDOK / Kadaster]
+        B[CBS]
+        C[Altum.ai]
+        D[Other APIs]
+    end
+
+    subgraph Backend [Backend Service (Go)]
+        E[Aggregator (Concurrent)]
+        F[SSE Stream Handler]
+    end
+
+    subgraph Frontend [Frontend (Browser)]
+        G[EventSource Listener]
+        H[Renderer Registry]
+    end
+
+    subgraph Visible_UI [Visible UI]
+        I[Search Input]
+        J[Skeleton Grid]
+        K[Result Cards]
+        L[Interactive Map]
+    end
+
+    %% Flow
+    I -->|1. POST Request| E
+    E -->|2. Concurrent Requests| External_APIs
+    External_APIs -->|3. JSON Responses| E
+
+    E -->|4. Incremental Data| F
+    F -->|5. SSE 'update' Event| G
+
+    I -.->|Show Loading| J
+    G -->|6. Pass Data| H
+    H -->|7. Render HTML| K
+
+    K -->|Update Content| J
+    H -->|Update Features| L
+
+    classDef box fill:#f9f9f9,stroke:#333,stroke-width:1px;
+    class A,B,C,D,E,F,G,H,I,J,K,L box;
+```
+
 
 ## API reference
 

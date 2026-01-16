@@ -345,25 +345,13 @@ document.addEventListener('DOMContentLoaded', function () {
 		const targetContainer = document.getElementById('results-container-main');
 
 		if (targetContainer) {
-			// Show progress UI
-			targetContainer.innerHTML = `
-                <div class="progress-container box glass-liquid" style="text-align: center; padding: 3rem 2rem;">
-                    <h4 class="title is-4 mb-4">Searching AddressIQ...</h4>
-                    <div class="is-flex is-justify-content-space-between mb-1" style="font-size: 0.85rem;">
-                        <span id="progress-status-text">Connecting...</span>
-                        <span id="progress-percent">0%</span>
-                    </div>
-                    <progress id="search-progress" class="progress is-primary" value="0" max="100" style="height: 1rem;">0%</progress>
-                    <div id="progress-detail" class="is-size-7 has-text-grey mt-2" style="min-height: 1.2em;">Initializing connection...</div>
-                </div>
-            `;
+			// Show progress UI (Skeleton Grid)
+			renderSkeletonGrid(targetContainer);
 			document.body.classList.add('has-results');
 		}
 
 		// 2. Setup EventSource
 		const params = new URLSearchParams({
-			postcode: postcode,
-			houseNumber: houseNumber,
 			postcode: postcode,
 			houseNumber: houseNumber,
 			bypassCache: bypassCache,
@@ -385,22 +373,30 @@ document.addEventListener('DOMContentLoaded', function () {
 		evtSource.addEventListener('data', function (event) {
 			try {
 				window.tempStreamData = JSON.parse(event.data);
-				// Also update map immediately if GeoJSON is present?
-				// No, wait for complete to render layout first.
 			} catch (e) {
 				console.error('Error parsing data event:', e);
 			}
 		});
 
-		evtSource.onmessage = function (event) {
+		// Listen for partial updates
+		evtSource.addEventListener('update', function (event) {
 			try {
-				const data = JSON.parse(event.data);
-				if (data.status) {
-					updateProgress(data);
+				const update = JSON.parse(event.data);
+				if (update.status === 'success' && update.data) {
+					console.log('Update received for:', update.source);
+					updateResultCard(update.source, update.data);
+				} else if (update.status === 'error') {
+					console.warn('Error received for:', update.source);
+					markResultCardError(update.source);
 				}
+				// Also update progress if needed, though we moved away from the bar
 			} catch (e) {
-				// Ignore keepalive or malformed
+				console.error('Error parsing update event:', e);
 			}
+		});
+
+		evtSource.onmessage = function (event) {
+			// This might still catch default message events if any
 		};
 
 		evtSource.addEventListener('complete', function (event) {
@@ -411,51 +407,62 @@ document.addEventListener('DOMContentLoaded', function () {
 			try {
 				const htmlContent = JSON.parse(event.data);
 
-				// Create temp container to parse HTML
+				// Create temp container to parse HTML (mainly for map data now)
 				const tempDiv = document.createElement('div');
 				tempDiv.innerHTML = htmlContent;
 
-				// Process results
-				processSearchResults(tempDiv, targetContainer);
+				const dataHolder = tempDiv.querySelector('[data-geojson]');
 
-				// Mobile Polish: Show Refresh (Keep Search Visible)
+				// We don't overwrite the grid anymore, just update the header and map
+				// But we need to insert the header! The skeleton grid doesn't have the header.
+				// Wait, the skeleton grid needs to be replaced or the header injected?
+				// Proposed: The complete event sends the header and the map data.
+				// The grid is already populated.
+
+				// Let's replace the header placeholder
+				const headerPlaceholder = document.getElementById('skeleton-header');
+				const newHeader = tempDiv.querySelector('[data-target="header"]');
+				if (headerPlaceholder && newHeader) {
+					headerPlaceholder.replaceWith(newHeader);
+				}
+
+				// Update Map
+				if (dataHolder) {
+					const geojsonStr = dataHolder.getAttribute('data-geojson');
+					if (geojsonStr) {
+						updateMap(geojsonStr);
+					}
+
+					// If we missed any updates, we could process full response
+					const responseStr = dataHolder.getAttribute('data-response');
+					if (responseStr) {
+						currentResponse = JSON.parse(responseStr);
+					}
+				}
+
+				// Mobile Polish
 				if (window.innerWidth <= 768) {
-					// const btnSearch = document.getElementById('btn-search'); // Always keep visible
 					const btnRefresh = document.getElementById('btn-refresh');
-					// if (btnSearch) btnSearch.style.display = 'none'; // User Request: Always have search
 					if (btnRefresh) btnRefresh.style.display = 'inline-flex';
 				}
 
 			} catch (e) {
 				console.error('Error processing complete event:', e);
-				if (targetContainer) {
-					targetContainer.innerHTML = `<div class="notification is-danger glass-liquid">Error rendering results: ${e.message}</div>`;
-				}
 			}
 		});
 
-		// Handle custom error events from server
+		// Handle errors... (existing code)
 		evtSource.addEventListener('error', function (event) {
-			// Standard error event often doesn't have data, but our custom one might if sent as "event: error"
 			if (event.data) {
 				try {
 					const errData = JSON.parse(event.data);
-					if (targetContainer) {
-						targetContainer.innerHTML = `<div class="notification is-danger glass-liquid">Search failed: ${errData.message}</div>`;
-					}
-				} catch (e) {
-					if (targetContainer) targetContainer.innerHTML = `<div class="notification is-danger glass-liquid">Search failed.</div>`;
-				}
+					// If partial failure, maybe just alert? If total failure, clear grid?
+					// For now, let's just log or show a toast
+					console.error("Stream error:", errData.message);
+				} catch (e) { }
 				evtSource.close();
-			} else if (evtSource.readyState === EventSource.CLOSED) {
-				// Connection closed ordinarily
 			} else {
-				// Network error or connection refusal
-				console.error('EventSource connection error');
-				// Only show error if we haven't received completeness
-				if (targetContainer && targetContainer.querySelector('.progress-container')) {
-					targetContainer.innerHTML = `<div class="notification is-danger glass-liquid">Connection lost. Please try again.</div>`;
-				}
+				console.error("Stream connection lost");
 				evtSource.close();
 			}
 		});
@@ -485,40 +492,122 @@ document.addEventListener('DOMContentLoaded', function () {
 		}
 	}
 
-	function processSearchResults(container, targetContainer) {
-		// Extract content from temp container
-		const resultsContent = container.querySelector('[data-target="results"]');
-		const dataHolder = container.querySelector('[data-geojson]');
+	// Render the initial skeleton grid
+	function renderSkeletonGrid(container) {
+		const apis = Array.from(enabledAPIs); // Use enabled APIs
 
-		if (resultsContent && targetContainer) {
-			targetContainer.innerHTML = resultsContent.innerHTML;
+		// Header placeholder
+		let html = `
+			<div id="skeleton-header" class="box glass-liquid mb-4">
+				<div class="skeleton-line" style="width: 50%; height: 2rem; margin-bottom: 0.5rem;"></div>
+				<div class="skeleton-line" style="width: 30%;"></div>
+			</div>
+			<div class="columns is-multiline" id="results-grid">
+		`;
+
+		// Sort APIs to match typical display order if possible, or just list them
+		// TODO: Grouping? For now just flat list like before but skeletonized
+		// Actually, let's just generate a card for every ENABLED api.
+
+		apis.forEach(apiName => {
+			// Generate a safe ID
+			const cardId = `card-${apiName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`;
+			html += `
+				<div class="column is-12-mobile is-6-tablet is-4-desktop" id="${cardId}">
+					<div class="card glass-liquid h-100">
+						<header class="card-header">
+							<p class="card-header-title">
+								<span class="icon mr-2"><i class="fas fa-circle-notch fa-spin"></i></span>
+								${apiName}
+							</p>
+						</header>
+						<div class="card-content">
+							<div class="content">
+								<div class="skeleton-line is-full"></div>
+								<div class="skeleton-line is-full"></div>
+								<div class="skeleton-line is-half"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+			`;
+		});
+
+		html += `</div>
+		<div data-geojson='' style="display:none;"></div>`; // Placeholder for geojson
+
+		container.innerHTML = html;
+	}
+
+	// Update a specific card with real data
+	function updateResultCard(sourceName, data) {
+		const cardId = `card-${sourceName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`;
+		const cardContainer = document.getElementById(cardId);
+
+		if (!cardContainer) {
+			console.warn('Card container not found for:', sourceName);
+			return;
 		}
 
-		if (dataHolder) {
-			const geojsonStr = dataHolder.getAttribute('data-geojson');
-			if (geojsonStr) {
-				updateMap(geojsonStr);
+		// Get renderer
+		const renderer = getRenderer(sourceName);
+		if (!renderer) {
+			console.warn('No renderer found for:', sourceName);
+			return;
+		}
+
+		// Render the content
+		// Most renderers return a string of HTML (the full card or content?)
+		// Looking at renderers: they seem to return `div.column` usually.
+		// Let's check a renderer.
+		// `renderKNMIWeather` -> `return createCard(...)`
+		// `createCard` returns `<div class="column ..."><div class="card ...">...</div></div>`
+
+		try {
+			const renderedHTML = renderer(data);
+			// Replace the skeleton column with the rendered column
+			// Create a temp div to parse string to DOM
+			const temp = document.createElement('div');
+			temp.innerHTML = renderedHTML;
+			const newElement = temp.firstElementChild;
+
+			if (newElement) {
+				// Ensure the new element has the ID so subsequent updates work?
+				// Or just replace. The new element from renderer probably has standard classes.
+				// We need to keep the ID if we want to update it again, but usually we don't.
+				// But let's verify if renderers set IDs. They probably don't set the specific ID we used.
+				// So we replace the WHOLE column.
+				cardContainer.replaceWith(newElement);
+
+				// Re-initialize any scripts/interactions if needed (unlikely for vanilla JS renderers unless they attach listeners)
+				// Most renderers use `onclick` attributes.
 			}
+		} catch (e) {
+			console.error('Error rendering card for', sourceName, e);
+			cardContainer.innerHTML = `
+				<div class="card glass-liquid h-100 has-text-danger">
+					<div class="card-content">Error rendering data.</div>
+				</div>
+			`;
+		}
+	}
 
-			const responseStr = dataHolder.getAttribute('data-response');
-			if (responseStr) {
-				currentResponse = JSON.parse(responseStr);
-			} else if (window.tempStreamData) {
-				// Use data received via optimized SSE event
-				currentResponse = window.tempStreamData;
-				window.tempStreamData = null;
+	function markResultCardError(sourceName) {
+		const cardId = `card-${sourceName.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase()}`;
+		const cardContainer = document.getElementById(cardId);
+		if (cardContainer) {
+			const content = cardContainer.querySelector('.card-content');
+			if (content) {
+				content.innerHTML = `<div class="notification is-danger is-light">Failed to load data.</div>`;
 			}
-
-			if (currentResponse) {
-				if (currentResponse.coordinates && currentResponse.coordinates.length >= 2) {
-					setPropertyLocation(currentResponse.coordinates);
-					clearAllPOILayers();
-				}
-
-				renderApiResults();
+			const icon = cardContainer.querySelector('.fa-spin');
+			if (icon) {
+				icon.classList.remove('fa-spin', 'fa-circle-notch');
+				icon.classList.add('fa-exclamation-triangle', 'has-text-danger');
 			}
 		}
 	}
+
 
 	// Map style definitions (all free/open-source)
 	const mapStyles = {

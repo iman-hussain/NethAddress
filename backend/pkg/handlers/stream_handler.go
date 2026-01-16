@@ -109,8 +109,16 @@ func (h *SearchHandler) HandleSearchStream(w http.ResponseWriter, r *http.Reques
 				progressCh = nil // Disable this case
 				continue
 			}
-			payload, _ := json.Marshal(ev)
-			fmt.Fprintf(w, "data: %s\n\n", payload)
+
+			if ev.Data != nil {
+				// Send partial update with data
+				payload, _ := json.Marshal(ev) // Includes Data field
+				fmt.Fprintf(w, "event: update\ndata: %s\n\n", payload)
+			} else {
+				// Status only update
+				payload, _ := json.Marshal(ev)
+				fmt.Fprintf(w, "data: %s\n\n", payload)
+			}
 			flusher.Flush()
 
 		case data := <-resultCh:

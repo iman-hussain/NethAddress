@@ -104,11 +104,12 @@ type ComprehensivePropertyData struct {
 
 // ProgressEvent represents a progress update during aggregation
 type ProgressEvent struct {
-	Source        string `json:"source"`
-	Status        string `json:"status"` // "success", "error", "skipped"
-	Completed     int    `json:"completed"`
-	Total         int    `json:"total"`
-	LastCompleted string `json:"lastCompleted"`
+	Source        string      `json:"source"`
+	Status        string      `json:"status"` // "success", "error", "skipped"
+	Completed     int         `json:"completed"`
+	Total         int         `json:"total"`
+	LastCompleted string      `json:"lastCompleted"`
+	Data          interface{} `json:"data,omitempty"` // Partial data payload
 }
 
 // AggregatePropertyData fetches and combines data from all available sources
@@ -184,7 +185,7 @@ func (pa *PropertyAggregator) AggregatePropertyDataWithOptions(ctx context.Conte
 	completedSources.Store(1)
 
 	// Progress callback
-	reportProgress := func(source, status string) {
+	reportProgress := func(source, status string, data interface{}) {
 		newCompleted := completedSources.Add(1)
 		// logutil.Debugf("[AGGREGATOR] Progress: %s (%s) - %d/%d", source, status, newCompleted, totalSources)
 
@@ -196,6 +197,7 @@ func (pa *PropertyAggregator) AggregatePropertyDataWithOptions(ctx context.Conte
 				Completed:     int(newCompleted),
 				Total:         totalSources,
 				LastCompleted: source,
+				Data:          data,
 			}:
 			default:
 				// Buffer full, skip update (client eventually gets complete)
@@ -207,16 +209,17 @@ func (pa *PropertyAggregator) AggregatePropertyDataWithOptions(ctx context.Conte
 	var mu sync.Mutex
 	var wg sync.WaitGroup
 	// Limit concurrently active groups to prevent exploding goroutines
-	// Since each group spawns sub-routines, limiting groups is effective.
-	const maxConcurrency = 4
+	// Flattened concurrency: We use a shared semaphore for ALL individual API calls
+	const maxConcurrency = 8
 	sem := make(chan struct{}, maxConcurrency)
 
-	safeGo := func(fn func()) {
-		sem <- struct{}{} // Acquire semaphore (blocks if full)
+	// Runner helper to execute tasks with concurrency limit
+	runTask := func(fn func()) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			defer func() { <-sem }() // Release semaphore
+			sem <- struct{}{}        // Acquire
+			defer func() { <-sem }() // Release
 			defer func() {
 				if r := recover(); r != nil {
 					logutil.Debugf("[AGGREGATOR] Panic recovered: %v", r)
@@ -226,17 +229,21 @@ func (pa *PropertyAggregator) AggregatePropertyDataWithOptions(ctx context.Conte
 		}()
 	}
 
-	// Launch parallel fetchers
-	safeGo(func() { pa.fetchPropertyData(ctx, cfg, &mu, data, bagID, lat, lon, reportProgress) })
-	safeGo(func() { pa.fetchEnvironmentalData(ctx, cfg, &mu, data, lat, lon, reportProgress) })
-	safeGo(func() { pa.fetchEnergyData(ctx, cfg, &mu, data, bagID, reportProgress) })
-	safeGo(func() { pa.fetchRiskData(ctx, cfg, &mu, data, lat, lon, neighborhoodCode, reportProgress) })
-	safeGo(func() { pa.fetchMobilityData(ctx, cfg, &mu, data, lat, lon, reportProgress) })
-	safeGo(func() {
-		pa.fetchDemographicsData(ctx, cfg, &mu, data, lat, lon, neighborhoodCode, regionCode, reportProgress)
-	})
-	safeGo(func() { pa.fetchInfrastructureData(ctx, cfg, &mu, data, lat, lon, reportProgress) })
-	safeGo(func() { pa.fetchPlatformData(ctx, cfg, &mu, data, lat, lon, reportProgress) })
+	// Launch parallel fetchers - passed runTask to allow them to schedule sub-tasks on the main semaphore
+	// Note: runTask is passed to child functions, but we must use it for top-level calls too OR just call them, since they don't do work themselves, just spawn.
+	// Actually, the top level calls (fetchPropertyData etc) are just orchestrators now. They accept 'runTask'.
+	// They DO NOT block. We can just call them sequentially on the main thread, and they will schedule tasks via runTask.
+	// OR we can schedule them via runTask too, but that would use a semaphore slot for the orchestrator which is fast.
+	// Let's just run them directly since they are non-blocking now!
+
+	pa.fetchPropertyData(ctx, cfg, &mu, data, bagID, lat, lon, reportProgress, runTask)
+	pa.fetchEnvironmentalData(ctx, cfg, &mu, data, lat, lon, reportProgress, runTask)
+	pa.fetchEnergyData(ctx, cfg, &mu, data, bagID, reportProgress, runTask)
+	pa.fetchRiskData(ctx, cfg, &mu, data, lat, lon, neighborhoodCode, reportProgress, runTask)
+	pa.fetchMobilityData(ctx, cfg, &mu, data, lat, lon, reportProgress, runTask)
+	pa.fetchDemographicsData(ctx, cfg, &mu, data, lat, lon, neighborhoodCode, regionCode, reportProgress, runTask)
+	pa.fetchInfrastructureData(ctx, cfg, &mu, data, lat, lon, reportProgress, runTask)
+	pa.fetchPlatformData(ctx, cfg, &mu, data, lat, lon, reportProgress, runTask)
 
 	wg.Wait()
 
@@ -245,13 +252,13 @@ func (pa *PropertyAggregator) AggregatePropertyDataWithOptions(ctx context.Conte
 		data.AISummary = aiSummary
 		if aiSummary.Generated {
 			data.DataSources = append(data.DataSources, "Gemini AI")
-			reportProgress("Gemini AI", "success")
+			reportProgress("Gemini AI", "success", aiSummary)
 		}
 	} else {
 		if data.Errors != nil {
 			data.Errors["Gemini AI"] = err.Error()
 		}
-		reportProgress("Gemini AI", "error")
+		reportProgress("Gemini AI", "error", nil)
 	}
 
 	// Cache the aggregated result
@@ -280,578 +287,448 @@ func safeRecordError(mu *sync.Mutex, data *ComprehensivePropertyData, source, er
 	data.Errors[source] = err
 }
 
-func (pa *PropertyAggregator) fetchPropertyData(ctx context.Context, cfg *config.Config, mu *sync.Mutex, data *ComprehensivePropertyData, bagID string, lat, lon float64, onProgress func(string, string)) {
-	var wg sync.WaitGroup
-
-	// Helper for this sub-group
-	run := func(fn func()) {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			defer func() {
-				if r := recover(); r != nil {
-					logutil.Debugf("[AGGREGATOR] Panic in fetchPropertyData: %v", r)
-				}
-			}()
-			fn()
-		}()
-	}
-
+func (pa *PropertyAggregator) fetchPropertyData(ctx context.Context, cfg *config.Config, mu *sync.Mutex, data *ComprehensivePropertyData, bagID string, lat, lon float64, onProgress func(string, string, interface{}), runTask func(func())) {
 	// Kadaster Object Info
-	run(func() {
+	runTask(func() {
 		if kadasterInfo, err := pa.apiClient.FetchKadasterObjectInfo(ctx, cfg, bagID); err == nil {
 			data.KadasterInfo = kadasterInfo
 			safeAppendSource(mu, data, "Kadaster")
-			onProgress("Kadaster", "success")
+			onProgress("Kadaster", "success", kadasterInfo)
 		} else {
 			logutil.Debugf("[AGGREGATOR] Kadaster fetch failed: %v", err)
 			safeRecordError(mu, data, "Kadaster", err.Error())
-			onProgress("Kadaster", "error")
+			onProgress("Kadaster", "error", nil)
 		}
 	})
 
 	// WOZ Data
-	run(func() {
+	runTask(func() {
 		if wozData, err := pa.apiClient.FetchAltumWOZData(ctx, cfg, bagID); err == nil {
 			data.WOZData = wozData
 			safeAppendSource(mu, data, "Altum WOZ")
-			onProgress("Altum WOZ", "success")
+			onProgress("Altum WOZ", "success", wozData)
 		} else {
 			logutil.Debugf("[AGGREGATOR] Altum WOZ fetch failed: %v", err)
 			safeRecordError(mu, data, "Altum WOZ", err.Error())
-			onProgress("Altum WOZ", "error")
+			onProgress("Altum WOZ", "error", nil)
 		}
 	})
 
 	// Market Valuation
-	run(func() {
+	runTask(func() {
 		if valuation, err := pa.apiClient.FetchPropertyValuePlus(ctx, cfg, bagID, lat, lon); err == nil {
 			data.MarketValuation = valuation
 			safeAppendSource(mu, data, "Matrixian")
-			onProgress("Matrixian", "success")
+			onProgress("Matrixian", "success", valuation)
 		} else {
 			logutil.Debugf("[AGGREGATOR] Matrixian fetch failed: %v", err)
 			safeRecordError(mu, data, "Matrixian", err.Error())
-			onProgress("Matrixian", "error")
+			onProgress("Matrixian", "error", nil)
 		}
 	})
 
 	// Transaction History
-	run(func() {
+	runTask(func() {
 		if transactions, err := pa.apiClient.FetchTransactionHistory(ctx, cfg, bagID); err == nil {
 			data.TransactionHistory = transactions
 			safeAppendSource(mu, data, "Altum Transactions")
-			onProgress("Altum Transactions", "success")
+			onProgress("Altum Transactions", "success", transactions)
 		} else {
 			logutil.Debugf("[AGGREGATOR] Altum Transactions fetch failed: %v", err)
 			safeRecordError(mu, data, "Altum Transactions", err.Error())
-			onProgress("Altum Transactions", "error")
+			onProgress("Altum Transactions", "error", nil)
 		}
 	})
 
 	// Monument Status
-	run(func() {
+	runTask(func() {
 		if monument, err := pa.apiClient.FetchMonumentDataByCoords(ctx, cfg, lat, lon); err == nil {
 			data.MonumentStatus = monument
 			safeAppendSource(mu, data, "Monument Register")
-			onProgress("Monument Register", "success")
+			onProgress("Monument Register", "success", monument)
 		} else {
 			logutil.Debugf("[AGGREGATOR] Monument fetch failed: %v", err)
 			safeRecordError(mu, data, "Monument Register", err.Error())
-			onProgress("Monument Register", "error")
+			onProgress("Monument Register", "error", nil)
 		}
 	})
-
-	wg.Wait()
 }
 
-func (pa *PropertyAggregator) fetchEnvironmentalData(ctx context.Context, cfg *config.Config, mu *sync.Mutex, data *ComprehensivePropertyData, lat, lon float64, onProgress func(string, string)) {
-	var wg sync.WaitGroup
-	run := func(fn func()) {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			defer func() {
-				if r := recover(); r != nil {
-					logutil.Debugf("[AGGREGATOR] Panic in fetchEnvironmentalData: %v", r)
-				}
-			}()
-			fn()
-		}()
-	}
-
+func (pa *PropertyAggregator) fetchEnvironmentalData(ctx context.Context, cfg *config.Config, mu *sync.Mutex, data *ComprehensivePropertyData, lat, lon float64, onProgress func(string, string, interface{}), runTask func(func())) {
 	// Weather
-	run(func() {
+	runTask(func() {
 		weather, weatherErr := pa.apiClient.FetchKNMIWeatherData(ctx, cfg, lat, lon)
 		if weatherErr == nil && weather != nil {
 			data.Weather = weather
 			safeAppendSource(mu, data, "KNMI Weather")
-			onProgress("KNMI Weather", "success")
+			onProgress("KNMI Weather", "success", weather)
 		} else {
 			safeRecordError(mu, data, "KNMI Weather", weatherErr.Error())
-			onProgress("KNMI Weather", "error")
+			onProgress("KNMI Weather", "error", nil)
 		}
 	})
 
 	// Solar
-	run(func() {
+	runTask(func() {
 		solar, solarErr := pa.apiClient.FetchKNMISolarData(ctx, cfg, lat, lon)
 		if solarErr == nil && solar != nil {
 			data.SolarPotential = solar
 			safeAppendSource(mu, data, "KNMI Solar")
-			onProgress("KNMI Solar", "success")
+			onProgress("KNMI Solar", "success", solar)
 		} else {
 			safeRecordError(mu, data, "KNMI Solar", solarErr.Error())
-			onProgress("KNMI Solar", "error")
+			onProgress("KNMI Solar", "error", nil)
 		}
 	})
 
 	// Soil Data
-	run(func() {
+	runTask(func() {
 		if soil, err := pa.apiClient.FetchWURSoilData(ctx, cfg, lat, lon); err == nil {
 			data.SoilData = soil
 			safeAppendSource(mu, data, "WUR Soil")
-			onProgress("WUR Soil", "success")
+			onProgress("WUR Soil", "success", soil)
 		} else {
 			safeRecordError(mu, data, "WUR Soil", err.Error())
-			onProgress("WUR Soil", "error")
+			onProgress("WUR Soil", "error", nil)
 		}
 	})
 
 	// Subsidence
-	run(func() {
+	runTask(func() {
 		if subsidence, err := pa.apiClient.FetchSubsidenceData(ctx, cfg, lat, lon); err == nil {
 			data.Subsidence = subsidence
 			safeAppendSource(mu, data, "SkyGeo")
-			onProgress("SkyGeo", "success")
+			onProgress("SkyGeo", "success", subsidence)
 		} else {
 			safeRecordError(mu, data, "SkyGeo Subsidence", err.Error())
-			onProgress("SkyGeo", "error")
+			onProgress("SkyGeo", "error", nil)
 		}
 	})
 
 	// Soil Quality
-	run(func() {
+	runTask(func() {
 		if soilQuality, err := pa.apiClient.FetchSoilQualityData(ctx, cfg, lat, lon); err == nil {
 			data.SoilQuality = soilQuality
 			safeAppendSource(mu, data, "Soil Quality")
-			onProgress("Soil Quality", "success")
+			onProgress("Soil Quality", "success", soilQuality)
 		} else {
 			safeRecordError(mu, data, "Soil Quality", err.Error())
-			onProgress("Soil Quality", "error")
+			onProgress("Soil Quality", "error", nil)
 		}
 	})
 
 	// BRO Soil Map
-	run(func() {
+	runTask(func() {
 		if broSoil, err := pa.apiClient.FetchBROSoilMapData(ctx, cfg, lat, lon); err == nil {
 			data.BROSoilMap = broSoil
 			safeAppendSource(mu, data, "BRO")
-			onProgress("BRO", "success")
+			onProgress("BRO", "success", broSoil)
 		} else {
 			safeRecordError(mu, data, "BRO Soil Map", err.Error())
-			onProgress("BRO", "error")
+			onProgress("BRO", "error", nil)
 		}
 	})
 
 	// Air Quality
-	run(func() {
+	runTask(func() {
 		if airQuality, err := pa.apiClient.FetchAirQualityData(ctx, cfg, lat, lon); err == nil {
 			data.AirQuality = airQuality
 			safeAppendSource(mu, data, "Air Quality")
-			onProgress("Air Quality", "success")
+			onProgress("Air Quality", "success", airQuality)
 		} else {
 			safeRecordError(mu, data, "Luchtmeetnet Air Quality", err.Error())
-			onProgress("Air Quality", "error")
+			onProgress("Air Quality", "error", nil)
 		}
 	})
 
 	// Noise Pollution
-	run(func() {
+	runTask(func() {
 		if noise, err := pa.apiClient.FetchNoisePollutionData(ctx, cfg, lat, lon); err == nil {
 			data.NoisePollution = noise
 			safeAppendSource(mu, data, "Noise Register")
-			onProgress("Noise Register", "success")
+			onProgress("Noise Register", "success", noise)
 		} else {
 			safeRecordError(mu, data, "Noise Pollution", err.Error())
-			onProgress("Noise Register", "error")
+			onProgress("Noise Register", "error", nil)
 		}
 	})
-
-	wg.Wait()
 }
 
-func (pa *PropertyAggregator) fetchEnergyData(ctx context.Context, cfg *config.Config, mu *sync.Mutex, data *ComprehensivePropertyData, bagID string, onProgress func(string, string)) {
-	var wg sync.WaitGroup
-	run := func(fn func()) {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			defer func() {
-				if r := recover(); r != nil {
-					logutil.Debugf("[AGGREGATOR] Panic in fetchEnergyData: %v", r)
-				}
-			}()
-			fn()
-		}()
-	}
-
+func (pa *PropertyAggregator) fetchEnergyData(ctx context.Context, cfg *config.Config, mu *sync.Mutex, data *ComprehensivePropertyData, bagID string, onProgress func(string, string, interface{}), runTask func(func())) {
 	// Energy & Climate
-	run(func() {
+	runTask(func() {
 		if energy, err := pa.apiClient.FetchEnergyClimateData(ctx, cfg, bagID); err == nil {
 			data.EnergyClimate = energy
 			safeAppendSource(mu, data, "Altum Energy")
-			onProgress("Altum Energy", "success")
+			onProgress("Altum Energy", "success", energy)
 		} else {
 			safeRecordError(mu, data, "Altum Energy", err.Error())
-			onProgress("Altum Energy", "error")
+			onProgress("Altum Energy", "error", nil)
 		}
 	})
 
 	// Sustainability
-	run(func() {
+	runTask(func() {
 		if sustainability, err := pa.apiClient.FetchSustainabilityData(ctx, cfg, bagID); err == nil {
 			data.Sustainability = sustainability
 			safeAppendSource(mu, data, "Altum Sustainability")
-			onProgress("Altum Sustainability", "success")
+			onProgress("Altum Sustainability", "success", sustainability)
 		} else {
 			safeRecordError(mu, data, "Altum Sustainability", err.Error())
-			onProgress("Altum Sustainability", "error")
+			onProgress("Altum Sustainability", "error", nil)
 		}
 	})
-
-	wg.Wait()
 }
 
-func (pa *PropertyAggregator) fetchRiskData(ctx context.Context, cfg *config.Config, mu *sync.Mutex, data *ComprehensivePropertyData, lat, lon float64, neighborhoodCode string, onProgress func(string, string)) {
-	var wg sync.WaitGroup
-	run := func(fn func()) {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			defer func() {
-				if r := recover(); r != nil {
-					logutil.Debugf("[AGGREGATOR] Panic in fetchRiskData: %v", r)
-				}
-			}()
-			fn()
-		}()
-	}
-
+func (pa *PropertyAggregator) fetchRiskData(ctx context.Context, cfg *config.Config, mu *sync.Mutex, data *ComprehensivePropertyData, lat, lon float64, neighborhoodCode string, onProgress func(string, string, interface{}), runTask func(func())) {
 	// Flood Risk
-	run(func() {
+	runTask(func() {
 		if flood, err := pa.apiClient.FetchFloodRiskData(ctx, cfg, lat, lon); err == nil {
 			data.FloodRisk = flood
 			safeAppendSource(mu, data, "Flood Risk")
-			onProgress("Flood Risk", "success")
+			onProgress("Flood Risk", "success", flood)
 		} else {
 			safeRecordError(mu, data, "Flood Risk", err.Error())
-			onProgress("Flood Risk", "error")
+			onProgress("Flood Risk", "error", nil)
 		}
 	})
 
 	// Water Quality
-	run(func() {
+	runTask(func() {
 		if water, err := pa.apiClient.FetchWaterQualityData(ctx, cfg, lat, lon); err == nil {
 			data.WaterQuality = water
 			safeAppendSource(mu, data, "Digital Delta")
-			onProgress("Digital Delta", "success")
+			onProgress("Digital Delta", "success", water)
 		} else {
 			safeRecordError(mu, data, "Water Quality", err.Error())
-			onProgress("Digital Delta", "error")
+			onProgress("Digital Delta", "error", nil)
 		}
 	})
 
 	// Safety
-	run(func() {
+	runTask(func() {
 		if neighborhoodCode != "" {
 			if safety, err := pa.apiClient.FetchSafetyData(ctx, cfg, neighborhoodCode); err == nil {
 				data.Safety = safety
 				safeAppendSource(mu, data, "CBS Safety")
-				onProgress("CBS Safety", "success")
+				onProgress("CBS Safety", "success", safety)
 			} else {
 				safeRecordError(mu, data, "CBS Safety", err.Error())
-				onProgress("CBS Safety", "error")
+				onProgress("CBS Safety", "error", nil)
 			}
 		} else {
 			safeRecordError(mu, data, "CBS Safety", "neighborhood code not available")
-			onProgress("CBS Safety", "skipped")
+			onProgress("CBS Safety", "skipped", nil)
 		}
 	})
 
 	// Schiphol Flights
-	run(func() {
+	runTask(func() {
 		if flights, err := pa.apiClient.FetchSchipholFlightData(ctx, cfg, lat, lon); err == nil {
 			data.SchipholFlights = flights
 			safeAppendSource(mu, data, "Schiphol")
-			onProgress("Schiphol", "success")
+			onProgress("Schiphol", "success", flights)
 		} else {
 			safeRecordError(mu, data, "Schiphol", err.Error())
-			onProgress("Schiphol", "error")
+			onProgress("Schiphol", "error", nil)
 		}
 	})
-
-	wg.Wait()
 }
 
-func (pa *PropertyAggregator) fetchMobilityData(ctx context.Context, cfg *config.Config, mu *sync.Mutex, data *ComprehensivePropertyData, lat, lon float64, onProgress func(string, string)) {
-	var wg sync.WaitGroup
-	run := func(fn func()) {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			defer func() {
-				if r := recover(); r != nil {
-					logutil.Debugf("[AGGREGATOR] Panic in fetchMobilityData: %v", r)
-				}
-			}()
-			fn()
-		}()
-	}
-
+func (pa *PropertyAggregator) fetchMobilityData(ctx context.Context, cfg *config.Config, mu *sync.Mutex, data *ComprehensivePropertyData, lat, lon float64, onProgress func(string, string, interface{}), runTask func(func())) {
 	// Traffic Data
-	run(func() {
+	runTask(func() {
 		if traffic, err := pa.apiClient.FetchNDWTrafficData(ctx, cfg, lat, lon, 1000); err == nil {
 			data.TrafficData = traffic
 			safeAppendSource(mu, data, "NDW Traffic")
-			onProgress("NDW Traffic", "success")
+			onProgress("NDW Traffic", "success", traffic)
 		} else {
 			safeRecordError(mu, data, "NDW Traffic", err.Error())
-			onProgress("NDW Traffic", "error")
+			onProgress("NDW Traffic", "error", nil)
 		}
 	})
 
 	// Public Transport
-	run(func() {
+	runTask(func() {
 		if transport, err := pa.apiClient.FetchOpenOVData(ctx, cfg, lat, lon); err == nil {
 			data.PublicTransport = transport
 			safeAppendSource(mu, data, "OpenOV")
-			onProgress("OpenOV", "success")
+			onProgress("OpenOV", "success", transport)
 		} else {
 			safeRecordError(mu, data, "OpenOV", err.Error())
-			onProgress("OpenOV", "error")
+			onProgress("OpenOV", "error", nil)
 		}
 	})
 
 	// Parking
-	run(func() {
+	runTask(func() {
 		if parking, err := pa.apiClient.FetchParkingData(ctx, cfg, lat, lon, 500); err == nil {
 			data.ParkingData = parking
 			safeAppendSource(mu, data, "Parking")
-			onProgress("Parking", "success")
+			onProgress("Parking", "success", parking)
 		} else {
 			safeRecordError(mu, data, "Parking", err.Error())
-			onProgress("Parking", "error")
+			onProgress("Parking", "error", nil)
 		}
 	})
-
-	wg.Wait()
 }
 
-func (pa *PropertyAggregator) fetchDemographicsData(ctx context.Context, cfg *config.Config, mu *sync.Mutex, data *ComprehensivePropertyData, lat, lon float64, neighborhoodCode, regionCode string, onProgress func(string, string)) {
-	var wg sync.WaitGroup
-	run := func(fn func()) {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			defer func() {
-				if r := recover(); r != nil {
-					logutil.Debugf("[AGGREGATOR] Panic in fetchDemographicsData: %v", r)
-				}
-			}()
-			fn()
-		}()
-	}
-
+func (pa *PropertyAggregator) fetchDemographicsData(ctx context.Context, cfg *config.Config, mu *sync.Mutex, data *ComprehensivePropertyData, lat, lon float64, neighborhoodCode, regionCode string, onProgress func(string, string, interface{}), runTask func(func())) {
 	// Population
-	run(func() {
+	runTask(func() {
 		if population, err := pa.apiClient.FetchCBSPopulationData(ctx, cfg, lat, lon); err == nil {
 			data.Population = population
 			safeAppendSource(mu, data, "CBS Population")
-			onProgress("CBS Population", "success")
+			onProgress("CBS Population", "success", population)
 		} else {
 			safeRecordError(mu, data, "CBS Population", err.Error())
-			onProgress("CBS Population", "error")
+			onProgress("CBS Population", "error", nil)
 		}
 	})
 
 	// Square Stats
-	run(func() {
+	runTask(func() {
 		if squareStats, err := pa.apiClient.FetchCBSSquareStats(ctx, cfg, lat, lon); err == nil {
 			data.SquareStats = squareStats
 			safeAppendSource(mu, data, "CBS Square Stats")
-			onProgress("CBS Square Stats", "success")
+			onProgress("CBS Square Stats", "success", squareStats)
 		} else {
 			safeRecordError(mu, data, "CBS Square Stats", err.Error())
-			onProgress("CBS Square Stats", "error")
+			onProgress("CBS Square Stats", "error", nil)
 		}
 	})
 
 	// StatLine
-	run(func() {
+	runTask(func() {
 		if regionCode != "" {
 			if statLine, err := pa.apiClient.FetchCBSStatLineData(ctx, cfg, regionCode); err == nil {
 				data.StatLineData = statLine
 				safeAppendSource(mu, data, "CBS StatLine")
-				onProgress("CBS StatLine", "success")
+				onProgress("CBS StatLine", "success", statLine)
 			} else {
 				safeRecordError(mu, data, "CBS StatLine", err.Error())
-				onProgress("CBS StatLine", "error")
+				onProgress("CBS StatLine", "error", nil)
 			}
 		} else {
 			safeRecordError(mu, data, "CBS StatLine", "region code not available")
-			onProgress("CBS StatLine", "skipped")
+			onProgress("CBS StatLine", "skipped", nil)
 		}
 	})
 
 	// Legacy CBS Data
-	run(func() {
+	runTask(func() {
 		if neighborhoodCode != "" {
 			if cbsData, err := pa.apiClient.FetchCBSData(ctx, cfg, neighborhoodCode); err == nil {
 				data.CBSData = cbsData
 				safeAppendSource(mu, data, "CBS")
-				onProgress("CBS", "success")
+				onProgress("CBS", "success", cbsData)
 			} else {
 				safeRecordError(mu, data, "CBS", err.Error())
-				onProgress("CBS", "error")
+				onProgress("CBS", "error", nil)
 			}
 		} else {
 			safeRecordError(mu, data, "CBS", "neighborhood code not available")
-			onProgress("CBS", "skipped")
+			onProgress("CBS", "skipped", nil)
 		}
 	})
-
-	wg.Wait()
 }
 
-func (pa *PropertyAggregator) fetchInfrastructureData(ctx context.Context, cfg *config.Config, mu *sync.Mutex, data *ComprehensivePropertyData, lat, lon float64, onProgress func(string, string)) {
-	var wg sync.WaitGroup
-	run := func(fn func()) {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			defer func() {
-				if r := recover(); r != nil {
-					logutil.Debugf("[AGGREGATOR] Panic in fetchInfrastructureData: %v", r)
-				}
-			}()
-			fn()
-		}()
-	}
-
+func (pa *PropertyAggregator) fetchInfrastructureData(ctx context.Context, cfg *config.Config, mu *sync.Mutex, data *ComprehensivePropertyData, lat, lon float64, onProgress func(string, string, interface{}), runTask func(func())) {
 	// Green Spaces
-	run(func() {
+	runTask(func() {
 		if greenSpaces, err := pa.apiClient.FetchGreenSpacesData(ctx, cfg, lat, lon, 1000); err == nil {
 			data.GreenSpaces = greenSpaces
 			safeAppendSource(mu, data, "Green Spaces")
-			onProgress("Green Spaces", "success")
+			onProgress("Green Spaces", "success", greenSpaces)
 		} else {
 			safeRecordError(mu, data, "Green Spaces", err.Error())
-			onProgress("Green Spaces", "error")
+			onProgress("Green Spaces", "error", nil)
 		}
 	})
 
 	// Education
-	run(func() {
+	runTask(func() {
 		if education, err := pa.apiClient.FetchEducationData(ctx, cfg, lat, lon); err == nil {
 			data.Education = education
 			safeAppendSource(mu, data, "Education")
-			onProgress("Education", "success")
+			onProgress("Education", "success", education)
 		} else {
 			safeRecordError(mu, data, "Education", err.Error())
-			onProgress("Education", "error")
+			onProgress("Education", "error", nil)
 		}
 	})
 
 	// Building Permits
-	run(func() {
+	runTask(func() {
 		if permits, err := pa.apiClient.FetchBuildingPermitsData(ctx, cfg, lat, lon, 1000); err == nil {
 			data.BuildingPermits = permits
 			safeAppendSource(mu, data, "Building Permits")
-			onProgress("Building Permits", "success")
+			onProgress("Building Permits", "success", permits)
 		} else {
 			safeRecordError(mu, data, "Building Permits", err.Error())
-			onProgress("Building Permits", "error")
+			onProgress("Building Permits", "error", nil)
 		}
 	})
 
 	// Facilities
-	run(func() {
+	runTask(func() {
 		if facilities, err := pa.apiClient.FetchFacilitiesData(ctx, cfg, lat, lon); err == nil {
 			data.Facilities = facilities
 			safeAppendSource(mu, data, "Facilities")
-			onProgress("Facilities", "success")
+			onProgress("Facilities", "success", facilities)
 		} else {
 			safeRecordError(mu, data, "Facilities", err.Error())
-			onProgress("Facilities", "error")
+			onProgress("Facilities", "error", nil)
 		}
 	})
 
 	// Elevation (AHN)
-	run(func() {
+	runTask(func() {
 		if elevation, err := pa.apiClient.FetchAHNHeightData(ctx, pa.config, lat, lon); err == nil {
 			data.Elevation = elevation
 			safeAppendSource(mu, data, "AHN")
-			onProgress("AHN", "success")
+			onProgress("AHN", "success", elevation)
 		} else {
 			safeRecordError(mu, data, "AHN Elevation", err.Error())
-			onProgress("AHN", "error")
+			onProgress("AHN", "error", nil)
 		}
 	})
-
-	wg.Wait()
 }
 
-func (pa *PropertyAggregator) fetchPlatformData(ctx context.Context, cfg *config.Config, mu *sync.Mutex, data *ComprehensivePropertyData, lat, lon float64, onProgress func(string, string)) {
-	var wg sync.WaitGroup
-	run := func(fn func()) {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			defer func() {
-				if r := recover(); r != nil {
-					logutil.Debugf("[AGGREGATOR] Panic in fetchPlatformData: %v", r)
-				}
-			}()
-			fn()
-		}()
-	}
-
-	// PDOK Platform
-	run(func() {
-		if pdok, err := pa.apiClient.FetchPDOKPlatformData(ctx, pa.config, lat, lon); err == nil {
+func (pa *PropertyAggregator) fetchPlatformData(ctx context.Context, cfg *config.Config, mu *sync.Mutex, data *ComprehensivePropertyData, lat, lon float64, onProgress func(string, string, interface{}), runTask func(func())) {
+	// PDOK
+	runTask(func() {
+		if pdok, err := pa.apiClient.FetchPDOKPlatformData(ctx, cfg, lat, lon); err == nil {
 			data.PDOKData = pdok
 			safeAppendSource(mu, data, "PDOK Platform")
-			onProgress("PDOK Platform", "success")
+			onProgress("PDOK Platform", "success", pdok)
 		} else {
 			safeRecordError(mu, data, "PDOK Platform", err.Error())
-			onProgress("PDOK Platform", "error")
+			onProgress("PDOK Platform", "error", nil)
 		}
 	})
 
-	// Stratopo Environment
-	run(func() {
-		if stratopo, err := pa.apiClient.FetchStratopoEnvironmentData(ctx, pa.config, lat, lon); err == nil {
+	// Stratopo
+	runTask(func() {
+		if stratopo, err := pa.apiClient.FetchStratopoEnvironmentData(ctx, cfg, lat, lon); err == nil {
 			data.StratopoEnvironment = stratopo
-			safeAppendSource(mu, data, "Stratopo")
-			onProgress("Stratopo", "success")
+			safeAppendSource(mu, data, "Stratopo Environment")
+			onProgress("Stratopo Environment", "success", stratopo)
 		} else {
-			safeRecordError(mu, data, "Stratopo", err.Error())
-			onProgress("Stratopo", "error")
+			safeRecordError(mu, data, "Stratopo Environment", err.Error())
+			onProgress("Stratopo Environment", "error", nil)
 		}
 	})
 
 	// Land Use
-	run(func() {
-		if landUse, err := pa.apiClient.FetchLandUseData(ctx, pa.config, lat, lon); err == nil {
+	runTask(func() {
+		if landUse, err := pa.apiClient.FetchLandUseData(ctx, cfg, lat, lon); err == nil {
 			data.LandUse = landUse
-			safeAppendSource(mu, data, "Land Use")
-			onProgress("Land Use", "success")
+			safeAppendSource(mu, data, "Land Use & Zoning")
+			onProgress("Land Use & Zoning", "success", landUse)
 		} else {
-			safeRecordError(mu, data, "Land Use", err.Error())
-			onProgress("Land Use", "error")
+			safeRecordError(mu, data, "Land Use & Zoning", err.Error())
+			onProgress("Land Use & Zoning", "error", nil)
 		}
 	})
-
-	wg.Wait()
 }
