@@ -156,10 +156,17 @@ func (h *SearchHandler) HandleSearchStream(w http.ResponseWriter, r *http.Reques
         <h5 class="title is-5">%s</h5>
         <p class="is-size-6"><strong>Coordinates:</strong> %.6f, %.6f</p>
         <p class="is-size-6"><strong>Postcode:</strong> %s | <strong>House Number:</strong> %s</p>
-		<div class="buttons mt-3">
-			<button class="button is-success is-small is-fullwidth" onclick="exportCSV()">Export CSV</button>
-            <button class="button is-info is-small is-fullwidth" onclick="openSettings()">
-                <span class="icon is-small"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 4.754a3.246 3.246 0 1 0 0 6.492 3.246 3.246 0 0 0 0-6.492zM5.754 8a2.246 2.246 0 1 1 4.492 0 2.246 2.246 0 0 1-4.492 0z"/><path d="M9.796 1.343c-.527-1.79-3.065-1.79-3.592 0l-.094.319a.873.873 0 0 1-1.255.52l-.292-.16c-1.64-.892-3.433.902-2.54 2.541l.159.292a.873.873 0 0 1-.52 1.255l-.319.094c-1.79.527-1.79 3.065 0 3.592l.319.094a.873.873 0 0 1 .52 1.255l-.16.292c-.892 1.64.901 3.434 2.541 2.54l.292-.159a.873.873 0 0 1 1.255.52l.094.319c.527 1.79 3.065 1.79 3.592 0l.094-.319a.873.873 0 0 1 1.255-.52l.292.16c1.64.893 3.434-.902 2.54-2.541l-.159-.292a.873.873 0 0 1 .52-1.255l.319-.094c1.79-.527 1.79-3.065 0-3.592l-.319-.094a.873.873 0 0 1-.52-1.255l.16-.292c.893-1.64-.902-3.433-2.541-2.54l-.292.159a.873.873 0 0 1-1.255-.52l-.094-.319z"/></svg></span>
+		<div class="address-buttons mt-3">
+			<button class="button is-success is-small" onclick="exportCSV()">
+				<span class="icon is-small"><i class="fas fa-file-csv"></i></span>
+				<span>Export CSV</span>
+			</button>
+			<button class="button is-warning is-small" onclick="refreshData()">
+				<span class="icon is-small"><i class="fas fa-sync-alt"></i></span>
+				<span>Refresh</span>
+			</button>
+            <button class="button is-info is-small" onclick="openSettings()">
+                <span class="icon is-small"><i class="fas fa-cog"></i></span>
                 <span>Settings</span>
             </button>
         </div>

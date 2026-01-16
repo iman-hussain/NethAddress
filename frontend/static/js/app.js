@@ -62,7 +62,7 @@ const AVAILABLE_APIS = {
 	]
 };
 
-const DEFAULT_ENABLED_APIS = [...AVAILABLE_APIS.free, ...AVAILABLE_APIS.freemium, ...AVAILABLE_APIS.premium];
+const DEFAULT_ENABLED_APIS = [...AVAILABLE_APIS.free]; // Only free APIs by default
 
 // Apply the current theme to the document
 function applyTheme() {
@@ -181,11 +181,11 @@ document.addEventListener('DOMContentLoaded', function () {
 					tileSize: 256,
 					attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
 				},
-				'stamen-labels': {
+				'carto-labels': {
 					type: 'raster',
-					tiles: ['https://tiles.stadiamaps.com/tiles/stamen_terrain_labels/{z}/{x}/{y}.png'],
+					tiles: ['https://basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}.png'],
 					tileSize: 256,
-					attribution: 'Labels &copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://stamen.com/">Stamen Design</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+					attribution: 'Labels &copy; <a href="https://carto.com/">CARTO</a>'
 				},
 				'esri-reference': {
 					type: 'raster',
@@ -663,11 +663,11 @@ document.addEventListener('DOMContentLoaded', function () {
 					tileSize: 256,
 					attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community'
 				},
-				'stamen-labels': {
+				'carto-labels': {
 					type: 'raster',
-					tiles: ['https://tiles.stadiamaps.com/tiles/stamen_terrain_labels/{z}/{x}/{y}.png'],
+					tiles: ['https://basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}.png'],
 					tileSize: 256,
-					attribution: 'Labels &copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://stamen.com/">Stamen Design</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+					attribution: 'Labels &copy; <a href="https://carto.com/">CARTO</a>'
 				},
 				'esri-reference': {
 					type: 'raster',
@@ -694,7 +694,7 @@ document.addEventListener('DOMContentLoaded', function () {
 				{
 					id: 'labels-overlay',
 					type: 'raster',
-					source: 'stamen-labels',
+					source: 'carto-labels',
 					minzoom: 0,
 					maxzoom: 19
 				}
@@ -703,18 +703,18 @@ document.addEventListener('DOMContentLoaded', function () {
 		terrain: {
 			version: 8,
 			sources: {
-				'stamen-terrain': {
+				'carto-voyager': {
 					type: 'raster',
-					tiles: ['https://tiles.stadiamaps.com/tiles/stamen_terrain/{z}/{x}/{y}.png'],
+					tiles: ['https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'],
 					tileSize: 256,
-					attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://stamen.com/">Stamen Design</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+					attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 				}
 			},
 			layers: [
 				{
 					id: 'terrain',
 					type: 'raster',
-					source: 'stamen-terrain',
+					source: 'carto-voyager',
 					minzoom: 0,
 					maxzoom: 18
 				}
@@ -743,18 +743,18 @@ document.addEventListener('DOMContentLoaded', function () {
 		watercolor: {
 			version: 8,
 			sources: {
-				'stamen-watercolor': {
+				'carto-positron': {
 					type: 'raster',
-					tiles: ['https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg'],
+					tiles: ['https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'],
 					tileSize: 256,
-					attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://stamen.com/">Stamen Design</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+					attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
 				}
 			},
 			layers: [
 				{
 					id: 'watercolor',
 					type: 'raster',
-					source: 'stamen-watercolor',
+					source: 'carto-positron',
 					minzoom: 0,
 					maxzoom: 18
 				}

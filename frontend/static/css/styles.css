@@ -588,6 +588,29 @@ body {
 	border-color: var(--primary-hover);
 }
 
+/* Address Header Buttons - Responsive Layout */
+.address-buttons {
+	display: flex;
+	flex-direction: row;
+	gap: 0.5rem;
+	flex-wrap: wrap;
+}
+
+.address-buttons .button {
+	flex: 1 1 auto;
+	min-width: 100px;
+}
+
+@media screen and (max-width: 768px) {
+	.address-buttons {
+		flex-direction: column;
+	}
+
+	.address-buttons .button {
+		width: 100%;
+	}
+}
+
 /* AI Summary Card - Double wide, scrollable */
 
 /* AI Summary Card - Double wide, scrollable */
