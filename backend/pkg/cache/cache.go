@@ -1,9 +1,8 @@
 package cache
 
 import (
-	"bytes"
 	"context"
-	"encoding/gob"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -39,6 +38,7 @@ func NewCacheService(redisURL string) (*CacheService, error) {
 }
 
 // Get retrieves a value from cache
+// Self-healing: returns cache miss for legacy gob-encoded entries, forcing fresh fetch
 func (cs *CacheService) Get(key string, dest interface{}) error {
 	val, err := cs.client.Get(cs.ctx, key).Result()
 	if err == redis.Nil {
@@ -48,9 +48,10 @@ func (cs *CacheService) Get(key string, dest interface{}) error {
 		return fmt.Errorf("cache get error: %w", err)
 	}
 
-	b := bytes.NewBuffer([]byte(val))
-	if err := gob.NewDecoder(b).Decode(dest); err != nil {
-		return fmt.Errorf("failed to decode cached value (gob): %w", err)
+	if err := json.Unmarshal([]byte(val), dest); err != nil {
+		// Self-healing: treat decode failures (e.g. legacy gob data) as cache miss
+		// This forces a fresh fetch which will overwrite with valid JSON
+		return fmt.Errorf("key not found: %s", key)
 	}
 
 	return nil
@@ -58,12 +59,12 @@ func (cs *CacheService) Get(key string, dest interface{}) error {
 
 // Set stores a value in cache with TTL
 func (cs *CacheService) Set(key string, value interface{}, ttl time.Duration) error {
-	var b bytes.Buffer
-	if err := gob.NewEncoder(&b).Encode(value); err != nil {
-		return fmt.Errorf("failed to encode value (gob): %w", err)
+	data, err := json.Marshal(value)
+	if err != nil {
+		return fmt.Errorf("failed to encode value (json): %w", err)
 	}
 
-	if err := cs.client.Set(cs.ctx, key, b.Bytes(), ttl).Err(); err != nil {
+	if err := cs.client.Set(cs.ctx, key, data, ttl).Err(); err != nil {
 		return fmt.Errorf("cache set error: %w", err)
 	}
 

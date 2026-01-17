@@ -120,44 +120,54 @@ window.toggleTransparency = function () {
 
 // Load stored preferences with migration logic
 function loadStoredSettings() {
-	// Load 'reduceTransparency'
-	// Default to true (Frosted Glass) if not set. 'true' means frosted/opaque.
-	const storedTrans = localStorage.getItem('reduceTransparency');
-	if (storedTrans === null) {
-		reduceTransparency = true;
-	} else {
-		reduceTransparency = storedTrans === 'true';
-	}
+	try {
+		// Check for v2 migration (Liquid Glass default + Free APIs reset)
+		const migratedV2 = localStorage.getItem('settings_migrated_v2');
 
-	if (reduceTransparency) {
-		document.body.classList.add('reduce-transparency');
-	} else {
-		document.body.classList.remove('reduce-transparency');
-	}
+		if (!migratedV2) {
+			console.log('Migrating settings to v2 (Liquid Glass + Free APIs reset)');
+			// Default to Liquid Glass (reduceTransparency=false)
+			reduceTransparency = false;
+			localStorage.setItem('reduceTransparency', 'false');
 
-	// Load 'enabledAPIs'
-	const storedAPIs = localStorage.getItem('enabledAPIs');
-	// Check for migration flag
-	const migrated = localStorage.getItem('settings_migrated_v1');
-
-	if (!migrated) {
-		console.log('Migrating settings to v1 (Free APIs default)');
-		// Force default to Free APIs only
-		enabledAPIs = new Set(DEFAULT_ENABLED_APIS.map(a => a.name));
-		// Save immediately
-		localStorage.setItem('enabledAPIs', JSON.stringify([...enabledAPIs]));
-		localStorage.setItem('settings_migrated_v1', 'true');
-	} else if (storedAPIs) {
-		try {
-			const parsed = JSON.parse(storedAPIs);
-			enabledAPIs = new Set(parsed);
-		} catch (e) {
-			console.error('Failed to parse stored APIs, reverting to default', e);
+			// Force reset to Free APIs only to fix stale/corrupted enabledAPIs
 			enabledAPIs = new Set(DEFAULT_ENABLED_APIS.map(a => a.name));
+			localStorage.setItem('enabledAPIs', JSON.stringify([...enabledAPIs]));
+
+			// Mark migration complete
+			localStorage.setItem('settings_migrated_v2', 'true');
+		} else {
+			// Load 'reduceTransparency' (default to false for Liquid Glass if unset)
+			const storedTrans = localStorage.getItem('reduceTransparency');
+			reduceTransparency = storedTrans === 'true';
+
+			// Load 'enabledAPIs'
+			const storedAPIs = localStorage.getItem('enabledAPIs');
+			if (storedAPIs) {
+				try {
+					const parsed = JSON.parse(storedAPIs);
+					enabledAPIs = new Set(parsed);
+				} catch (e) {
+					console.error('Failed to parse stored APIs, reverting to default', e);
+					enabledAPIs = new Set(DEFAULT_ENABLED_APIS.map(a => a.name));
+				}
+			} else {
+				enabledAPIs = new Set(DEFAULT_ENABLED_APIS.map(a => a.name));
+			}
 		}
-	} else {
-		// No stored settings, use default
+
+		// Apply transparency class
+		if (reduceTransparency) {
+			document.body.classList.add('reduce-transparency');
+		} else {
+			document.body.classList.remove('reduce-transparency');
+		}
+	} catch (e) {
+		// Gracefully handle localStorage being disabled/blocked
+		console.warn('localStorage unavailable, using in-memory defaults', e);
+		reduceTransparency = false;
 		enabledAPIs = new Set(DEFAULT_ENABLED_APIS.map(a => a.name));
+		document.body.classList.remove('reduce-transparency');
 	}
 
 	// Load user keys
@@ -494,13 +504,11 @@ document.addEventListener('DOMContentLoaded', function () {
 				}
 
 				if (lat !== undefined && lon !== undefined) {
-					if (window.setPropertyLocation) {
-						try {
-							// setPropertyLocation expects [lon, lat] array (GeoJSON format)
-							window.setPropertyLocation([lon, lat]);
-						} catch (mapErr) {
-							console.error('Error updating map location:', mapErr);
-						}
+					try {
+						// setPropertyLocation expects [lon, lat] array (GeoJSON format)
+						setPropertyLocation([lon, lat]);
+					} catch (mapErr) {
+						console.error('Error updating map location:', mapErr);
 					}
 				} else {
 					console.warn('Invalid or missing coordinates in response:', coords);
