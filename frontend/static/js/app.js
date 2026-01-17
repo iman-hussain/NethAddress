@@ -29,6 +29,7 @@ const AVAILABLE_APIS = {
 		{ name: 'BAG Address' },
 		{ name: 'KNMI Solar' },
 		{ name: 'CBS Square Statistics' },
+		{ name: 'CBS StatLine' },
 		{ name: 'BRO Soil Map' },
 		{ name: 'NDW Traffic' },
 		{ name: 'Flood Risk' },
@@ -38,7 +39,8 @@ const AVAILABLE_APIS = {
 		{ name: 'AHN Height Model' },
 		{ name: 'Monument Status' },
 		{ name: 'PDOK Platform' },
-		{ name: 'Land Use & Zoning' }
+		{ name: 'Land Use & Zoning' },
+		{ name: 'Gemini AI' }
 	],
 	freemium: [
 		{ name: 'Noise Pollution' },
@@ -470,8 +472,6 @@ document.addEventListener('DOMContentLoaded', function () {
 		};
 
 		// Handle full result payload (sent on cache hit or stream completion)
-		// Handle full result payload (sent on cache hit or stream completion)
-		// Handle full result payload (sent on cache hit or stream completion)
 		evtSource.addEventListener('data', function (event) {
 			try {
 				const response = JSON.parse(event.data);
@@ -496,7 +496,8 @@ document.addEventListener('DOMContentLoaded', function () {
 				if (lat !== undefined && lon !== undefined) {
 					if (window.setPropertyLocation) {
 						try {
-							window.setPropertyLocation(lat, lon);
+							// setPropertyLocation expects [lon, lat] array (GeoJSON format)
+							window.setPropertyLocation([lon, lat]);
 						} catch (mapErr) {
 							console.error('Error updating map location:', mapErr);
 						}
@@ -508,15 +509,14 @@ document.addEventListener('DOMContentLoaded', function () {
 				if (response.geoJSON) window.currentGeoJSON = response.geoJSON;
 
 				// 2. Synthetic BAG Data Mapping
-				// If bagData is missing but root Address/Coordinates exist, construct it.
-				if (!response.bagData && response.Address) {
+				// If bagData is missing but root address/coordinates exist, construct it.
+				if (!response.bagData && response.address) {
 					response.bagData = {
-						address: response.Address,
-						coordinates: response.Coordinates,
-						bagID: response.BagID || response.bagID,
-						// Add any other BAG specific fields if they exist at root
-						yearBuilt: response.YearBuilt,
-						surfaceArea: response.SurfaceArea
+						address: response.address,
+						coordinates: response.coordinates,
+						bagID: response.bagId,
+						yearBuilt: response.yearBuilt,
+						surfaceArea: response.surfaceArea
 					};
 				}
 
@@ -549,7 +549,7 @@ document.addEventListener('DOMContentLoaded', function () {
 					'parkingData': 'Parking Availability',
 					'facilities': 'Facilities & Amenities',
 					'education': 'Education Facilities',
-					'greenSpaces': 'GreenSpaces',
+					'greenSpaces': 'Green Spaces',
 					'energyClimate': 'Altum Energy & Climate',
 					'sustainability': 'Altum Sustainability',
 					'population': 'CBS Population',
@@ -682,25 +682,6 @@ document.addEventListener('DOMContentLoaded', function () {
 			<div id="skeleton-header" class="box glass-liquid mb-4" data-target="header">
 				<div class="skeleton-line" style="width: 50%; height: 2rem; margin-bottom: 0.5rem;"></div>
 				<div class="skeleton-line" style="width: 30%;"></div>
-			</div>
-		`;
-
-		// Add AI Summary placeholder (Always visible if feature enabled, or just always)
-		html += `
-			<div class="box glass-liquid mb-5 ai-summary-card" data-api-name="Gemini AI">
-				<div class="columns is-vcentered mb-2">
-					<div class="column">
-						<h4 class="title is-5"><i class="fas fa-sparkles shimmer-text"></i> AI Insights</h4>
-					</div>
-				</div>
-				<div class="content">
-					 <div class="skeleton-text-block">
-						<div class="skeleton-line" style="width: 90%; margin-bottom: 0.5rem;"></div>
-						<div class="skeleton-line" style="width: 95%; margin-bottom: 0.5rem;"></div>
-						<div class="skeleton-line" style="width: 85%;"></div>
-					 </div>
-					 <p class="is-size-7 has-text-grey mt-2"><i class="fas fa-spinner fa-spin"></i> Generating comprehensive summary...</p>
-				</div>
 			</div>
 		`;
 
