@@ -6,6 +6,7 @@
 import { getRenderer, initializeRegistry } from './renderers/index.js';
 import { formatUnknownData } from './utils.js';
 import { setPropertyLocation, showPOIsOnMap, removePOILayer, clearAllPOILayers, isLayerActive } from './map-visualisations.js';
+import { AVAILABLE_APIS, DEFAULT_ENABLED_APIS, getTierConfig } from './state.js';
 
 // Application state
 let map;
@@ -19,54 +20,7 @@ let currentTheme = 'auto';
 let reduceTransparency = localStorage.getItem('reduceTransparency') === 'true'; // Load preference
 const ENABLE_LOGS = true;
 
-// Define available APIs and their tiers statically for settings
-const AVAILABLE_APIS = {
-	ai: [
-		{ name: 'Gemini AI' }
-	],
-	free: [
-		{ name: 'KNMI Weather' },
-		{ name: 'CBS Population' },
-		{ name: 'openOV Public Transport' },
-		{ name: 'Luchtmeetnet Air Quality' },
-		{ name: 'BAG Address' },
-		{ name: 'KNMI Solar' },
-		{ name: 'CBS Square Statistics' },
-		{ name: 'CBS StatLine' },
-		{ name: 'BRO Soil Map' },
-		{ name: 'NDW Traffic' },
-		{ name: 'Flood Risk' },
-		{ name: 'Green Spaces' },
-		{ name: 'Education Facilities' },
-		{ name: 'Facilities & Amenities' },
-		{ name: 'AHN Height Model' },
-		{ name: 'Monument Status' },
-		{ name: 'PDOK Platform' },
-		{ name: 'Land Use & Zoning' }
-	],
-	freemium: [
-		{ name: 'Noise Pollution' },
-		{ name: 'WUR Soil Physicals' },
-		{ name: 'Soil Quality' },
-		{ name: 'Parking Availability' },
-		{ name: 'Digital Delta Water Quality' },
-		{ name: 'CBS Safety Experience' },
-		{ name: 'Building Permits' }
-	],
-	premium: [
-		{ name: 'Kadaster Object Info' },
-		{ name: 'Altum WOZ' },
-		{ name: 'Matrixian Property Value+' },
-		{ name: 'Altum Transactions' },
-		{ name: 'SkyGeo Subsidence' },
-		{ name: 'Altum Energy & Climate' },
-		{ name: 'Altum Sustainability' },
-		{ name: 'Schiphol Flight Noise' },
-		{ name: 'Stratopo Environment' }
-	]
-};
-
-const DEFAULT_ENABLED_APIS = [...AVAILABLE_APIS.ai, ...AVAILABLE_APIS.free]; // AI + Free APIs by default
+// AVAILABLE_APIS and DEFAULT_ENABLED_APIS are now imported from state.js
 
 // Apply the current theme to the document
 function applyTheme() {
@@ -492,16 +446,7 @@ document.addEventListener('DOMContentLoaded', function () {
 		window.currentEventSource = evtSource;
 		window.tempStreamData = null; // Reset temp data
 
-		// Listen for optimized data event (JSON)
-		evtSource.addEventListener('data', function (event) {
-			try {
-				window.tempStreamData = JSON.parse(event.data);
-			} catch (e) {
-				console.error('Error parsing data event:', e);
-			}
-		});
-
-		// Listen for partial updates
+		// Listen for partial updates (streamed one-by-one as they complete)
 		evtSource.addEventListener('update', function (event) {
 			try {
 				const update = JSON.parse(event.data);
@@ -512,7 +457,6 @@ document.addEventListener('DOMContentLoaded', function () {
 					console.warn('Error received for:', update.source);
 					markResultCardError(update.source);
 				}
-				// Also update progress if needed, though we moved away from the bar
 			} catch (e) {
 				console.error('Error parsing update event:', e);
 			}
@@ -527,6 +471,8 @@ document.addEventListener('DOMContentLoaded', function () {
 			try {
 				const response = JSON.parse(event.data);
 				window.currentResponse = response;
+
+				console.log('Received full data payload. Processing apiResults...');
 
 				// 1. Fix Map Location (Robust parsing)
 				let lat, lon;
@@ -557,63 +503,28 @@ document.addEventListener('DOMContentLoaded', function () {
 
 				if (response.geoJSON) window.currentGeoJSON = response.geoJSON;
 
-				// 2. Synthetic BAG Data Mapping
-				// If bagData is missing but root address/coordinates exist, construct it.
-				if (!response.bagData && response.address) {
-					response.bagData = {
-						address: response.address,
-						coordinates: response.coordinates,
-						bagID: response.bagId,
-						yearBuilt: response.yearBuilt,
-						surfaceArea: response.surfaceArea
-					};
+				// 2. Process apiResults (the actual structure from backend)
+				// Backend sends: { apiResults: { free: [...], freemium: [...], premium: [...] } }
+				// Each item has: { name: "API Name", status: "success|error|not_configured", data: {...} }
+				if (response.apiResults) {
+					const allResults = [
+						...(response.apiResults.free || []),
+						...(response.apiResults.freemium || []),
+						...(response.apiResults.premium || [])
+					];
+
+					allResults.forEach(result => {
+						if (result.status === 'success' && result.data) {
+							updateResultCard(result.name, result.data);
+						} else if (result.status === 'error') {
+							markResultCardError(result.name);
+						} else if (result.status === 'not_configured') {
+							markResultCardNotConfigured(result.name);
+						}
+					});
 				}
 
-				// 3. Map Struct Fields to API Names for Cards
-				const mapping = {
-					'weather': 'KNMI Weather',
-					'solarPotential': 'KNMI Solar',
-					'airQuality': 'Luchtmeetnet Air Quality',
-					'noisePollution': 'Noise Pollution',
-					'floodRisk': 'Flood Risk',
-					'soilData': 'WUR Soil Physicals',
-					'soilQuality': 'Soil Quality',
-					'broSoilMap': 'BRO Soil Map',
-					'subsidence': 'SkyGeo Subsidence',
-					'waterQuality': 'Digital Delta Water Quality',
-					'elevation': 'AHN Height Model',
-					'schipholFlights': 'Schiphol Flight Noise',
-					'stratopoEnvironment': 'Stratopo Environment',
-					'bagData': 'BAG Address',
-					'wozData': 'Altum WOZ',
-					'kadasterInfo': 'Kadaster Object Info',
-					'marketValuation': 'Matrixian Property Value+',
-					'transactionHistory': 'Altum Transactions',
-					'landUse': 'Land Use & Zoning',
-					'pdokData': 'PDOK Platform',
-					'monumentStatus': 'Monument Status',
-					'buildingPermits': 'Building Permits',
-					'publicTransport': 'openOV Public Transport',
-					'trafficData': 'NDW Traffic',
-					'parkingData': 'Parking Availability',
-					'facilities': 'Facilities & Amenities',
-					'education': 'Education Facilities',
-					'greenSpaces': 'Green Spaces',
-					'energyClimate': 'Altum Energy & Climate',
-					'sustainability': 'Altum Sustainability',
-					'population': 'CBS Population',
-					'squareStats': 'CBS Square Statistics',
-					'statLineData': 'CBS StatLine',
-					'safety': 'CBS Safety Experience'
-				};
-
-				console.log('Received full data payload. Processing fields...');
-
-				Object.entries(mapping).forEach(([field, apiName]) => {
-					if (response[field]) updateResultCard(apiName, response[field]);
-				});
-
-				// Handle AI Summary explicitly (Safeguard)
+				// 3. Handle AI Summary explicitly (top-level field)
 				if (response.aiSummary) {
 					updateResultCard('Gemini AI', response.aiSummary);
 				} else if (response.AISummary) {
@@ -891,6 +802,24 @@ document.addEventListener('DOMContentLoaded', function () {
 			if (icon) {
 				icon.classList.remove('fa-spin', 'fa-pulse', 'fa-circle-notch', 'fa-sparkles');
 				icon.classList.add('fa-clock', 'has-text-warning');
+			}
+		}
+	}
+
+	function markResultCardNotConfigured(sourceName) {
+		const cardContainer = document.querySelector(`[data-api-name="${sourceName}"]`);
+		if (cardContainer) {
+			const content = cardContainer.querySelector('.card-content');
+			if (content) {
+				content.innerHTML = `<div class="notification is-light" style="background: rgba(128,128,128,0.1);">
+					<span class="icon"><i class="fas fa-key"></i></span>
+					<span>API key required</span>
+				</div>`;
+			}
+			const icon = cardContainer.querySelector('.fa-spin') || cardContainer.querySelector('.fa-pulse');
+			if (icon) {
+				icon.classList.remove('fa-spin', 'fa-pulse', 'fa-circle-notch', 'fa-sparkles');
+				icon.classList.add('fa-lock', 'has-text-grey');
 			}
 		}
 	}
