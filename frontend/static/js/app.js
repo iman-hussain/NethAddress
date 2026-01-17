@@ -120,6 +120,45 @@ window.toggleTransparency = function () {
 	}
 };
 
+// Map to store raw JSON data for each API
+const apiRawDataMap = new Map();
+
+// Toggle raw JSON viewer for a specific API result
+window.toggleRawJSON = function (apiName) {
+	const card = document.querySelector(`[data-api-name="${apiName}"]`);
+	if (!card) return;
+
+	const jsonSection = card.querySelector('.card-raw-json');
+	if (!jsonSection) return;
+
+	// Toggle visibility
+	const isHidden = jsonSection.style.display === 'none';
+	jsonSection.style.display = isHidden ? 'block' : 'none';
+
+	// Update button appearance
+	const btn = card.querySelector('.card-menu-btn');
+	if (btn) {
+		btn.classList.toggle('active', isHidden);
+	}
+};
+
+// Store raw API data to display in JSON viewer
+window.storeRawJSON = function (apiName, data) {
+	apiRawDataMap.set(apiName, data);
+	const card = document.querySelector(`[data-api-name="${apiName}"]`);
+	if (card) {
+		const jsonContent = card.querySelector('.json-content');
+		if (jsonContent) {
+			try {
+				const formatted = JSON.stringify(data, null, 2);
+				jsonContent.textContent = formatted;
+			} catch (e) {
+				jsonContent.textContent = '{ "error": "Could not parse JSON" }';
+			}
+		}
+	}
+};
+
 // Load stored preferences with migration logic
 function loadStoredSettings() {
 	try {
@@ -701,26 +740,35 @@ document.addEventListener('DOMContentLoaded', function () {
 			const enabledInTier = tier.apis.filter(api => enabledAPIs.has(api.name));
 			if (enabledInTier.length === 0) return; // Skip empty tiers
 
+			// AI Summary tier should span full width, others are 2-column
+			const gridClass = tier.tier === 'ai' ? 'api-results-grid-full' : 'api-results-grid';
+
 			html += `
 				<div class="tier-section mb-5">
 					<div class="section-header">
 						<span class="section-icon">${tier.name.split(' ')[0]}</span>
 						<h4>${tier.name.split(' ').slice(1).join(' ')}</h4>
 					</div>
-					<div class="api-results-grid">
+					<div class="${gridClass}">
 			`;
 
 			enabledInTier.forEach(api => {
 				html += `
 					<div class="result-card glass-liquid" data-api-name="${api.name}">
 						<div class="card-header-title">
-							<span class="icon mr-2"><i class="fas fa-circle-notch fa-spin"></i></span>
-							${api.name}
+							<span style="display: flex; align-items: center; gap: 0.5rem;">
+								<span class="icon mr-0"><i class="fas fa-circle-notch fa-spin"></i></span>
+								${api.name}
+							</span>
+							<button class="card-menu-btn" onclick="window.toggleRawJSON('${api.name}')" title="View raw JSON">⋯</button>
 						</div>
 						<div class="card-content">
 							<div class="skeleton-line" style="width: 100%; height: 1rem; margin-bottom: 0.5rem;"></div>
 							<div class="skeleton-line" style="width: 80%; height: 1rem; margin-bottom: 0.5rem;"></div>
 							<div class="skeleton-line" style="width: 60%; height: 1rem;"></div>
+						</div>
+						<div class="card-raw-json" style="display: none;">
+							<pre><code class="json-content">{}</code></pre>
 						</div>
 					</div>
 				`;
@@ -762,6 +810,9 @@ document.addEventListener('DOMContentLoaded', function () {
 		// Render the content
 		try {
 			let renderedHTML = renderer(data);
+
+			// Store raw JSON data for the menu button to use
+			window.storeRawJSON(sourceName, data);
 
 			// Append Raw JSON Toggle
 			const randomId = 'json-' + Math.random().toString(36).substr(2, 9);

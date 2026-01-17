@@ -34,6 +34,42 @@ func NewApiClient(client *http.Client, cfg *config.Config) *ApiClient {
 	}
 }
 
+// retryWithBackoff executes fn with exponential backoff retries on failure.
+// Retries up to maxAttempts times with the first retry after retryDelay.
+// Returns early if context is cancelled or if fn succeeds.
+func (c *ApiClient) retryWithBackoff(ctx context.Context, apiName string, maxAttempts int, initialDelay time.Duration, fn func(context.Context) error) error {
+	var lastErr error
+	delay := initialDelay
+
+	for attempt := 1; attempt <= maxAttempts; attempt++ {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		err := fn(ctx)
+		if err == nil {
+			return nil // Success on this attempt
+		}
+
+		lastErr = err
+		if attempt < maxAttempts {
+			logutil.Debugf("[%s] Attempt %d failed (%v), retrying in %v...", apiName, attempt, err, delay)
+			select {
+			case <-time.After(delay):
+				// Exponential backoff: double the delay for next attempt
+				delay = delay * 2
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
+	}
+
+	logutil.Debugf("[%s] All %d attempts failed, last error: %v", apiName, maxAttempts, lastErr)
+	return lastErr
+}
+
 func (c *ApiClient) FetchBAGData(ctx context.Context, postcode, number string) (*models.BAGData, error) {
 	postcode = strings.ToUpper(strings.TrimSpace(postcode))
 	number = strings.TrimSpace(number)

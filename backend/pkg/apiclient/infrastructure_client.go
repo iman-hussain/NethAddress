@@ -7,6 +7,7 @@ import (
 	"math"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/logutil"
@@ -77,7 +78,7 @@ func extractPolygonCentroid(coordsRaw json.RawMessage, geomType string) (float64
 	return 0, 0, 0
 }
 
-// FetchGreenSpacesData retrieves parks and green areas using PDOK BGT API
+// FetchGreenSpacesData retrieves parks and green areas using PDOK BGT API with retry logic
 // Documentation: https://api.pdok.nl/lv/bgt/ogc/v1
 func (c *ApiClient) FetchGreenSpacesData(ctx context.Context, cfg *config.Config, lat, lon float64, radius int) (*models.GreenSpacesData, error) {
 	// Always use PDOK BGT API default (free, no auth) - ignore config overrides which may have bad URLs
@@ -91,27 +92,44 @@ func (c *ApiClient) FetchGreenSpacesData(ctx context.Context, cfg *config.Config
 	url := fmt.Sprintf("%s/collections/begroeidterreindeel/items?bbox=%s&f=json&limit=50", baseURL, bbox)
 	logutil.Debugf("[GreenSpaces] Request URL: %s", url)
 
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		logutil.Debugf("[GreenSpaces] Request error: %v", err)
-		return emptyGreenSpacesData(), nil
-	}
-	req.Header.Set("Accept", "application/json")
+	// Attempt up to 3 times with 10-second initial delay between retries
+	var finalResp *http.Response
+	err := c.retryWithBackoff(ctx, "GreenSpaces", 3, 10*time.Second, func(retryCtx context.Context) error {
+		req, err := http.NewRequestWithContext(retryCtx, "GET", url, nil)
+		if err != nil {
+			logutil.Debugf("[GreenSpaces] Request error: %v", err)
+			return err
+		}
+		req.Header.Set("Accept", "application/json")
 
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		logutil.Debugf("[GreenSpaces] HTTP error: %v", err)
-		return emptyGreenSpacesData(), nil
-	}
-	defer resp.Body.Close()
+		resp, err := c.HTTP.Do(req)
+		if err != nil {
+			logutil.Debugf("[GreenSpaces] HTTP error: %v", err)
+			return err
+		}
 
-	if resp.StatusCode != 200 {
-		logutil.Debugf("[GreenSpaces] Non-200 status: %d", resp.StatusCode)
+		if resp.StatusCode != 200 {
+			resp.Body.Close()
+			logutil.Debugf("[GreenSpaces] Non-200 status: %d", resp.StatusCode)
+			return fmt.Errorf("HTTP %d", resp.StatusCode)
+		}
+
+		finalResp = resp
+		return nil
+	})
+
+	if err != nil {
+		logutil.Debugf("[GreenSpaces] Failed after retries: %v", err)
 		return emptyGreenSpacesData(), nil
 	}
+
+	if finalResp == nil {
+		return emptyGreenSpacesData(), nil
+	}
+	defer finalResp.Body.Close()
 
 	var apiResp models.BgtGreenResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+	if err := json.NewDecoder(finalResp.Body).Decode(&apiResp); err != nil {
 		logutil.Debugf("[GreenSpaces] Decode error: %v", err)
 		return emptyGreenSpacesData(), nil
 	}
@@ -270,7 +288,7 @@ func emptyGreenSpacesData() *models.GreenSpacesData {
 	}
 }
 
-// FetchEducationData retrieves school locations using OSM Overpass API
+// FetchEducationData retrieves school locations using OSM Overpass API with retry logic
 // Documentation: https://wiki.openstreetmap.org/wiki/Overpass_API
 func (c *ApiClient) FetchEducationData(ctx context.Context, cfg *config.Config, lat, lon float64) (*models.EducationData, error) {
 	// Use Overpass API to find schools (free, no auth required)
@@ -287,30 +305,47 @@ out center body qt 20;`, radius, lat, lon, radius, lat, lon)
 
 	logutil.Debugf("[Education] Querying Overpass API for schools near %.6f, %.6f", lat, lon)
 
-	// Send query as POST body (not query string)
-	reqBody := strings.NewReader("data=" + query)
-	req, err := http.NewRequestWithContext(ctx, "POST", overpassURL, reqBody)
-	if err != nil {
-		logutil.Debugf("[Education] Request error: %v", err)
-		return emptyEducationData(), nil
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Accept", "application/json")
+	// Attempt up to 3 times with 10-second initial delay between retries
+	var finalResp *http.Response
+	err := c.retryWithBackoff(ctx, "Education", 3, 10*time.Second, func(retryCtx context.Context) error {
+		// Send query as POST body (not query string)
+		reqBody := strings.NewReader("data=" + query)
+		req, err := http.NewRequestWithContext(retryCtx, "POST", overpassURL, reqBody)
+		if err != nil {
+			logutil.Debugf("[Education] Request error: %v", err)
+			return err
+		}
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.Header.Set("Accept", "application/json")
 
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		logutil.Debugf("[Education] HTTP error: %v", err)
-		return emptyEducationData(), nil
-	}
-	defer resp.Body.Close()
+		resp, err := c.HTTP.Do(req)
+		if err != nil {
+			logutil.Debugf("[Education] HTTP error: %v", err)
+			return err
+		}
 
-	if resp.StatusCode != 200 {
-		logutil.Debugf("[Education] Non-200 status: %d", resp.StatusCode)
+		if resp.StatusCode != 200 {
+			resp.Body.Close()
+			logutil.Debugf("[Education] Non-200 status: %d", resp.StatusCode)
+			return fmt.Errorf("HTTP %d", resp.StatusCode)
+		}
+
+		finalResp = resp
+		return nil
+	})
+
+	if err != nil {
+		logutil.Debugf("[Education] Failed after retries: %v", err)
 		return emptyEducationData(), nil
 	}
+
+	if finalResp == nil {
+		return emptyEducationData(), nil
+	}
+	defer finalResp.Body.Close()
 
 	var apiResp models.OverpassResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+	if err := json.NewDecoder(finalResp.Body).Decode(&apiResp); err != nil {
 		logutil.Debugf("[Education] Decode error: %v", err)
 		return emptyEducationData(), nil
 	}
@@ -435,7 +470,7 @@ func emptyEducationData() *models.EducationData {
 	}
 }
 
-// FetchBuildingPermitsData retrieves recent building activity
+// FetchBuildingPermitsData retrieves recent building activity with retry logic
 // Documentation: https://api.store (CBS Building Permits)
 func (c *ApiClient) FetchBuildingPermitsData(ctx context.Context, cfg *config.Config, lat, lon float64, radius int) (*models.BuildingPermitsData, error) {
 	// Return empty data if not configured
@@ -450,8 +485,32 @@ func (c *ApiClient) FetchBuildingPermitsData(ctx context.Context, cfg *config.Co
 	}
 
 	url := fmt.Sprintf("%s/permits?lat=%f&lon=%f&radius=%d&years=2", cfg.BuildingPermitsApiURL, lat, lon, radius)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+
+	// Attempt up to 3 times with 10-second initial delay between retries
+	var finalResp *http.Response
+	err := c.retryWithBackoff(ctx, "BuildingPermits", 3, 10*time.Second, func(retryCtx context.Context) error {
+		req, err := http.NewRequestWithContext(retryCtx, "GET", url, nil)
+		if err != nil {
+			return err
+		}
+		req.Header.Set("Accept", "application/json")
+
+		resp, err := c.HTTP.Do(req)
+		if err != nil {
+			return err
+		}
+
+		if resp.StatusCode != 200 {
+			resp.Body.Close()
+			return fmt.Errorf("HTTP %d", resp.StatusCode)
+		}
+
+		finalResp = resp
+		return nil
+	})
+
 	if err != nil {
+		logutil.Debugf("[BuildingPermits] Failed after retries: %v", err)
 		return &models.BuildingPermitsData{
 			TotalPermits:    0,
 			NewConstruction: 0,
@@ -461,10 +520,7 @@ func (c *ApiClient) FetchBuildingPermitsData(ctx context.Context, cfg *config.Co
 		}, nil
 	}
 
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
+	if finalResp == nil {
 		return &models.BuildingPermitsData{
 			TotalPermits:    0,
 			NewConstruction: 0,
@@ -473,20 +529,10 @@ func (c *ApiClient) FetchBuildingPermitsData(ctx context.Context, cfg *config.Co
 			GrowthTrend:     "Unknown",
 		}, nil
 	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return &models.BuildingPermitsData{
-			TotalPermits:    0,
-			NewConstruction: 0,
-			Renovations:     0,
-			Permits:         []models.BuildingPermit{},
-			GrowthTrend:     "Unknown",
-		}, nil
-	}
+	defer finalResp.Body.Close()
 
 	var result models.BuildingPermitsData
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := json.NewDecoder(finalResp.Body).Decode(&result); err != nil {
 		return &models.BuildingPermitsData{
 			TotalPermits:    0,
 			NewConstruction: 0,
@@ -499,7 +545,7 @@ func (c *ApiClient) FetchBuildingPermitsData(ctx context.Context, cfg *config.Co
 	return &result, nil
 }
 
-// FetchFacilitiesData retrieves nearby amenities using OSM Overpass API
+// FetchFacilitiesData retrieves nearby amenities using OSM Overpass API with retry logic
 // Documentation: https://wiki.openstreetmap.org/wiki/Overpass_API
 func (c *ApiClient) FetchFacilitiesData(ctx context.Context, cfg *config.Config, lat, lon float64) (*models.FacilitiesData, error) {
 	overpassURL := "https://overpass-api.de/api/interpreter"
@@ -523,30 +569,47 @@ out body qt 50;`, radius, lat, lon, radius, lat, lon, radius, lat, lon, radius, 
 
 	logutil.Debugf("[Facilities] Querying Overpass API for amenities near %.6f, %.6f", lat, lon)
 
-	// Send query as POST body (not query string)
-	reqBody := strings.NewReader("data=" + query)
-	req, err := http.NewRequestWithContext(ctx, "POST", overpassURL, reqBody)
-	if err != nil {
-		logutil.Debugf("[Facilities] Request error: %v", err)
-		return emptyFacilitiesData(), nil
-	}
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Accept", "application/json")
+	// Attempt up to 3 times with 10-second initial delay between retries
+	var finalResp *http.Response
+	err := c.retryWithBackoff(ctx, "Facilities", 3, 10*time.Second, func(retryCtx context.Context) error {
+		// Send query as POST body (not query string)
+		reqBody := strings.NewReader("data=" + query)
+		req, err := http.NewRequestWithContext(retryCtx, "POST", overpassURL, reqBody)
+		if err != nil {
+			logutil.Debugf("[Facilities] Request error: %v", err)
+			return err
+		}
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.Header.Set("Accept", "application/json")
 
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		logutil.Debugf("[Facilities] HTTP error: %v", err)
-		return emptyFacilitiesData(), nil
-	}
-	defer resp.Body.Close()
+		resp, err := c.HTTP.Do(req)
+		if err != nil {
+			logutil.Debugf("[Facilities] HTTP error: %v", err)
+			return err
+		}
 
-	if resp.StatusCode != 200 {
-		logutil.Debugf("[Facilities] Non-200 status: %d", resp.StatusCode)
+		if resp.StatusCode != 200 {
+			resp.Body.Close()
+			logutil.Debugf("[Facilities] Non-200 status: %d", resp.StatusCode)
+			return fmt.Errorf("HTTP %d", resp.StatusCode)
+		}
+
+		finalResp = resp
+		return nil
+	})
+
+	if err != nil {
+		logutil.Debugf("[Facilities] Failed after retries: %v", err)
 		return emptyFacilitiesData(), nil
 	}
+
+	if finalResp == nil {
+		return emptyFacilitiesData(), nil
+	}
+	defer finalResp.Body.Close()
 
 	var apiResp models.OverpassFacilitiesResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+	if err := json.NewDecoder(finalResp.Body).Decode(&apiResp); err != nil {
 		logutil.Debugf("[Facilities] Decode error: %v", err)
 		return emptyFacilitiesData(), nil
 	}

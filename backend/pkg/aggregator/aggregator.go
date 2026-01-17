@@ -298,7 +298,7 @@ func (pa *PropertyAggregator) AggregatePropertyDataWithOptions(ctx context.Conte
 					if data.SquareStats != nil {
 						reportProgress("CBS Square Statistics", "success", data.SquareStats)
 					}
-					if data.TrafficData != nil && len(data.TrafficData) > 0 {
+					if len(data.TrafficData) > 0 {
 						reportProgress("NDW Traffic", "success", data.TrafficData)
 					}
 					if data.PublicTransport != nil {
