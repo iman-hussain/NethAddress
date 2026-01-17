@@ -7,24 +7,24 @@
 const activeLayers = new Map(); // layerId -> { type, name, features }
 let propertyLocation = null; // [lng, lat] of the searched property
 
-// Colour scheme for different POI types
+// Colour scheme for different POI types - vibrant, high-contrast colours
 const POI_COLOURS = {
-    // Transport
-    'bus': '#22c55e',      // Green
-    'train': '#3b82f6',    // Blue
-    'tram': '#8b5cf6',     // Purple
-    'metro': '#f97316',    // Orange
+    // Transport - distinct, vibrant colours
+    'bus': '#16a34a',      // Green-600 (vivid green)
+    'train': '#2563eb',    // Blue-600 (strong blue)
+    'tram': '#7c3aed',     // Violet-600 (vivid purple)
+    'metro': '#ea580c',    // Orange-600 (bright orange)
     // Education
-    'primary': '#10b981',  // Emerald
-    'secondary': '#6366f1', // Indigo
-    'other-education': '#ec4899', // Pink
+    'primary': '#059669',  // Emerald-600
+    'secondary': '#4f46e5', // Indigo-600
+    'other-education': '#db2777', // Pink-600
     // Amenities
-    'dining': '#ef4444',   // Red
-    'healthcare': '#06b6d4', // Cyan
-    'retail': '#f59e0b',   // Amber
-    'leisure': '#a855f7',  // Purple
-    'sport': '#84cc16',    // Lime
-    'default': '#64748b'   // Slate
+    'dining': '#dc2626',   // Red-600 (bright red)
+    'healthcare': '#0891b2', // Cyan-600
+    'retail': '#d97706',   // Amber-600
+    'leisure': '#9333ea',  // Purple-600
+    'sport': '#65a30d',    // Lime-600
+    'default': '#475569'   // Slate-600
 };
 
 // Icons for markers (using simple circle with label)
@@ -154,49 +154,50 @@ export function showPOIsOnMap(layerId, displayName, pois, poiType = 'default') {
         }
     });
 
-    // Add dashed distance lines
+    // Add dashed distance lines - thicker and more visible
     map.addLayer({
         id: `${layerId}-lines`,
         type: 'line',
         source: `${layerId}-lines`,
         paint: {
             'line-color': colour,
-            'line-width': 2,
-            'line-dasharray': [2, 2],
-            'line-opacity': 0.7
+            'line-width': 3,
+            'line-dasharray': [4, 3],
+            'line-opacity': 0.85
         }
     });
 
-    // Add POI circle markers
+    // Add POI circle markers - larger and more prominent
     map.addLayer({
         id: `${layerId}-circles`,
         type: 'circle',
         source: `${layerId}-pois`,
         paint: {
-            'circle-radius': 10,
+            'circle-radius': 14,
             'circle-color': colour,
-            'circle-stroke-width': 2,
+            'circle-stroke-width': 3,
             'circle-stroke-color': '#ffffff',
-            'circle-opacity': 0.9
+            'circle-opacity': 0.95
         }
     });
 
-    // Add POI labels
+    // Add POI labels - larger and more readable
     map.addLayer({
         id: `${layerId}-labels`,
         type: 'symbol',
         source: `${layerId}-pois`,
         layout: {
             'text-field': ['get', 'name'],
-            'text-size': 11,
-            'text-offset': [0, 1.5],
+            'text-size': 12,
+            'text-offset': [0, 1.8],
             'text-anchor': 'top',
-            'text-max-width': 10
+            'text-max-width': 12,
+            'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold']
         },
         paint: {
             'text-color': '#1e293b',
             'text-halo-color': '#ffffff',
-            'text-halo-width': 1.5
+            'text-halo-width': 2
         }
     });
 

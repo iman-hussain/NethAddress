@@ -277,19 +277,52 @@ func (pa *PropertyAggregator) AggregatePropertyDataWithOptions(ctx context.Conte
 					data.BROSoilMap = cachedCtx.BROSoilMap
 					data.LandUse = cachedCtx.LandUse
 					data.PDOKData = cachedCtx.PDOKData
-					// Report progress for UI so counters update
-					// We fake a generic "Context" update or multiple?
-					// app.js counts "completed/total". If we skip, completed won't increase?
-					// Actually app.js total comes from data.total in progress event.
-					// aggregator.go calculates total based on ENABLED sources.
-					// If we skip fetch, we need to mark them as done?
-					// The 'complete' event eventually sends the full result.
-					// But specifically, the progress bar/text says "Loading data... (X/Y)".
-					// If we don't emit progress, X stays low.
-					// But we don't display a bar anymore, just "Loading data...".
-					// So it's fine.
-					reportProgress("Context Data", "success", "Loaded from cache")
 					mu.Unlock()
+
+					// Report progress for each cached data source so frontend updates cards
+					if data.Weather != nil {
+						reportProgress("KNMI Weather", "success", data.Weather)
+					}
+					if data.SolarPotential != nil {
+						reportProgress("KNMI Solar", "success", data.SolarPotential)
+					}
+					if data.AirQuality != nil {
+						reportProgress("Luchtmeetnet Air Quality", "success", data.AirQuality)
+					}
+					if data.NoisePollution != nil {
+						reportProgress("Noise Pollution", "success", data.NoisePollution)
+					}
+					if data.Population != nil {
+						reportProgress("CBS Population", "success", data.Population)
+					}
+					if data.SquareStats != nil {
+						reportProgress("CBS Square Statistics", "success", data.SquareStats)
+					}
+					if data.TrafficData != nil && len(data.TrafficData) > 0 {
+						reportProgress("NDW Traffic", "success", data.TrafficData)
+					}
+					if data.PublicTransport != nil {
+						reportProgress("openOV Public Transport", "success", data.PublicTransport)
+					}
+					if data.GreenSpaces != nil {
+						reportProgress("Green Spaces", "success", data.GreenSpaces)
+					}
+					if data.Education != nil {
+						reportProgress("Education Facilities", "success", data.Education)
+					}
+					if data.Facilities != nil {
+						reportProgress("Facilities & Amenities", "success", data.Facilities)
+					}
+					if data.BROSoilMap != nil {
+						reportProgress("BRO Soil Map", "success", data.BROSoilMap)
+					}
+					if data.LandUse != nil {
+						reportProgress("Land Use & Zoning", "success", data.LandUse)
+					}
+					if data.PDOKData != nil {
+						reportProgress("PDOK Platform", "success", data.PDOKData)
+					}
+
 					contextHit = true
 				}
 			}
@@ -365,8 +398,8 @@ func (pa *PropertyAggregator) AggregatePropertyDataWithOptions(ctx context.Conte
 		logutil.Warnf("[AGGREGATOR] Data collection timed out (30s); proceeding to AI summary with partial data")
 	}
 
-	// AI Summary (Sequential)
-	if aiSummary, err := pa.apiClient.GenerateLocationSummary(ctx, cfg, data); err == nil {
+	// AI Summary (Sequential) - Cache per postcode since it's based only on area data
+	if aiSummary, err := pa.getOrGenerateAISummary(ctx, cfg, data, postcode); err == nil {
 		data.AISummary = aiSummary
 		if aiSummary.Generated {
 			data.DataSources = append(data.DataSources, "Gemini AI")
@@ -388,7 +421,36 @@ func (pa *PropertyAggregator) AggregatePropertyDataWithOptions(ctx context.Conte
 	return data, nil
 }
 
-// safeAppend adds a source to DataSources in a thread-safe way
+// getOrGenerateAISummary retrieves AI summary from cache or generates it
+// AI summaries are cached per postcode since they're based only on area-level data
+func (pa *PropertyAggregator) getOrGenerateAISummary(ctx context.Context, cfg *config.Config, data *ComprehensivePropertyData, postcode string) (*models.GeminiSummary, error) {
+	if pa.cache != nil {
+		cacheKey := cache.CacheKey{}.AISummaryKey(postcode)
+		var cachedSummary models.GeminiSummary
+		if err := pa.cache.Get(cacheKey, &cachedSummary); err == nil {
+			logutil.Debugf("[AGGREGATOR] AI summary cache hit for postcode %s", postcode)
+			return &cachedSummary, nil
+		}
+	}
+
+	// Generate summary based on area-level data only
+	aiSummary, err := pa.apiClient.GenerateLocationSummary(ctx, cfg, data)
+	if err != nil {
+		return aiSummary, err
+	}
+
+	// Cache the summary per postcode
+	if pa.cache != nil && aiSummary != nil && aiSummary.Generated {
+		cacheKey := cache.CacheKey{}.AISummaryKey(postcode)
+		if err := pa.cache.Set(cacheKey, aiSummary, cache.PropertyDataTTL); err != nil {
+			logutil.Warnf("[AGGREGATOR] Failed to cache AI summary: %v", err)
+		}
+	}
+
+	return aiSummary, nil
+}
+
+// safeAppendSource adds a source to DataSources in a thread-safe way
 func safeAppendSource(mu *sync.Mutex, data *ComprehensivePropertyData, source string) {
 	mu.Lock()
 	defer mu.Unlock()

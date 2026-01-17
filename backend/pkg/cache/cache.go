@@ -189,6 +189,12 @@ func (ck CacheKey) ContextKey(postcode string) string {
 	return fmt.Sprintf("context:%s", normalizedPostcode)
 }
 
+// AISummaryKey generates a cache key for postcode-level AI summary
+func (ck CacheKey) AISummaryKey(postcode string) string {
+	normalizedPostcode := strings.ToUpper(strings.ReplaceAll(postcode, " ", ""))
+	return fmt.Sprintf("ai-summary:%s", normalizedPostcode)
+}
+
 // ScoresKey generates a cache key for calculated scores
 func (ck CacheKey) ScoresKey(bagID string) string {
 	return fmt.Sprintf("scores:%s", bagID)

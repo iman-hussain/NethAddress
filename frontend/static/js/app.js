@@ -21,6 +21,9 @@ const ENABLE_LOGS = true;
 
 // Define available APIs and their tiers statically for settings
 const AVAILABLE_APIS = {
+	ai: [
+		{ name: 'Gemini AI' }
+	],
 	free: [
 		{ name: 'KNMI Weather' },
 		{ name: 'CBS Population' },
@@ -39,8 +42,7 @@ const AVAILABLE_APIS = {
 		{ name: 'AHN Height Model' },
 		{ name: 'Monument Status' },
 		{ name: 'PDOK Platform' },
-		{ name: 'Land Use & Zoning' },
-		{ name: 'Gemini AI' }
+		{ name: 'Land Use & Zoning' }
 	],
 	freemium: [
 		{ name: 'Noise Pollution' },
@@ -64,7 +66,7 @@ const AVAILABLE_APIS = {
 	]
 };
 
-const DEFAULT_ENABLED_APIS = [...AVAILABLE_APIS.free]; // Only free APIs by default
+const DEFAULT_ENABLED_APIS = [...AVAILABLE_APIS.ai, ...AVAILABLE_APIS.free]; // AI + Free APIs by default
 
 // Apply the current theme to the document
 function applyTheme() {
@@ -729,38 +731,6 @@ document.addEventListener('DOMContentLoaded', function () {
 				</div>
 			`;
 		});
-
-		// Add AI Summary placeholder (separate from tiers as it's special)
-		if (enabledAPIs.has('Gemini AI')) {
-			html += `
-				<div class="tier-section mb-5">
-					<div class="section-header">
-						<span class="section-icon">✨</span>
-						<h4>AI Summary</h4>
-					</div>
-					<div class="api-results-grid">
-						<div class="result-card glass-liquid" data-api-name="Gemini AI">
-							<div class="card-header-title">
-								<span class="icon mr-2"><i class="fas fa-sparkles fa-pulse"></i></span>
-								Gemini AI
-							</div>
-							<div class="card-content">
-								<div class="skeleton-text-block">
-									<div class="skeleton-line shimmer" style="width: 100%; height: 1rem; margin-bottom: 0.5rem;"></div>
-									<div class="skeleton-line shimmer" style="width: 90%; height: 1rem; margin-bottom: 0.5rem;"></div>
-									<div class="skeleton-line shimmer" style="width: 95%; height: 1rem; margin-bottom: 0.5rem;"></div>
-									<div class="skeleton-line shimmer" style="width: 80%; height: 1rem;"></div>
-								</div>
-								<p class="is-size-7 mt-3 has-text-grey-light is-italic">
-									<span class="icon is-small"><i class="fas fa-cog fa-spin"></i></span>
-									Generating insights from property data...
-								</p>
-							</div>
-						</div>
-					</div>
-				</div>
-			`;
-		}
 
 		html += `<div data-geojson='' style="display:none;"></div>`; // Placeholder for geojson
 
@@ -1682,6 +1652,7 @@ window.openSettings = function () {
 	// Restore tiers logic
 	const useStatic = true;
 	const tiers = useStatic ? [
+		{ name: '✨ AI Summary', apis: AVAILABLE_APIS.ai, tier: 'ai' },
 		{ name: '🆓 Free APIs', apis: AVAILABLE_APIS.free, tier: 'free' },
 		{ name: '💎 Freemium APIs', apis: AVAILABLE_APIS.freemium, tier: 'freemium' },
 		{ name: '👑 Premium APIs', apis: AVAILABLE_APIS.premium, tier: 'premium' }
