@@ -65,12 +65,68 @@ func (h *SearchHandler) HandleSearchStream(w http.ResponseWriter, r *http.Reques
 
 	logutil.Infof("Starting stream search for %s %s", postcode, houseNumber)
 
+	// Check if data is in cache (quick check before streaming)
+	cacheData, isCacheHit := h.aggregator.GetCachedData(postcode, houseNumber)
+
 	// Create progress channel
 	progressCh := make(chan aggregator.ProgressEvent, 50) // Buffer to prevent blocking
 
 	// Channel for final result
 	resultCh := make(chan *aggregator.ComprehensivePropertyData)
 	errCh := make(chan error)
+
+	// If cache hit and not bypassing, return immediately without streaming
+	if isCacheHit && !bypassCache && cacheData != nil {
+		logutil.Infof("Cache hit detected at stream start for %s %s", postcode, houseNumber)
+
+		// Build full response from cache
+		apiResults := h.buildAPIResults(cacheData)
+		response := ComprehensiveSearchResponse{
+			Address:     cacheData.Address,
+			Coordinates: cacheData.Coordinates,
+			GeoJSON:     cacheData.GeoJSON,
+			APIResults:  apiResults,
+			AISummary:   cacheData.AISummary,
+		}
+
+		// Send cached data immediately
+		responseJSON, _ := json.Marshal(response)
+		fmt.Fprintf(w, "event: data\ndata: %s\n\n", responseJSON)
+		flusher.Flush()
+
+		// Send completion event
+		htmlContent := fmt.Sprintf(`
+<div data-target="header">
+    <div class="box">
+        <h5 class="title is-5">%s</h5>
+        <p class="is-size-6"><strong>Coordinates:</strong> %.6f, %.6f</p>
+        <p class="is-size-6"><strong>Postcode:</strong> %s | <strong>House Number:</strong> %s</p>
+		<div class="address-buttons mt-3">
+			<button class="button is-small glass-liquid" onclick="exportCSV()">
+				⬇️ Export CSV
+			</button>
+			<button class="button is-small glass-liquid" onclick="refreshData()">
+				🔄 Refresh
+			</button>
+            <button class="button is-small glass-liquid" onclick="openSettings()">
+                ⚙️ Settings
+            </button>
+        </div>
+    </div>
+</div>
+<div data-target="results">
+</div>
+<div data-geojson='%s' style="display:none;"></div>`,
+			html.EscapeString(cacheData.Address),
+			cacheData.Coordinates[1], cacheData.Coordinates[0],
+			html.EscapeString(postcode), html.EscapeString(houseNumber),
+			html.EscapeString(cacheData.GeoJSON))
+
+		htmlPayload, _ := json.Marshal(htmlContent)
+		fmt.Fprintf(w, "event: complete\ndata: %s\n\n", htmlPayload)
+		flusher.Flush()
+		return
+	}
 
 	// Start aggregation in a goroutine
 	go func() {

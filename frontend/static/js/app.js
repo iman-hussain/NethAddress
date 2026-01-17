@@ -721,6 +721,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	// Render the initial skeleton grid
 	function renderSkeletonGrid(container) {
 		const tiers = [
+			{ name: '✨ AI Summary', apis: AVAILABLE_APIS.ai, tier: 'ai' },
 			{ name: '🆓 Free APIs', apis: AVAILABLE_APIS.free, tier: 'free' },
 			{ name: '💎 Freemium APIs', apis: AVAILABLE_APIS.freemium, tier: 'freemium' },
 			{ name: '👑 Premium APIs', apis: AVAILABLE_APIS.premium, tier: 'premium' }

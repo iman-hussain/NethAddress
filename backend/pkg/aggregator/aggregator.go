@@ -30,6 +30,19 @@ func NewPropertyAggregator(apiClient *apiclient.ApiClient, cacheService *cache.C
 	}
 }
 
+// GetCachedData retrieves data from cache if available (used for quick checks)
+func (pa *PropertyAggregator) GetCachedData(postcode, houseNumber string) (*ComprehensivePropertyData, bool) {
+	if pa.cache == nil {
+		return nil, false
+	}
+	cacheKey := cache.CacheKey{}.AggregatedKey(postcode, houseNumber)
+	var data ComprehensivePropertyData
+	if err := pa.cache.Get(cacheKey, &data); err == nil {
+		return &data, true
+	}
+	return nil, false
+}
+
 // ComprehensivePropertyData represents all collected property data
 type ComprehensivePropertyData struct {
 	// Core Property Data
