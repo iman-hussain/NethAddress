@@ -471,21 +471,56 @@ document.addEventListener('DOMContentLoaded', function () {
 
 		// Handle full result payload (sent on cache hit or stream completion)
 		// Handle full result payload (sent on cache hit or stream completion)
+		// Handle full result payload (sent on cache hit or stream completion)
 		evtSource.addEventListener('data', function (event) {
 			try {
 				const response = JSON.parse(event.data);
 				window.currentResponse = response;
 
-				// 1. Fix Map Location
+				// 1. Fix Map Location (Robust parsing)
+				let lat, lon;
 				const coords = response.coordinates || response.Coordinates;
+
 				if (coords) {
-					if (window.setPropertyLocation) {
-						window.setPropertyLocation(coords.lat || coords.Lat, coords.lon || coords.Lon);
+					if (Array.isArray(coords) && coords.length >= 2) {
+						// Backend sends [lon, lat] for GeoJSON compliance
+						lon = coords[0];
+						lat = coords[1];
+					} else if (typeof coords === 'object') {
+						// Standard object
+						lat = coords.lat || coords.Lat;
+						lon = coords.lon || coords.Lon;
 					}
 				}
+
+				if (lat !== undefined && lon !== undefined) {
+					if (window.setPropertyLocation) {
+						try {
+							window.setPropertyLocation(lat, lon);
+						} catch (mapErr) {
+							console.error('Error updating map location:', mapErr);
+						}
+					}
+				} else {
+					console.warn('Invalid or missing coordinates in response:', coords);
+				}
+
 				if (response.geoJSON) window.currentGeoJSON = response.geoJSON;
 
-				// 2. Map Struct Fields to API Names for Cards
+				// 2. Synthetic BAG Data Mapping
+				// If bagData is missing but root Address/Coordinates exist, construct it.
+				if (!response.bagData && response.Address) {
+					response.bagData = {
+						address: response.Address,
+						coordinates: response.Coordinates,
+						bagID: response.BagID || response.bagID,
+						// Add any other BAG specific fields if they exist at root
+						yearBuilt: response.YearBuilt,
+						surfaceArea: response.SurfaceArea
+					};
+				}
+
+				// 3. Map Struct Fields to API Names for Cards
 				const mapping = {
 					'weather': 'KNMI Weather',
 					'solarPotential': 'KNMI Solar',
@@ -529,8 +564,12 @@ document.addEventListener('DOMContentLoaded', function () {
 					if (response[field]) updateResultCard(apiName, response[field]);
 				});
 
-				// Handle AI Summary explicitly
-				if (response.aiSummary) updateResultCard('Gemini AI', response.aiSummary);
+				// Handle AI Summary explicitly (Safeguard)
+				if (response.aiSummary) {
+					updateResultCard('Gemini AI', response.aiSummary);
+				} else if (response.AISummary) {
+					updateResultCard('Gemini AI', response.AISummary);
+				}
 
 			} catch (e) {
 				console.error('Error processing data event:', e);
@@ -977,18 +1016,18 @@ document.addEventListener('DOMContentLoaded', function () {
 		watercolor: {
 			version: 8,
 			sources: {
-				'carto-positron': {
+				'stamen-watercolor': {
 					type: 'raster',
-					tiles: ['https://basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'],
+					tiles: ['https://watercolormaps.collection.cooperhewitt.org/tile/watercolor/{z}/{x}/{y}.jpg'],
 					tileSize: 256,
-					attribution: '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+					attribution: 'Map tiles by <a href="http://stamen.com">Stamen Design</a>, under <a href="http://creativecommons.org/licenses/by/3.0">CC BY 3.0</a>. Data by <a href="http://openstreetmap.org">OpenStreetMap</a>, under <a href="http://creativecommons.org/licenses/by-sa/3.0">CC BY SA</a>.'
 				}
 			},
 			layers: [
 				{
 					id: 'watercolor',
 					type: 'raster',
-					source: 'carto-positron',
+					source: 'stamen-watercolor',
 					minzoom: 0,
 					maxzoom: 18
 				}
