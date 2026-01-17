@@ -470,47 +470,68 @@ document.addEventListener('DOMContentLoaded', function () {
 		};
 
 		// Handle full result payload (sent on cache hit or stream completion)
+		// Handle full result payload (sent on cache hit or stream completion)
 		evtSource.addEventListener('data', function (event) {
 			try {
 				const response = JSON.parse(event.data);
+				window.currentResponse = response;
 
-				// Flatten apiResults if it's grouped (backend sends APIResultsGrouped struct)
-				let allResults = [];
-				if (response.apiResults) {
-					if (Array.isArray(response.apiResults)) {
-						allResults = response.apiResults;
-					} else {
-						// Grouped object { free: [], freemium: [], premium: [] }
-						if (response.apiResults.free) allResults.push(...response.apiResults.free);
-						if (response.apiResults.freemium) allResults.push(...response.apiResults.freemium);
-						if (response.apiResults.premium) allResults.push(...response.apiResults.premium);
+				// 1. Fix Map Location
+				const coords = response.coordinates || response.Coordinates;
+				if (coords) {
+					if (window.setPropertyLocation) {
+						window.setPropertyLocation(coords.lat || coords.Lat, coords.lon || coords.Lon);
 					}
 				}
+				if (response.geoJSON) window.currentGeoJSON = response.geoJSON;
 
-				if (allResults.length > 0) {
-					console.log('Received full data payload, updating all cards...');
-					allResults.forEach(result => {
-						updateResultCard(result.source, result.data);
-					});
+				// 2. Map Struct Fields to API Names for Cards
+				const mapping = {
+					'weather': 'KNMI Weather',
+					'solarPotential': 'KNMI Solar',
+					'airQuality': 'Luchtmeetnet Air Quality',
+					'noisePollution': 'Noise Pollution',
+					'floodRisk': 'Flood Risk',
+					'soilData': 'WUR Soil Physicals',
+					'soilQuality': 'Soil Quality',
+					'broSoilMap': 'BRO Soil Map',
+					'subsidence': 'SkyGeo Subsidence',
+					'waterQuality': 'Digital Delta Water Quality',
+					'elevation': 'AHN Height Model',
+					'schipholFlights': 'Schiphol Flight Noise',
+					'stratopoEnvironment': 'Stratopo Environment',
+					'bagData': 'BAG Address',
+					'wozData': 'Altum WOZ',
+					'kadasterInfo': 'Kadaster Object Info',
+					'marketValuation': 'Matrixian Property Value+',
+					'transactionHistory': 'Altum Transactions',
+					'landUse': 'Land Use & Zoning',
+					'pdokData': 'PDOK Platform',
+					'monumentStatus': 'Monument Status',
+					'buildingPermits': 'Building Permits',
+					'publicTransport': 'openOV Public Transport',
+					'trafficData': 'NDW Traffic',
+					'parkingData': 'Parking Availability',
+					'facilities': 'Facilities & Amenities',
+					'education': 'Education Facilities',
+					'greenSpaces': 'GreenSpaces',
+					'energyClimate': 'Altum Energy & Climate',
+					'sustainability': 'Altum Sustainability',
+					'population': 'CBS Population',
+					'squareStats': 'CBS Square Statistics',
+					'statLineData': 'CBS StatLine',
+					'safety': 'CBS Safety Experience'
+				};
 
-					// Handle AI Summary explicitly (it's a top-level field, not in APIResults)
-					if (response.AISummary) {
-						updateResultCard('Gemini AI', response.AISummary);
-					}
+				console.log('Received full data payload. Processing fields...');
 
-					// Mark missing APIs as unavailable (Timeout/Error)
-					const receivedSources = new Set(allResults.map(r => r.source));
-					if (response.AISummary) {
-						receivedSources.add('Gemini AI');
-					}
+				Object.entries(mapping).forEach(([field, apiName]) => {
+					if (response[field]) updateResultCard(apiName, response[field]);
+				});
 
-					enabledAPIs.forEach(apiName => {
-						if (!receivedSources.has(apiName)) {
-							console.warn('Data unavailable for:', apiName);
-							markResultCardUnavailable(apiName);
-						}
-					});
-				}
+				// Handle AI Summary explicitly
+				if (response.aiSummary) updateResultCard('Gemini AI', response.aiSummary);
+
 			} catch (e) {
 				console.error('Error processing data event:', e);
 			}
@@ -742,7 +763,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
 		// Render the content
 		try {
-			const renderedHTML = renderer(data);
+			let renderedHTML = renderer(data);
+
+			// Append Raw JSON Toggle
+			const randomId = 'json-' + Math.random().toString(36).substr(2, 9);
+			const jsonString = JSON.stringify(data, null, 2).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+			renderedHTML += `
+				<div class="json-toggle-section mt-3 pt-3" style="border-top: 1px solid rgba(255,255,255,0.1);">
+					<button class="button is-small is-ghost" style="text-decoration: none;" onclick="document.getElementById('${randomId}').classList.toggle('is-hidden')">
+						<span class="icon is-small"><i class="fas fa-code"></i></span>
+						<span>Raw JSON</span>
+					</button>
+					<div id="${randomId}" class="is-hidden mt-2">
+						<pre class="glass-liquid p-3 is-size-7" style="overflow-x: auto; border-radius: 8px; color: var(--text-main);">${jsonString}</pre>
+					</div>
+				</div>
+			`;
+
 			// Create a temp div to parse string to DOM
 			const temp = document.createElement('div');
 			temp.innerHTML = renderedHTML;
