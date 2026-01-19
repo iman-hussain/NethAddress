@@ -87,26 +87,6 @@
 			<!-- Map (full background) -->
 			<div class="column" id="map-container">
 				<div id="map"></div>
-				<div class="map-style-switcher">
-					<button class="map-style-btn" onclick="switchMapStyle('hybrid')"
-						title="Hybrid - Satellite with Labels">🌍</button>
-					<button class="map-style-btn" onclick="switchMapStyle('pdok')"
-						title="PDOK - Dutch Aerial">🇳🇱</button>
-					<button class="map-style-btn" onclick="switchMapStyle('satellite')"
-						title="Satellite Imagery">🛰️</button>
-					<button class="map-style-btn" onclick="switchMapStyle('osm')"
-						title="OpenStreetMap - Detailed">🗺️</button>
-					<button class="map-style-btn" onclick="switchMapStyle('topo')"
-						title="Topographic - Detailed">🧭</button>
-					<button class="map-style-btn" onclick="switchMapStyle('terrain')"
-						title="Terrain - Topographic">🏞️</button>
-					<button class="map-style-btn" onclick="switchMapStyle('railway')"
-						title="Railway - Satellite with Trains">🚂</button>
-					<button class="map-style-btn" onclick="switchMapStyle('cycling')"
-						title="CyclOSM - Cycling Routes">🚴</button>
-					<button class="map-style-btn" onclick="switchMapStyle('watercolor')"
-						title="Watercolor - Artistic">🎨</button>
-				</div>
 			</div>
 			<!-- Floating Sidebar -->
 			<div class="sidebar-overlay">
@@ -163,6 +143,27 @@
 								</div>
 							</form>
 						</div>
+					</div>
+					<!-- Map Style Switcher - Flows in sidebar on mobile, positioned absolutely on desktop -->
+					<div class="map-style-switcher glass-liquid">
+						<button class="map-style-btn" onclick="switchMapStyle('hybrid')"
+							title="Hybrid - Satellite with Labels">🌍</button>
+						<button class="map-style-btn" onclick="switchMapStyle('pdok')"
+							title="PDOK - Dutch Aerial">🇳🇱</button>
+						<button class="map-style-btn" onclick="switchMapStyle('satellite')"
+							title="Satellite Imagery">🛰️</button>
+						<button class="map-style-btn" onclick="switchMapStyle('osm')"
+							title="OpenStreetMap - Detailed">🗺️</button>
+						<button class="map-style-btn" onclick="switchMapStyle('topo')"
+							title="Topographic - Detailed">🧭</button>
+						<button class="map-style-btn" onclick="switchMapStyle('terrain')"
+							title="Terrain - Topographic">🏞️</button>
+						<button class="map-style-btn" onclick="switchMapStyle('railway')"
+							title="Railway - Satellite with Trains">🚂</button>
+						<button class="map-style-btn" onclick="switchMapStyle('cycling')"
+							title="CyclOSM - Cycling Routes">🚴</button>
+						<button class="map-style-btn" onclick="switchMapStyle('watercolor')"
+							title="Watercolor - Artistic">🎨</button>
 					</div>
 					<div class="results-wrapper">
 						<div id="results-container-main"></div>

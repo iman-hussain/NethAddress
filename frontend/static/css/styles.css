@@ -333,13 +333,14 @@ body {
 	bottom: 0;
 }
 
-/* Map Style Switcher */
+/* Map Style Switcher - Fixed position on desktop, flows in sidebar on mobile */
 .map-style-switcher {
-	position: absolute;
+	position: fixed;
 	top: 100px;
 	/* Aligned with search box top */
 	right: 1rem;
-	z-index: 10;
+	left: auto;
+	z-index: 100;
 	display: flex;
 	gap: 0.5rem;
 	/* Glass properties handled by utility */
@@ -1469,13 +1470,36 @@ body.has-results .results-wrapper {
 		height: 100% !important;
 	}
 
-	/* Map style switcher repositioned for mobile */
-	/* Map style switcher repositioned for mobile */
+	/* Map style switcher repositioned for mobile - same width as search box, scrollable */
 	.map-style-switcher {
-		top: 320px;
-		/* Positioned below search box */
+		position: relative;
+		top: auto;
 		bottom: auto;
-		right: 0.75rem;
+		left: 0;
+		right: 0;
+		width: 100%;
+		margin: 0;
+		padding: 0.5rem;
+		z-index: 49;
+		transform: none;
+		border-radius: var(--radius-lg);
+		overflow-x: auto;
+		overflow-y: hidden;
+		-webkit-overflow-scrolling: touch;
+		scrollbar-width: none;
+		/* Hide scrollbar Firefox */
+		pointer-events: auto;
+	}
+
+	.map-style-switcher::-webkit-scrollbar {
+		display: none;
+		/* Hide scrollbar Chrome/Safari */
+	}
+
+	.map-style-switcher .map-style-btn {
+		flex-shrink: 0;
+		width: 40px;
+		height: 40px;
 	}
 
 	/* Sidebar FLOATS over map on mobile for glass effect */
@@ -1499,8 +1523,8 @@ body.has-results .results-wrapper {
 
 	.sidebar-content {
 		direction: ltr;
-		padding: 50px 1rem 1.5rem;
-		/* Clear navbar + gap */
+		padding: 48px 1rem 1.5rem;
+		/* Tight to navbar */
 		height: auto;
 		/* Let content dictate height */
 		width: 100%;
@@ -1508,7 +1532,7 @@ body.has-results .results-wrapper {
 		/* Disable internal scroll, use body scroll */
 		display: flex;
 		flex-direction: column;
-		gap: 0.75rem;
+		gap: 0.5rem;
 		pointer-events: none;
 		/* Gap touches fall through to map */
 		background: transparent !important;
@@ -1524,9 +1548,7 @@ body.has-results .results-wrapper {
 		right: auto;
 		z-index: 50;
 		pointer-events: auto;
-		margin: 0 0 1rem 0;
-		margin-top: 0.5rem;
-		/* Extra space below navbar */
+		margin: 0;
 		border-radius: var(--radius-lg);
 		overflow: visible;
 		height: auto;
@@ -2007,15 +2029,7 @@ body.reduce-transparency .active-layer-item:hover {
 	}
 
 	/* Hide map switcher text or compact it? */
-	.map-style-switcher {
-		top: auto;
-		bottom: 1rem;
-		/* Position above active layers if present, or just top-right? */
-		/* Actually keep it top right but compact */
-		transform: scale(0.9);
-		right: 0.5rem;
-		top: 0.5rem;
-	}
+	/* Map switcher handled in main mobile media query */
 
 	/* Results Grid - Single Column on Mobile */
 	.api-results-grid {
@@ -2278,19 +2292,7 @@ body.reduce-transparency .active-layer-item:hover {
 
 	/* Search form uses same layout as desktop - no overrides needed */
 
-	/* Map switcher at TOP on mobile, well below search box */
-	.map-style-switcher {
-		position: fixed;
-		top: calc(320px + env(safe-area-inset-top));
-		/* Lowered to avoid overlap with search box */
-		bottom: auto;
-		right: 1rem;
-		z-index: 99;
-		transform: scale(0.9);
-		padding: 4px;
-		border-radius: var(--radius-interaction);
-		/* Glass properties handled by utility */
-	}
+	/* Map switcher handled in main mobile media query at line ~1473 */
 
 	/* [data-theme="dark"] .map-style-switcher handled by utility */
 
