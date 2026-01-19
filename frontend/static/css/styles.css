@@ -430,7 +430,7 @@ body.reduce-transparency .navbar.is-primary {
     left: auto;
     right: auto;
     z-index: 50;
-    margin: 0;
+    margin: 0.75rem 0 0 0;
     border-radius: var(--radius-lg);
     overflow: visible;
     height: auto;
@@ -1482,10 +1482,12 @@ body.reduce-transparency .address-header-card {
 }
 @media screen and (max-width: 768px) {
   .address-buttons {
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
   }
   .address-buttons .button {
-    width: 100%;
+    flex: 1 1 auto;
+    min-width: 120px;
   }
 }
 
