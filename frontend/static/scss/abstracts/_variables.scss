@@ -1,0 +1,192 @@
+// =============================================================================
+// VARIABLES
+// Design tokens and theme configuration for AddressIQ
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// Primary Brand Colours
+// -----------------------------------------------------------------------------
+$primary: #0d9488;
+$primary-hover: #0f766e;
+$primary-light: #14b8a6;
+
+// -----------------------------------------------------------------------------
+// Neutral Palette
+// -----------------------------------------------------------------------------
+$bg-page: #f8f9fa;
+$bg-card: #ffffff;
+$bg-card-alt: #f3f4f6;
+$bg-dark: #1f2937;
+$bg-section: #f9fafb;
+
+// -----------------------------------------------------------------------------
+// Text Colours
+// -----------------------------------------------------------------------------
+$text-primary: #111827;
+$text-secondary: #374151;
+$text-muted: #4b5563;
+$text-on-primary: #ffffff;
+
+// -----------------------------------------------------------------------------
+// Status Colours
+// -----------------------------------------------------------------------------
+$success: #059669;
+$success-bg: #ecfdf5;
+$warning: #d97706;
+$warning-bg: #fffbeb;
+$danger: #dc2626;
+$danger-bg: #fef2f2;
+$info: #0891b2;
+$info-bg: #ecfeff;
+
+// -----------------------------------------------------------------------------
+// Borders & Shadows
+// -----------------------------------------------------------------------------
+$border: #e5e7eb;
+$border-strong: #d1d5db;
+$shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+$shadow-md: 0 2px 8px rgba(0, 0, 0, 0.06);
+$shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.08);
+
+// -----------------------------------------------------------------------------
+// Border Radius System
+// -----------------------------------------------------------------------------
+$radius-sm: 6px;
+$radius-md: 10px;
+$radius-lg: 14px;
+$radius-interaction: 12px; // Buttons, inputs
+$radius-surface: 24px;    // Cards, modals, panels
+
+// -----------------------------------------------------------------------------
+// Apple Liquid Glass Material
+// -----------------------------------------------------------------------------
+// Light mode
+$glass-bg-light: rgba(255, 255, 255, 0.45);
+$glass-border-light: rgba(255, 255, 255, 0.5);
+$glass-shadow-light: 0 8px 32px rgba(0, 0, 0, 0.12);
+
+// Dark mode
+$glass-bg-dark: rgba(30, 41, 59, 0.50);
+$glass-border-dark: rgba(255, 255, 255, 0.1);
+$glass-shadow-dark: 0 8px 32px rgba(0, 0, 0, 0.3);
+
+// Frosted (Accessibility mode)
+$frosted-bg-light: rgba(255, 255, 255, 0.98);
+$frosted-bg-dark: #0f172a;
+
+// Backdrop filter
+$backdrop-filter: blur(30px) saturate(180%);
+
+// -----------------------------------------------------------------------------
+// Breakpoints
+// -----------------------------------------------------------------------------
+$breakpoint-mobile: 768px;
+$breakpoint-tablet: 1024px;
+$breakpoint-desktop: 1200px;
+
+// -----------------------------------------------------------------------------
+// Typography
+// -----------------------------------------------------------------------------
+$font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+$font-family-mono: 'SF Mono', 'Fira Code', 'Monaco', monospace;
+$font-size-base: 17px;
+$line-height-base: 1.5;
+
+// -----------------------------------------------------------------------------
+// Z-Index Scale
+// -----------------------------------------------------------------------------
+$z-map: 1;
+$z-sidebar: 20;
+$z-search: 30;
+$z-navbar: 40;
+$z-map-switcher: 49;
+$z-modal: 50;
+$z-layers-panel: 1000;
+
+// -----------------------------------------------------------------------------
+// CSS Custom Properties (exported to :root)
+// These are used for runtime theming
+// -----------------------------------------------------------------------------
+:root {
+	// Primary
+	--primary: #{$primary};
+	--primary-hover: #{$primary-hover};
+	--primary-light: #{$primary-light};
+
+	// Neutral
+	--bg-page: #{$bg-page};
+	--bg-card: #{$bg-card};
+	--bg-card-alt: #{$bg-card-alt};
+	--bg-dark: #{$bg-dark};
+	--bg-section: #{$bg-section};
+
+	// Text
+	--text-primary: #{$text-primary};
+	--text-secondary: #{$text-secondary};
+	--text-muted: #{$text-muted};
+	--text-on-primary: #{$text-on-primary};
+
+	// Status
+	--success: #{$success};
+	--success-bg: #{$success-bg};
+	--warning: #{$warning};
+	--warning-bg: #{$warning-bg};
+	--danger: #{$danger};
+	--danger-bg: #{$danger-bg};
+	--info: #{$info};
+	--info-bg: #{$info-bg};
+
+	// Borders & Shadows
+	--border: #{$border};
+	--border-strong: #{$border-strong};
+	--shadow-sm: #{$shadow-sm};
+	--shadow-md: #{$shadow-md};
+	--shadow-lg: #{$shadow-lg};
+
+	// Radius
+	--radius-sm: #{$radius-sm};
+	--radius-md: #{$radius-md};
+	--radius-lg: #{$radius-lg};
+	--radius-interaction: #{$radius-interaction};
+	--radius-surface: #{$radius-surface};
+
+	// Glass
+	--glass-bg-light: #{$glass-bg-light};
+	--glass-border-light: #{$glass-border-light};
+	--glass-shadow-light: #{$glass-shadow-light};
+	--glass-bg-dark: #{$glass-bg-dark};
+	--glass-border-dark: #{$glass-border-dark};
+	--glass-shadow-dark: #{$glass-shadow-dark};
+	--frosted-bg-light: #{$frosted-bg-light};
+	--frosted-bg-dark: #{$frosted-bg-dark};
+	--backdrop-filter: #{$backdrop-filter};
+	--webkit-backdrop-filter: #{$backdrop-filter};
+}
+
+// -----------------------------------------------------------------------------
+// Dark Mode Theme Overrides
+// -----------------------------------------------------------------------------
+[data-theme="dark"] {
+	--bg-page: #111827;
+	--bg-card: #1f2937;
+	--bg-card-alt: #374151;
+	--bg-dark: #111827;
+	--bg-section: #1f2937;
+
+	--text-primary: #f9fafb;
+	--text-secondary: #d1d5db;
+	--text-muted: #9ca3af;
+	--text-on-primary: #ffffff;
+
+	--border: #374151;
+	--border-strong: #4b5563;
+
+	--shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+	--shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
+	--shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.5);
+
+	--success-bg: rgba(5, 150, 105, 0.2);
+	--warning-bg: rgba(217, 119, 6, 0.2);
+	--danger-bg: rgba(220, 38, 38, 0.2);
+	--info-bg: rgba(8, 145, 178, 0.2);
+}

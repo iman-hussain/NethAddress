@@ -1,0 +1,316 @@
+// =============================================================================
+// MIXINS
+// Reusable style patterns for AddressIQ
+// =============================================================================
+
+@use 'variables' as *;
+
+// -----------------------------------------------------------------------------
+// Media Query Helpers
+// -----------------------------------------------------------------------------
+@mixin mobile {
+	@media screen and (max-width: $breakpoint-mobile) {
+		@content;
+	}
+}
+
+@mixin tablet {
+	@media screen and (min-width: #{$breakpoint-mobile + 1px}) and (max-width: $breakpoint-tablet) {
+		@content;
+	}
+}
+
+@mixin desktop {
+	@media screen and (min-width: #{$breakpoint-mobile + 1px}) {
+		@content;
+	}
+}
+
+@mixin large-desktop {
+	@media screen and (min-width: $breakpoint-desktop) {
+		@content;
+	}
+}
+
+// -----------------------------------------------------------------------------
+// Glass Effect System
+// Single source of truth for all glass variants
+// -----------------------------------------------------------------------------
+
+/// Apply liquid glass effect (default Apple-style glass)
+/// @param {String} $variant - 'liquid' (default) or 'frosted'
+@mixin glass-effect($variant: 'liquid') {
+	@if $variant == 'liquid' {
+		background: var(--glass-bg-light);
+		backdrop-filter: var(--backdrop-filter);
+		-webkit-backdrop-filter: var(--webkit-backdrop-filter);
+		border: 1px solid var(--glass-border-light);
+		box-shadow: var(--glass-shadow-light);
+		color: var(--text-primary);
+
+		[data-theme="dark"] & {
+			background: var(--glass-bg-dark);
+			border-color: var(--glass-border-dark);
+			box-shadow: var(--glass-shadow-dark);
+		}
+
+		// Frosted (accessibility) mode overrides
+		body.reduce-transparency & {
+			background: var(--frosted-bg-light);
+			backdrop-filter: none;
+			-webkit-backdrop-filter: none;
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+			border: 1px solid rgba(0, 0, 0, 0.1);
+		}
+
+		[data-theme="dark"] body.reduce-transparency & {
+			background: var(--frosted-bg-dark);
+			border: 1px solid rgba(255, 255, 255, 0.15);
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+		}
+	} @else if $variant == 'frosted' {
+		// Direct frosted mode (no blur)
+		background: var(--frosted-bg-light);
+		backdrop-filter: none;
+		-webkit-backdrop-filter: none;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+		border: 1px solid rgba(0, 0, 0, 0.1);
+		color: var(--text-primary);
+
+		[data-theme="dark"] & {
+			background: var(--frosted-bg-dark);
+			border: 1px solid rgba(255, 255, 255, 0.15);
+			box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+		}
+	}
+}
+
+// -----------------------------------------------------------------------------
+// Flexbox Helpers
+// -----------------------------------------------------------------------------
+@mixin flex-center {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+@mixin flex-between {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+
+@mixin flex-column {
+	display: flex;
+	flex-direction: column;
+}
+
+@mixin flex-row {
+	display: flex;
+	flex-direction: row;
+}
+
+// -----------------------------------------------------------------------------
+// Interactive States
+// -----------------------------------------------------------------------------
+@mixin hover-lift {
+	transition: all 0.15s ease;
+
+	&:hover {
+		transform: translateY(-2px);
+		box-shadow: var(--shadow-md);
+	}
+}
+
+@mixin hover-scale($scale: 1.05) {
+	transition: all 0.15s ease;
+
+	&:hover {
+		transform: scale($scale);
+	}
+}
+
+@mixin focus-ring($color: var(--primary)) {
+	&:focus {
+		outline: none;
+		box-shadow: 0 0 0 3px rgba($primary, 0.2);
+		border-color: $color;
+	}
+}
+
+// -----------------------------------------------------------------------------
+// Typography Helpers
+// -----------------------------------------------------------------------------
+@mixin text-truncate {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+@mixin text-shadow-light {
+	text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+
+	[data-theme="dark"] & {
+		text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+	}
+}
+
+@mixin text-shadow-strong {
+	text-shadow: 0 2px 8px rgba(255, 255, 255, 1);
+
+	[data-theme="dark"] & {
+		text-shadow: 0 2px 8px rgba(0, 0, 0, 1);
+	}
+}
+
+// -----------------------------------------------------------------------------
+// Scrollbar Helpers
+// -----------------------------------------------------------------------------
+@mixin hide-scrollbar {
+	scrollbar-width: none;
+	-ms-overflow-style: none;
+
+	&::-webkit-scrollbar {
+		display: none;
+	}
+}
+
+@mixin styled-scrollbar {
+	&::-webkit-scrollbar {
+		width: 8px;
+	}
+
+	&::-webkit-scrollbar-track {
+		background: var(--bg-card-alt);
+		border-radius: 4px;
+	}
+
+	&::-webkit-scrollbar-thumb {
+		background: var(--border-strong);
+		border-radius: 4px;
+
+		&:hover {
+			background: var(--text-muted);
+		}
+	}
+}
+
+// -----------------------------------------------------------------------------
+// Button Mixins
+// -----------------------------------------------------------------------------
+@mixin button-base {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	padding: 0.625rem 1rem;
+	border-radius: var(--radius-sm);
+	font-weight: 600;
+	font-size: 0.9375rem;
+	cursor: pointer;
+	transition: all 0.15s ease;
+	border: 1px solid transparent;
+}
+
+@mixin button-primary {
+	@include button-base;
+	background: var(--primary);
+	border-color: var(--primary);
+	color: white;
+
+	&:hover {
+		background: var(--primary-hover);
+		border-color: var(--primary-hover);
+	}
+}
+
+@mixin button-secondary {
+	@include button-base;
+	background: var(--bg-card);
+	border-color: var(--border);
+	color: var(--text-secondary);
+
+	&:hover {
+		background: var(--bg-card-alt);
+		border-color: var(--border-strong);
+		color: var(--text-primary);
+	}
+}
+
+// -----------------------------------------------------------------------------
+// Card Mixins
+// -----------------------------------------------------------------------------
+@mixin card-base {
+	@include glass-effect('liquid');
+	border-radius: var(--radius-surface);
+	padding: 1rem;
+}
+
+@mixin card-hover {
+	transition: box-shadow 0.15s ease, border-color 0.15s ease;
+
+	&:hover {
+		box-shadow: var(--shadow-md);
+		border-color: var(--border-strong);
+	}
+}
+
+// -----------------------------------------------------------------------------
+// Safe Area Helpers (iOS)
+// -----------------------------------------------------------------------------
+@mixin safe-area-top {
+	padding-top: env(safe-area-inset-top);
+}
+
+@mixin safe-area-bottom {
+	padding-bottom: env(safe-area-inset-bottom);
+}
+
+@mixin safe-area-all {
+	padding-top: env(safe-area-inset-top);
+	padding-bottom: env(safe-area-inset-bottom);
+	padding-left: env(safe-area-inset-left);
+	padding-right: env(safe-area-inset-right);
+}
+
+// -----------------------------------------------------------------------------
+// Animation Helpers
+// -----------------------------------------------------------------------------
+@mixin animate-slide-down {
+	animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+	from {
+		opacity: 0;
+		transform: translateY(-5px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@keyframes shimmer {
+	0% {
+		background-position: -1000px 0;
+	}
+	100% {
+		background-position: 1000px 0;
+	}
+}
+
+@keyframes skeleton-shimmer {
+	0% {
+		background-position: 200% 0;
+	}
+	100% {
+		background-position: -200% 0;
+	}
+}

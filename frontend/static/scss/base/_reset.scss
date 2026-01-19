@@ -1,0 +1,78 @@
+// =============================================================================
+// RESET & BASE STYLES
+// Global resets and foundational styles
+// =============================================================================
+
+@use '../abstracts/variables' as *;
+@use '../abstracts/mixins' as *;
+
+// -----------------------------------------------------------------------------
+// Box Sizing Reset
+// -----------------------------------------------------------------------------
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+// -----------------------------------------------------------------------------
+// Document Base
+// -----------------------------------------------------------------------------
+html,
+body {
+	height: 100%;
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+	font-family: $font-family;
+	font-size: $font-size-base;
+	line-height: $line-height-base;
+	color: var(--text-primary);
+	background: var(--bg-page);
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+
+	@include mobile {
+		font-size: 15px;
+		overflow-x: hidden;
+		overflow-y: auto;
+		height: auto;
+		min-height: 100%;
+	}
+}
+
+// -----------------------------------------------------------------------------
+// Full Height Container
+// -----------------------------------------------------------------------------
+.full-height-columns {
+	display: flex;
+	flex-direction: column;
+	height: 100vh;
+
+	.columns {
+		flex-grow: 1;
+		overflow: hidden;
+		position: relative;
+	}
+
+	@include mobile {
+		height: auto;
+		min-height: 100vh;
+		padding-top: 0;
+
+		.columns {
+			position: static;
+			display: flex;
+			flex-direction: column;
+			flex: 1;
+			overflow: visible;
+		}
+	}
+}
+
+// -----------------------------------------------------------------------------
+// Notification Reset
+// -----------------------------------------------------------------------------
+.notification {
+	border-radius: var(--radius-lg);
+}

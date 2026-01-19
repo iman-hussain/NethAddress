@@ -1,0 +1,44 @@
+// =============================================================================
+// MAIN SCSS ENTRY POINT
+// AddressIQ Design System v5 - Modular Architecture
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// Abstracts (Variables, Mixins, Functions)
+// Must be loaded first as they're used throughout
+// -----------------------------------------------------------------------------
+@use 'abstracts/variables';
+@use 'abstracts/mixins';
+
+// -----------------------------------------------------------------------------
+// Base (Reset, Typography, Global Defaults)
+// -----------------------------------------------------------------------------
+@use 'base/reset';
+
+// -----------------------------------------------------------------------------
+// Layout (Structural Components)
+// -----------------------------------------------------------------------------
+@use 'layout/sidebar';
+
+// -----------------------------------------------------------------------------
+// Components (UI Components)
+// -----------------------------------------------------------------------------
+@use 'components/navbar';
+@use 'components/search';
+@use 'components/map';
+@use 'components/results';
+@use 'components/modals';
+
+// =============================================================================
+// UTILITY CLASSES
+// Small helper classes that can be applied to any element
+// =============================================================================
+
+// Glass utility class for manual application
+.glass-liquid {
+	@include mixins.glass-effect('liquid');
+}
+
+.glass-frosted {
+	@include mixins.glass-effect('frosted');
+}

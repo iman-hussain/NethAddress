@@ -1,0 +1,368 @@
+// =============================================================================
+// MAP COMPONENT
+// Map container, style switcher, and POI controls
+// =============================================================================
+
+@use '../abstracts/variables' as *;
+@use '../abstracts/mixins' as *;
+
+// -----------------------------------------------------------------------------
+// Map Container
+// -----------------------------------------------------------------------------
+#map-container {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+
+	@include mobile {
+		position: fixed;
+		width: 100%;
+		height: 100%;
+		z-index: $z-map;
+	}
+}
+
+#map {
+	width: 100%;
+	height: 100%;
+
+	@include mobile {
+		height: 100%;
+	}
+}
+
+// -----------------------------------------------------------------------------
+// Map Style Switcher
+// -----------------------------------------------------------------------------
+.map-style-switcher {
+	@include glass-effect('liquid');
+	display: flex;
+	gap: 0.5rem;
+
+	@include desktop {
+		position: fixed;
+		top: 100px;
+		right: 1rem;
+		left: auto;
+		z-index: 100;
+		padding: 0.5rem;
+		border-radius: var(--radius-md);
+	}
+
+	@include mobile {
+		position: relative;
+		top: auto;
+		bottom: auto;
+		left: auto;
+		right: auto;
+		width: 100%;
+		height: auto;
+		margin: 0;
+		padding: 0.5rem;
+		z-index: $z-map-switcher;
+		transform: none;
+		border-radius: var(--radius-lg);
+		overflow-x: auto;
+		overflow-y: hidden;
+		-webkit-overflow-scrolling: touch;
+		pointer-events: auto;
+		flex-shrink: 0;
+		min-height: 52px;
+		visibility: visible;
+		opacity: 1;
+		@include hide-scrollbar;
+	}
+}
+
+// -----------------------------------------------------------------------------
+// Map Style Button
+// -----------------------------------------------------------------------------
+.map-style-btn {
+	width: 44px;
+	height: 44px;
+	border: 1px solid var(--border);
+	background: var(--bg-card);
+	border-radius: var(--radius-sm);
+	cursor: pointer;
+	font-size: 1.5rem;
+	@include flex-center;
+	transition: all 0.15s ease;
+
+	&:hover {
+		background: var(--bg-card-alt);
+		border-color: var(--primary);
+		transform: scale(1.05);
+	}
+
+	&.active {
+		background: var(--primary-light);
+		border-color: var(--primary);
+		box-shadow: 0 0 0 2px rgba(13, 148, 136, 0.2);
+	}
+
+	@include mobile {
+		flex-shrink: 0;
+		width: 40px;
+		height: 40px;
+	}
+}
+
+// -----------------------------------------------------------------------------
+// POI Toggle Buttons
+// -----------------------------------------------------------------------------
+.poi-toggle-btn {
+	@include glass-effect('liquid');
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
+	padding: 0.375rem 0.625rem;
+	font-size: 0.8125rem;
+	font-weight: 500;
+	color: var(--text-secondary);
+	border-radius: var(--radius-sm);
+	cursor: pointer;
+	transition: all 0.15s ease;
+	margin: 0.125rem;
+
+	&:hover {
+		background: var(--bg-section);
+		border-color: var(--primary);
+		color: var(--primary);
+	}
+
+	&.active {
+		background: var(--primary);
+		border-color: var(--primary);
+		color: white;
+
+		&:hover {
+			background: var(--primary-hover);
+		}
+	}
+
+	&.show-all-btn {
+		background: var(--primary-light);
+		border-color: var(--primary);
+		color: white;
+		font-weight: 600;
+
+		&:hover {
+			background: var(--primary);
+		}
+
+		&.active {
+			background: var(--primary-hover);
+		}
+	}
+
+	@include mobile {
+		padding: 0.25rem 0.5rem;
+		font-size: 0.75rem;
+	}
+}
+
+// Button groups
+.transport-buttons,
+.education-buttons,
+.amenity-buttons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25rem;
+	margin-top: 0.375rem;
+
+	@include mobile {
+		gap: 0.125rem;
+	}
+}
+
+// -----------------------------------------------------------------------------
+// Clickable POI Items
+// -----------------------------------------------------------------------------
+.clickable-poi {
+	cursor: pointer;
+	padding: 0.25rem 0.375rem;
+	margin: 0.125rem -0.375rem;
+	border-radius: var(--radius-sm);
+	transition: all 0.15s ease;
+
+	&:hover {
+		background: rgba(13, 148, 136, 0.1);
+
+		.show-on-map-hint {
+			opacity: 1;
+		}
+	}
+}
+
+.show-on-map-hint {
+	opacity: 0.3;
+	font-size: 0.75rem;
+	margin-left: 0.25rem;
+	transition: opacity 0.15s ease;
+}
+
+// -----------------------------------------------------------------------------
+// Active Layers Panel
+// -----------------------------------------------------------------------------
+.active-layers-panel {
+	@include glass-effect('liquid');
+	position: fixed;
+	bottom: 1.25rem;
+	right: 1.25rem;
+	border-radius: var(--radius-lg);
+	min-width: 220px;
+	max-width: 300px;
+	z-index: $z-layers-panel;
+	overflow: hidden;
+	transition: background 0.3s ease, backdrop-filter 0.3s ease, border-color 0.3s ease;
+
+	@include mobile {
+		top: auto;
+		bottom: 1rem;
+		left: 1rem;
+		right: 1rem;
+		max-width: none;
+		min-width: 0;
+	}
+}
+
+.active-layers-header {
+	@include flex-between;
+	padding: 0.75rem 1rem;
+	background: rgba(255, 255, 255, 0.4);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+	font-weight: 600;
+	font-size: 0.875rem;
+	color: var(--text-primary);
+	transition: background 0.3s ease, border-color 0.3s ease;
+
+	[data-theme="dark"] & {
+		background: rgba(30, 41, 59, 0.4);
+		border-bottom-color: rgba(255, 255, 255, 0.1);
+	}
+
+	body.reduce-transparency & {
+		background: rgba(243, 244, 246, 0.8);
+		border-bottom-color: rgba(0, 0, 0, 0.1);
+	}
+
+	[data-theme="dark"] body.reduce-transparency & {
+		background: rgba(31, 41, 55, 0.9);
+		border-bottom-color: rgba(255, 255, 255, 0.1);
+	}
+}
+
+.clear-all-btn {
+	padding: 0.25rem 0.5rem;
+	font-size: 0.75rem;
+	font-weight: 500;
+	color: var(--danger);
+	background: var(--danger-bg);
+	border: none;
+	border-radius: var(--radius-sm);
+	cursor: pointer;
+	transition: all 0.15s ease;
+
+	&:hover {
+		background: var(--danger);
+		color: white;
+	}
+}
+
+.active-layers-list {
+	padding: 0.5rem;
+}
+
+.active-layer-item {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.5rem 0.75rem;
+	background: rgba(255, 255, 255, 0.3);
+	border-radius: var(--radius-md);
+	margin-bottom: 0.375rem;
+	transition: background 0.15s ease;
+
+	&:hover {
+		background: rgba(255, 255, 255, 0.5);
+	}
+
+	&:last-child {
+		margin-bottom: 0;
+	}
+
+	[data-theme="dark"] & {
+		background: rgba(30, 41, 59, 0.3);
+
+		&:hover {
+			background: rgba(30, 41, 59, 0.5);
+		}
+	}
+
+	body.reduce-transparency & {
+		background: rgba(209, 213, 219, 0.4);
+
+		&:hover {
+			background: rgba(209, 213, 219, 0.6);
+		}
+	}
+
+	[data-theme="dark"] body.reduce-transparency & {
+		background: rgba(55, 65, 81, 0.6);
+
+		&:hover {
+			background: rgba(55, 65, 81, 0.8);
+		}
+	}
+}
+
+.layer-name {
+	flex: 1;
+	font-size: 0.8125rem;
+	font-weight: 500;
+	color: var(--text-primary);
+	@include text-truncate;
+}
+
+.layer-count {
+	font-size: 0.75rem;
+	color: var(--text-muted);
+	background: var(--bg-card);
+	padding: 0.125rem 0.375rem;
+	border-radius: 3px;
+}
+
+.layer-remove-btn {
+	width: 20px;
+	height: 20px;
+	@include flex-center;
+	font-size: 1rem;
+	font-weight: 600;
+	color: var(--text-muted);
+	background: transparent;
+	border: none;
+	border-radius: 50%;
+	cursor: pointer;
+	transition: all 0.15s ease;
+
+	&:hover {
+		background: var(--danger-bg);
+		color: var(--danger);
+	}
+}
+
+// -----------------------------------------------------------------------------
+// MapLibre Popup
+// -----------------------------------------------------------------------------
+.maplibregl-popup-content {
+	@include glass-effect('liquid');
+	padding: 0.625rem 0.875rem;
+	border-radius: var(--radius-sm);
+	font-size: 0.875rem;
+
+	[data-theme="dark"] & {
+		color: #fff;
+	}
+}

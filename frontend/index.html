@@ -96,48 +96,23 @@
 							<form id="search-form" onsubmit="handleSearch(event)">
 								<div class="search-form-row">
 									<div class="field">
-										<label class="label"
-											for="postcode">Postcode</label>
+										<label class="label" for="postcode">Postcode</label>
 										<div class="control">
-											<input class="input" type="text"
-												name="postcode"
-												id="postcode"
-												placeholder="1071XX"
-												required />
+											<input class="input" type="text" name="postcode" id="postcode" placeholder="1071XX" required />
 										</div>
 									</div>
 									<div class="field">
-										<label class="label"
-											for="houseNumber">House
-											Number</label>
+										<label class="label" for="houseNumber">House Number</label>
 										<div class="control">
-											<input class="input" type="text"
-												name="houseNumber"
-												id="houseNumber"
-												placeholder="1"
-												required />
+											<input class="input" type="text" name="houseNumber" id="houseNumber" placeholder="1" required />
 										</div>
 									</div>
 									<div class="field">
 										<label class="label">&nbsp;</label>
 										<div class="control">
-											<button type="submit"
-												id="btn-search"
-												class="button is-primary glass-liquid">🔎
-												Search</button>
-											<button type="button"
-												id="btn-refresh"
-												class="button is-info glass-liquid"
-												onclick="refreshData()"
-												title="Bypass cache and fetch fresh data"
-												style="display: none;">🔄
-												Refresh</button>
-											<button type="button"
-												class="button glass-liquid"
-												onclick="openSettings()"
-												title="Application Settings">⚙️
-												Settings
-											</button>
+											<button type="submit" id="btn-search" class="button is-primary glass-liquid">🔎 Search</button>
+											<button type="button" id="btn-refresh" class="button is-info glass-liquid" onclick="refreshData()" title="Bypass cache and fetch fresh data" style="display: none;">🔄 Refresh</button>
+											<button type="button" class="button glass-liquid" onclick="openSettings()" title="Application Settings">⚙️ Settings</button>
 										</div>
 									</div>
 								</div>
@@ -145,25 +120,16 @@
 						</div>
 					</div>
 					<!-- Map Style Switcher - Flows in sidebar on mobile, positioned absolutely on desktop -->
-					<div class="map-style-switcher glass-liquid">
-						<button class="map-style-btn" onclick="switchMapStyle('hybrid')"
-							title="Hybrid - Satellite with Labels">🌍</button>
-						<button class="map-style-btn" onclick="switchMapStyle('pdok')"
-							title="PDOK - Dutch Aerial">🇳🇱</button>
-						<button class="map-style-btn" onclick="switchMapStyle('satellite')"
-							title="Satellite Imagery">🛰️</button>
-						<button class="map-style-btn" onclick="switchMapStyle('osm')"
-							title="OpenStreetMap - Detailed">🗺️</button>
-						<button class="map-style-btn" onclick="switchMapStyle('topo')"
-							title="Topographic - Detailed">🧭</button>
-						<button class="map-style-btn" onclick="switchMapStyle('terrain')"
-							title="Terrain - Topographic">🏞️</button>
-						<button class="map-style-btn" onclick="switchMapStyle('railway')"
-							title="Railway - Satellite with Trains">🚂</button>
-						<button class="map-style-btn" onclick="switchMapStyle('cycling')"
-							title="CyclOSM - Cycling Routes">🚴</button>
-						<button class="map-style-btn" onclick="switchMapStyle('watercolor')"
-							title="Watercolor - Artistic">🎨</button>
+					<div class="map-style-switcher glass-liquid" id="map-style-switcher">
+						<button class="map-style-btn" onclick="switchMapStyle('hybrid')" title="Hybrid - Satellite with Labels">🌍</button>
+						<button class="map-style-btn" onclick="switchMapStyle('pdok')" title="PDOK - Dutch Aerial">🇳🇱</button>
+						<button class="map-style-btn" onclick="switchMapStyle('satellite')" title="Satellite Imagery">🛰️</button>
+						<button class="map-style-btn" onclick="switchMapStyle('osm')" title="OpenStreetMap - Detailed">🗺️</button>
+						<button class="map-style-btn" onclick="switchMapStyle('topo')" title="Topographic - Detailed">🧭</button>
+						<button class="map-style-btn" onclick="switchMapStyle('terrain')" title="Terrain - Topographic">🏞️</button>
+						<button class="map-style-btn" onclick="switchMapStyle('railway')" title="Railway - Satellite with Trains">🚂</button>
+						<button class="map-style-btn" onclick="switchMapStyle('cycling')" title="CyclOSM - Cycling Routes">🚴</button>
+						<button class="map-style-btn" onclick="switchMapStyle('watercolor')" title="Watercolor - Artistic">🎨</button>
 					</div>
 					<div class="results-wrapper">
 						<div id="results-container-main"></div>

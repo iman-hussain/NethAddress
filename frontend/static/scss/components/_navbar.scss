@@ -1,0 +1,168 @@
+// =============================================================================
+// NAVBAR COMPONENT
+// Primary navigation bar with glass effect
+// =============================================================================
+
+@use '../abstracts/variables' as *;
+@use '../abstracts/mixins' as *;
+
+// -----------------------------------------------------------------------------
+// Main Navbar
+// -----------------------------------------------------------------------------
+.navbar.is-primary {
+	@include glass-effect('liquid');
+	display: flex;
+	flex-wrap: nowrap;
+	justify-content: space-between;
+	align-items: center;
+	padding: 0;
+	min-height: 72px;
+	position: absolute;
+	width: 100%;
+	top: 0;
+	z-index: $z-navbar;
+
+	@include mobile {
+		position: fixed;
+		min-height: 40px;
+		padding: 0.25rem 0.5rem;
+		padding-top: env(safe-area-inset-top);
+	}
+}
+
+// -----------------------------------------------------------------------------
+// Navbar Items
+// -----------------------------------------------------------------------------
+.navbar-brand,
+.navbar-menu,
+.navbar-start,
+.navbar-end,
+.navbar-item {
+	background: transparent;
+}
+
+.navbar-brand .navbar-item {
+	font-weight: 700;
+	font-size: 1.75rem;
+	letter-spacing: -0.3px;
+	gap: 0.5rem;
+	padding: 0 1.25rem 0 0;
+	overflow: visible;
+
+	&:hover {
+		background: transparent;
+	}
+
+	@include mobile {
+		font-size: 1.25rem;
+		padding: 0.5rem 0.75rem;
+	}
+}
+
+.navbar-brand {
+	@include mobile {
+		flex-grow: 1;
+		display: flex;
+		align-items: center;
+		justify-content: flex-start;
+		width: auto;
+	}
+}
+
+// Ensure link colours match glass theme
+.navbar.is-primary .navbar-brand .navbar-item,
+.navbar.is-primary .navbar-start .navbar-item,
+.navbar.is-primary .navbar-end .navbar-item {
+	color: var(--text-primary);
+}
+
+.navbar.is-primary .navbar-item:hover {
+	color: var(--primary);
+	background-color: rgba(0, 0, 0, 0.05);
+}
+
+.navbar-item {
+	@include mobile {
+		padding: 0.5rem 1rem;
+	}
+}
+
+.navbar-end .tag {
+	background: rgba(255, 255, 255, 0.08);
+	color: rgba(255, 255, 255, 0.6);
+	font-size: 0.75rem;
+	font-weight: 500;
+	border-radius: 4px;
+}
+
+// -----------------------------------------------------------------------------
+// Logo
+// -----------------------------------------------------------------------------
+.logo-icon {
+	font-size: 2rem;
+
+	@include mobile {
+		font-size: 1.5rem;
+	}
+}
+
+.logo-icon-img {
+	height: 52px;
+	width: 52px;
+	margin-right: 0.5rem;
+	border-radius: 0;
+	vertical-align: middle;
+	object-fit: cover;
+	transform: scale(1.4);
+}
+
+// -----------------------------------------------------------------------------
+// Made By Link
+// -----------------------------------------------------------------------------
+.made-by-link {
+	color: var(--text-primary);
+	font-weight: 500;
+	font-size: 1.2rem;
+	text-decoration: none;
+	transition: opacity 0.2s ease, color 0.2s ease;
+	display: inline-flex;
+	align-items: center;
+	white-space: nowrap;
+
+	&:hover {
+		opacity: 1;
+		color: var(--primary);
+	}
+
+	@include mobile {
+		font-size: 0.9rem;
+	}
+}
+
+// -----------------------------------------------------------------------------
+// GitHub Link
+// -----------------------------------------------------------------------------
+.github-link {
+	display: inline-flex;
+	align-items: center;
+	margin-left: 1rem;
+	color: var(--text-primary);
+	opacity: 0.7;
+	transition: opacity 0.2s ease, color 0.2s ease;
+	vertical-align: middle;
+
+	&:hover {
+		opacity: 1;
+		color: var(--primary);
+	}
+
+	svg {
+		width: 28px;
+		height: 28px;
+
+		@include mobile {
+			width: 20px;
+			height: 20px;
+		}
+	}
+}

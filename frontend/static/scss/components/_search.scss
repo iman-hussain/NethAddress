@@ -1,0 +1,205 @@
+// =============================================================================
+// SEARCH PANEL COMPONENT
+// Search form with glass card styling
+// =============================================================================
+
+@use '../abstracts/variables' as *;
+@use '../abstracts/mixins' as *;
+
+// -----------------------------------------------------------------------------
+// Search Panel Container
+// -----------------------------------------------------------------------------
+.search-panel {
+	pointer-events: auto;
+	position: sticky;
+	top: 72px;
+	z-index: $z-search;
+	margin-bottom: 1.5rem;
+
+	@include mobile {
+		position: relative;
+		top: auto;
+		bottom: auto;
+		left: auto;
+		right: auto;
+		z-index: 50;
+		margin: 0;
+		border-radius: var(--radius-lg);
+		overflow: visible;
+		height: auto;
+		background: transparent;
+		flex-shrink: 0;
+		min-height: fit-content;
+	}
+
+	// Glass box inside search panel
+	.box {
+		@include glass-effect('liquid');
+		border-radius: var(--radius-surface);
+		padding: 1rem;
+		min-width: 320px;
+
+		@include mobile {
+			border-radius: var(--radius-lg);
+			margin: 0;
+			box-shadow: var(--shadow-md);
+			padding: 1rem 1rem 1.5rem;
+			min-height: auto;
+			overflow: visible;
+			height: auto;
+		}
+	}
+
+	// Labels
+	.label {
+		color: var(--text-secondary);
+		font-weight: 600;
+		font-size: 0.9375rem;
+		margin-bottom: 0.375rem;
+
+		@include mobile {
+			font-size: 0.875rem;
+			margin-bottom: 0.25rem;
+		}
+	}
+
+	// Input fields
+	.input {
+		border-radius: var(--radius-sm);
+		border: 1px solid var(--border);
+		font-size: 1.125rem;
+		padding: 0.75rem 1rem;
+		height: 48px;
+		transition: border-color 0.15s ease, box-shadow 0.15s ease;
+		background: rgba(255, 255, 255, 0.5);
+		color: var(--text-primary);
+		border-radius: var(--radius-interaction);
+
+		&::placeholder {
+			color: var(--text-muted);
+		}
+
+		&:focus {
+			border-color: var(--primary);
+			box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.1);
+			outline: none;
+		}
+
+		[data-theme="dark"] & {
+			background: rgba(0, 0, 0, 0.2);
+		}
+
+		@include mobile {
+			font-size: 0.9375rem;
+			padding: 0.5rem 0.75rem;
+			height: auto;
+		}
+	}
+
+	// Buttons
+	.button {
+		height: 48px;
+		border-radius: var(--radius-interaction);
+		font-weight: 700;
+
+		@include mobile {
+			font-size: 0.9375rem;
+			padding: 0.5rem 1rem;
+			height: auto;
+		}
+
+		&.is-primary {
+			background: var(--primary);
+			border: none;
+			border-radius: var(--radius-sm);
+			font-weight: 600;
+			font-size: 1.0625rem;
+			padding: 0.75rem 2rem;
+			transition: background 0.15s ease;
+
+			&:hover {
+				background: var(--primary-hover);
+			}
+
+			@include mobile {
+				width: 100%;
+			}
+		}
+
+		&.is-info {
+			background: var(--info);
+			border: none;
+			border-radius: var(--radius-sm);
+			font-weight: 600;
+			font-size: 1.0625rem;
+			padding: 0.75rem 1.5rem;
+			transition: background 0.15s ease;
+			color: white;
+
+			&:hover {
+				background: #0e7490;
+			}
+		}
+	}
+}
+
+// -----------------------------------------------------------------------------
+// Search Form Row
+// -----------------------------------------------------------------------------
+.search-form-row {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+	gap: 0.75rem;
+
+	.field {
+		flex: 1;
+		margin-bottom: 0;
+
+		// Button field takes full width on second row
+		&:last-child {
+			grid-column: 1 / -1;
+
+			// Hide the empty label spacer
+			.label {
+				display: none;
+			}
+
+			// Button container - 50/50 split
+			.control {
+				display: grid;
+				grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+				gap: 0.75rem;
+
+				// Hidden buttons shouldn't break layout
+				.button[style*="display: none"] {
+					display: none;
+				}
+			}
+		}
+	}
+
+	@include mobile {
+		flex-direction: column;
+		gap: 0.75rem;
+		flex-wrap: wrap;
+
+		.field {
+			min-width: 120px;
+		}
+	}
+}
+
+// Margin adjustments based on results state
+body:not(.has-results) .search-panel {
+	@include mobile {
+		margin-top: 0;
+		margin-bottom: 0;
+	}
+}
+
+body.has-results .search-panel {
+	@include mobile {
+		margin-top: 0;
+		margin-bottom: 0;
+	}
+}
