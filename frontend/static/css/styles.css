@@ -1554,8 +1554,10 @@ body.has-results .results-wrapper {
 		overflow-y: hidden;
 		-webkit-overflow-scrolling: touch;
 		scrollbar-width: none;
-		/* Hide scrollbar Firefox */
 		pointer-events: auto;
+		display: flex !important;
+		flex-shrink: 0;
+		min-height: 52px;
 	}
 
 	.map-style-switcher::-webkit-scrollbar {
@@ -1590,18 +1592,16 @@ body.has-results .results-wrapper {
 
 	.sidebar-content {
 		direction: ltr;
-		padding: 48px 1rem 1.5rem;
-		/* Tight to navbar */
+		padding: 52px 1rem 1.5rem;
+		/* 52px = 40px navbar + 12px gap */
 		height: auto;
-		/* Let content dictate height */
 		width: 100%;
+		max-width: 100%;
 		overflow: visible !important;
-		/* Disable internal scroll, use body scroll */
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
 		pointer-events: none;
-		/* Gap touches fall through to map */
 		background: transparent !important;
 	}
 
@@ -2073,10 +2073,7 @@ body.reduce-transparency .active-layer-item:hover {
 		/* Space for bottom content if needed */
 	}
 
-	.sidebar-content {
-		padding: 0.75rem;
-		/* Smaller padding */
-	}
+	/* sidebar-content handled in main mobile media query at line ~1591 */
 
 	/* Typography adjustments */
 	.metric-value {
@@ -2138,29 +2135,24 @@ body.reduce-transparency .active-layer-item:hover {
 	padding-bottom: env(safe-area-inset-bottom);
 }
 
-.sidebar-content {
-	padding: 1rem 1.5rem;
-	pointer-events: auto;
-	/* Enable interaction for scrolling */
-	height: 100%;
-	display: flex;
-	flex-direction: column;
-	width: 100%;
-	/* Ensure full utilization */
-	max-width: 40vw;
-	/* 2/5 width */
-	/* Wider Floating panel on desktop */
-	overflow-y: auto;
-	/* Allow vertical scrolling */
-	padding-bottom: 150px;
-	/* Generous bottom padding to allow scrolling past last card */
-	scrollbar-width: none;
-	/* Hide scrollbar for cleaner look (Firefox) */
-}
+/* Desktop-only sidebar content styles */
+@media screen and (min-width: 769px) {
+	.sidebar-content {
+		padding: 1rem 1.5rem;
+		pointer-events: auto;
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+		width: 100%;
+		max-width: 40vw;
+		overflow-y: auto;
+		padding-bottom: 150px;
+		scrollbar-width: none;
+	}
 
-/* Hide scrollbar for Chrome/Safari/Edge */
-.sidebar-content::-webkit-scrollbar {
-	display: none;
+	.sidebar-content::-webkit-scrollbar {
+		display: none;
+	}
 }
 
 .sidebar-content>* {
@@ -2330,14 +2322,7 @@ body.reduce-transparency .active-layer-item:hover {
 		/* 100% transparent to match desktop behavior */
 	}
 
-	.sidebar-content {
-		max-width: 100%;
-		padding: 1rem 1.25rem;
-		background: transparent !important;
-		/* Ensure floating effect */
-		pointer-events: none;
-		/* Let clicks pass through empty areas */
-	}
+	/* sidebar-content padding handled in main mobile media query */
 
 	.sidebar-content>* {
 		pointer-events: auto;
