@@ -1394,7 +1394,7 @@ function renderApiResults() {
             </div>` : ''}
         </div>
         <div class="address-actions">
-            <button class="btn btn-primary" onclick="exportCSV()">📥 Export CSV</button>
+            <button class="button glass-liquid" onclick="exportCSV()">📥 Export CSV</button>
         </div>
     </div>`;
 
