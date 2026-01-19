@@ -83,7 +83,7 @@ export function renderPublicTransport(data) {
             ${metroStops.length > 0 ? `<button class="poi-toggle-btn" data-layer="transport-metro" onclick="window.toggleTransportLayer('transport-metro', '🚇 Metro Stations', '${metroData}', 'metro')">🚇 Metro (<strong>${metroStops.length}</strong>)</button>` : ''}
         </div>
         <div class="metric-secondary" style="margin-top: 0.5rem;">
-            <button class="poi-toggle-btn show-all-btn" data-layer="transport-all" onclick="window.toggleTransportLayer('transport-all', '🚏 All PT Stops', '${allStopsData}', 'default')">📍 Show All on Map</button>
+            <button class="poi-toggle-btn show-all-btn" data-layer="transport-all" onclick="window.toggleTransportLayer('transport-all', '🚏 All PT Stops', '${allStopsData}', 'transport-all')">📍 Show All on Map</button>
         </div>
         <div class="metric-secondary" style="margin-top: 0.5rem;">
             🏆 Transit score: <span class="status-badge ${transitClass}">${transitScore}/100</span>
@@ -140,7 +140,7 @@ export function renderParkingAvailability(data) {
             ${zoneTypes.length > 0 ? ` (${zoneTypes.join(', ')})` : ''}
         </div>` : ''}
         ${parkingPOIs.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.5rem;">
-            <button class="poi-toggle-btn show-all-btn" data-layer="parking-zones" onclick="window.toggleTransportLayer('parking-zones', '🅿️ Parking Zones', '${parkingData}', 'default')">📍 Show on Map</button>
+            <button class="poi-toggle-btn show-all-btn" data-layer="parking-zones" onclick="window.toggleTransportLayer('parking-zones', '🅿️ Parking Zones', '${parkingData}', 'parking-zones')">📍 Show on Map</button>
         </div>` : ''}
         ${totalSpaces > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
             📊 Avg wait: <strong>${occupancyRate > 80 ? '10-15' : occupancyRate > 50 ? '5-10' : '< 5'}</strong> min
@@ -256,7 +256,7 @@ export function renderFacilitiesAmenities(data) {
             ${categoryButtons}
         </div>` : ''}
         <div class="metric-secondary" style="margin-top: 0.5rem;">
-            <button class="poi-toggle-btn show-all-btn" data-layer="amenities-all" onclick="window.toggleTransportLayer('amenities-all', '🏪 All Amenities', '${allFacilitiesData}', 'default')">📍 Show All on Map</button>
+            <button class="poi-toggle-btn show-all-btn" data-layer="amenities-all" onclick="window.toggleTransportLayer('amenities-all', '🏪 All Amenities', '${allFacilitiesData}', 'amenities-all')">📍 Show All on Map</button>
         </div>
         ${Object.keys(nearestByCategory).length > 0 ? Object.entries(nearestByCategory).slice(0, 4).map(([cat, f]) => {
             const poiType = catToPoiType[cat] || 'default';
@@ -322,7 +322,7 @@ export function renderEducationFacilities(data) {
             ${otherCount > 0 ? `<button class="poi-toggle-btn" data-layer="edu-other" onclick="window.toggleTransportLayer('edu-other', '📚 Other Education', '${otherData}', 'other-education')">📚 Other: <strong>${otherCount}</strong></button>` : ''}
         </div>
         <div class="metric-secondary" style="margin-top: 0.5rem;">
-            <button class="poi-toggle-btn show-all-btn" data-layer="edu-all" onclick="window.toggleTransportLayer('edu-all', '🎒 All Schools', '${allSchoolsData}', 'default')">📍 Show All on Map</button>
+            <button class="poi-toggle-btn show-all-btn" data-layer="edu-all" onclick="window.toggleTransportLayer('edu-all', '🎒 All Schools', '${allSchoolsData}', 'education-all')">📍 Show All on Map</button>
         </div>
         ${publicSchools > 0 || privateSchools > 0 ? `<div class="metric-secondary" style="margin-top: 0.25rem;">
             🏛️ Public: <strong>${publicSchools}</strong> &nbsp;|&nbsp;
@@ -376,7 +376,7 @@ export function renderGreenSpaces(data) {
             🏆 Score: <strong>${greenScore}</strong>/100
         </div>
         ${greenPOIs.length > 0 ? `<div class="metric-secondary" style="margin-top: 0.5rem;">
-            <button class="poi-toggle-btn show-all-btn" data-layer="green-spaces" onclick="window.toggleTransportLayer('green-spaces', '🌳 Green Spaces', '${greenData}', 'default')">📍 Show Parks on Map</button>
+            <button class="poi-toggle-btn show-all-btn" data-layer="green-spaces" onclick="window.toggleTransportLayer('green-spaces', '🌳 Green Spaces', '${greenData}', 'green-spaces')">📍 Show Parks on Map</button>
         </div>` : ''}
         <div class="metric-secondary" style="margin-top: 0.25rem;">
             🌲 Tree canopy: <strong>${(treeCanopy * 100).toFixed(1)}%</strong>

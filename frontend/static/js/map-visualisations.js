@@ -14,16 +14,26 @@ const POI_COLOURS = {
     'train': '#0080ff',    // Bright blue
     'tram': '#ff00ff',     // Bright magenta
     'metro': '#ff6600',    // Bright orange
+    'transport-all': '#00ff00', // Neon green for all transport
     // Education
     'primary': '#00dd00',  // Bright green
     'secondary': '#0066ff', // Bright indigo
     'other-education': '#ff1493', // Deep pink/magenta
-    // Amenities
+    'education-all': '#9966ff', // Purple for all education
+    // Amenities by category
     'dining': '#ff0000',   // Bright red
     'healthcare': '#00ffff', // Cyan
     'retail': '#ffcc00',   // Bright yellow
     'leisure': '#ff00aa',  // Bright magenta-pink
     'sport': '#ccff00',    // Lime green
+    'amenities-all': '#ff8800', // Orange for all amenities
+    // Green spaces
+    'green-spaces': '#00ff88', // Bright teal-green
+    'parks': '#00ff88',    // Bright teal-green
+    // Parking
+    'parking': '#ff66ff',  // Bright purple-pink
+    'parking-zones': '#ff66ff', // Bright purple-pink
+    // Generic fallback
     'default': '#00ffff'   // Cyan
 };
 
