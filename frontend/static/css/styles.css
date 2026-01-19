@@ -1084,6 +1084,73 @@ body.has-results .results-wrapper {
 	/* Glass properties handled by utility at top of file */
 	border-radius: var(--radius-lg);
 	margin: 0 auto;
+	overflow: hidden;
+}
+
+/* Mobile modal - prevent horizontal scroll */
+@media screen and (max-width: 768px) {
+	.modal {
+		padding: 0.5rem;
+		overflow: hidden;
+	}
+
+	.modal-card {
+		width: 100%;
+		max-width: calc(100vw - 1rem);
+		max-height: calc(100vh - 2rem);
+		margin: 0.5rem;
+		border-radius: var(--radius-lg);
+		overflow: hidden;
+	}
+
+	.modal-card-body {
+		padding: 0.75rem;
+		max-height: calc(100vh - 10rem);
+		overflow-y: auto;
+		overflow-x: hidden;
+	}
+
+	.api-tier-group {
+		grid-template-columns: 1fr !important;
+		gap: 0.5rem;
+	}
+
+	.api-item-row {
+		padding: 0.5rem 0.75rem;
+		width: 100%;
+		max-width: 100%;
+		box-sizing: border-box;
+	}
+
+	.api-item-header {
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+
+	.api-item-label {
+		font-size: 0.875rem;
+		min-width: 0;
+		flex: 1 1 auto;
+	}
+
+	.key-toggle-btn {
+		font-size: 0.75rem;
+		padding: 0.3rem 0.5rem;
+	}
+
+	.key-toggle-btn span:first-child {
+		display: none;
+	}
+
+	.key-input-wrapper {
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.key-input-field {
+		width: 100% !important;
+		font-size: 0.875rem;
+	}
 }
 
 /* Dark mode glass handled by utility */
@@ -1472,12 +1539,12 @@ body.has-results .results-wrapper {
 
 	/* Map style switcher repositioned for mobile - same width as search box, scrollable */
 	.map-style-switcher {
-		position: relative;
-		top: auto;
-		bottom: auto;
-		left: 0;
-		right: 0;
-		width: 100%;
+		position: relative !important;
+		top: auto !important;
+		bottom: auto !important;
+		left: 0 !important;
+		right: 0 !important;
+		width: 100% !important;
 		margin: 0;
 		padding: 0.5rem;
 		z-index: 49;
