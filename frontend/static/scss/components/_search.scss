@@ -23,7 +23,8 @@
 		left: auto;
 		right: auto;
 		z-index: 50;
-		margin: 0.75rem 0 0 0;
+		margin: 0;
+		padding-top: calc(40px + 0.75rem + env(safe-area-inset-top));
 		border-radius: var(--radius-lg);
 		overflow: visible;
 		height: auto;

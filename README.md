@@ -4,13 +4,19 @@ AddressIQ is a property intelligence toolkit for the Netherlands: it looks up an
 
 ## Table of Contents
 
-- [Quick start](#quick-start)
-- [Project structure](#project-structure)
-- [API reference](#api-reference)
-- [Deployment](#deployment)
-- [Privacy Disclaimer](#privacy-disclaimer)
-- [Licensing](#licensing)
-- [Next Steps](#next-steps)
+- [AddressIQ](#addressiq)
+	- [Table of Contents](#table-of-contents)
+	- [Quick start](#quick-start)
+	- [Project structure](#project-structure)
+	- [Information Flow](#information-flow)
+	- [API reference](#api-reference)
+	- [Deployment](#deployment)
+		- [Build Hash Display](#build-hash-display)
+	- [Privacy Disclaimer](#privacy-disclaimer)
+	- [Licensing](#licensing)
+		- [Open-Source License](#open-source-license)
+		- [Commercial License](#commercial-license)
+	- [Next Steps](#next-steps)
 
 ## Quick start
 
@@ -229,10 +235,5 @@ If you wish to use AddressIQ in a commercial, closed-source product, you must ob
 ## Next Steps
 
 - Test with full list of API's
-- Push to my own website (online)
-- Implement Redis caching layer
-- Ensure map works and zooms in entered address
-- Overlay property boundaries to map (not sure how to impliment, will research)
-- Overlay local POI that would affect value, opportunity, ESG
-- Build data aggregation and scoring services, and integrate with frontend
+- Overlay property boundaries to map (not sure how to implement, will research)
 - Add REST endpoints for aggregated data
