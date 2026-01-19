@@ -1016,15 +1016,21 @@ body.has-results .results-wrapper {
 
 .section-header h4 {
 	margin: 0;
-	font-size: 1rem;
-	font-weight: 700;
+	font-size: 1.125rem;
+	font-weight: 800;
 	color: var(--text-primary);
 	text-transform: uppercase;
-	letter-spacing: 0.04em;
+	letter-spacing: 0.05em;
+	text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+[data-theme="dark"] .section-header h4 {
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
 .section-icon {
-	font-size: 1.25rem;
+	font-size: 1.5rem;
+	filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.15));
 }
 
 .summary-stats-inline {
@@ -1580,7 +1586,7 @@ body.has-results .results-wrapper {
 
 	/* Unified results wrapper for mobile */
 	.results-wrapper {
-		margin: 30vh 0.875rem 2rem;
+		margin: 40vh 0.875rem 2rem;
 		/* Large top gap for map visibility */
 		padding-bottom: 2rem;
 		/* Extra padding for bottom */
@@ -2272,11 +2278,11 @@ body.reduce-transparency .active-layer-item:hover {
 
 	/* Search form uses same layout as desktop - no overrides needed */
 
-	/* Map switcher at TOP on mobile, below navbar */
+	/* Map switcher at TOP on mobile, well below search box */
 	.map-style-switcher {
 		position: fixed;
-		top: calc(240px + env(safe-area-inset-top));
-		/* Same as desktop + safe area */
+		top: calc(320px + env(safe-area-inset-top));
+		/* Lowered to avoid overlap with search box */
 		bottom: auto;
 		right: 1rem;
 		z-index: 99;
