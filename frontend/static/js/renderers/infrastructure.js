@@ -75,7 +75,7 @@ export function renderPublicTransport(data) {
 
     return `<div class="metric-display">
         <div class="metric-value">${stopCount}</div>
-        <div class="metric-label">🚏 PT Stops (500m radius)</div>
+        <div class="metric-label">🚏 PT Stops (1km radius)</div>
         <div class="metric-secondary transport-buttons">
             ${busStops.length > 0 ? `<button class="poi-toggle-btn" data-layer="transport-bus" onclick="window.toggleTransportLayer('transport-bus', '🚌 Bus Stops', '${busData}', 'bus')">🚌 Bus (<strong>${busStops.length}</strong>)</button>` : ''}
             ${trainStops.length > 0 ? `<button class="poi-toggle-btn" data-layer="transport-train" onclick="window.toggleTransportLayer('transport-train', '🚆 Train Stations', '${trainData}', 'train')">🚆 Train (<strong>${trainStops.length}</strong>)</button>` : ''}
