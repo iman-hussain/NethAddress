@@ -2,9 +2,7 @@ package apiclient
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/models"
@@ -18,33 +16,15 @@ func (c *ApiClient) FetchAltumWOZData(ctx context.Context, cfg *config.Config, b
 	}
 
 	url := fmt.Sprintf("%s/woz/%s", cfg.AltumWOZApiURL, bagID)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
 
+	headers := make(map[string]string)
 	if cfg.AltumWOZApiKey != "" {
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", cfg.AltumWOZApiKey))
-	}
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == 404 {
-		return nil, fmt.Errorf("WOZ data not found for BAG ID: %s", bagID)
-	}
-
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("altum WOZ API returned status %d", resp.StatusCode)
+		headers["Authorization"] = fmt.Sprintf("Bearer %s", cfg.AltumWOZApiKey)
 	}
 
 	var result models.AltumWOZData
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode altum WOZ response: %w", err)
+	if err := c.GetJSON(ctx, "Altum WOZ", url, headers, &result); err != nil {
+		return nil, fmt.Errorf("altum WOZ API request failed: %w", err)
 	}
 
 	return &result, nil
@@ -58,33 +38,16 @@ func (c *ApiClient) FetchTransactionHistory(ctx context.Context, cfg *config.Con
 	}
 
 	url := fmt.Sprintf("%s/transactions/%s", cfg.AltumTransactionApiURL, bagID)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
 
+	headers := make(map[string]string)
 	if cfg.AltumTransactionApiKey != "" {
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", cfg.AltumTransactionApiKey))
-	}
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == 404 {
-		return &models.TransactionHistory{Transactions: []models.TransactionData{}, TotalCount: 0}, nil
-	}
-
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("altum transaction API returned status %d", resp.StatusCode)
+		headers["Authorization"] = fmt.Sprintf("Bearer %s", cfg.AltumTransactionApiKey)
 	}
 
 	var result models.TransactionHistory
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode transaction response: %w", err)
+	if err := c.GetJSON(ctx, "Altum Transaction", url, headers, &result); err != nil {
+		// Return empty transaction history on failure (soft failure for 404)
+		return &models.TransactionHistory{Transactions: []models.TransactionData{}, TotalCount: 0}, nil
 	}
 
 	return &result, nil

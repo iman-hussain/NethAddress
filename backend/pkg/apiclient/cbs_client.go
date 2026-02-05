@@ -2,24 +2,27 @@ package apiclient
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/logutil"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/models"
 )
 
+// emptyCBSData returns a default CBSData struct for soft failures.
+func emptyCBSData() *models.CBSData {
+	return &models.CBSData{
+		AvgIncome:         0,
+		PopulationDensity: 0,
+		AvgWOZValue:       0,
+	}
+}
+
 func (c *ApiClient) FetchCBSData(ctx context.Context, cfg *config.Config, neighborhoodCode string) (*models.CBSData, error) {
 	logutil.Debugf("[CBS] FetchCBSData: URL=%s, neighborhoodCode=%s", cfg.CBSApiURL, neighborhoodCode)
 	// Return empty data if no CBS API URL is configured
 	if cfg.CBSApiURL == "" {
-		return &models.CBSData{
-			AvgIncome:         0,
-			PopulationDensity: 0,
-			AvgWOZValue:       0,
-		}, nil
+		return emptyCBSData(), nil
 	}
 
 	// CBS OData API for neighborhood statistics (Kerncijfers wijken en buurten)
@@ -27,29 +30,6 @@ func (c *ApiClient) FetchCBSData(ctx context.Context, cfg *config.Config, neighb
 	// Documentation: https://opendata.cbs.nl/statline/#/CBS/nl/dataset/85039NED
 	url := fmt.Sprintf("%s/85039NED/Observations?$filter=RegioS eq '%s'&$orderby=Perioden desc&$top=1", cfg.CBSApiURL, neighborhoodCode)
 	logutil.Debugf("[CBS] Request URL: %s", url)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		logutil.Debugf("[CBS] Request error: %v", err)
-		return nil, err
-	}
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		logutil.Debugf("[CBS] HTTP error: %v", err)
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		logutil.Debugf("[CBS] Non-200 status: %d", resp.StatusCode)
-		// Return default data if API fails
-		return &models.CBSData{
-			AvgIncome:         0,
-			PopulationDensity: 0,
-			AvgWOZValue:       0,
-		}, nil
-	}
 
 	var result struct {
 		Value []struct {
@@ -59,20 +39,17 @@ func (c *ApiClient) FetchCBSData(ctx context.Context, cfg *config.Config, neighb
 			GemiddeldeWOZ       float64 `json:"GemiddeldeWOZWaardeVanWoningen_35"`
 		} `json:"value"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		logutil.Debugf("[CBS] Decode error: %v", err)
-		return nil, err
+
+	if err := c.GetJSON(ctx, "CBS", url, nil, &result); err != nil {
+		return emptyCBSData(), nil
 	}
+
 	logutil.Debugf("[CBS] Response: %+v", result)
 	if len(result.Value) == 0 {
 		logutil.Debugf("[CBS] No results for %s", neighborhoodCode)
-		// Return empty data instead of error
-		return &models.CBSData{
-			AvgIncome:         0,
-			PopulationDensity: 0,
-			AvgWOZValue:       0,
-		}, nil
+		return emptyCBSData(), nil
 	}
+
 	data := &models.CBSData{
 		AvgIncome:         result.Value[0].GemiddeldInkomen * 1000, // Convert from x1000 euro to euro
 		PopulationDensity: result.Value[0].Bevolkingsdichtheid,
@@ -99,26 +76,6 @@ func (c *ApiClient) LookupNeighborhoodCode(ctx context.Context, cfg *config.Conf
 
 	logutil.Debugf("[CBS] WFS Request URL: %s", url)
 
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		logutil.Debugf("[CBS] Request error: %v", err)
-		return nil, fmt.Errorf("failed to create WFS request: %w", err)
-	}
-
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		logutil.Debugf("[CBS] HTTP error: %v", err)
-		return nil, fmt.Errorf("WFS request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		logutil.Debugf("[CBS] Non-200 status: %d", resp.StatusCode)
-		return nil, fmt.Errorf("WFS returned status %d", resp.StatusCode)
-	}
-
 	// Parse GeoJSON response
 	var geoJSON struct {
 		Type     string `json:"type"`
@@ -136,9 +93,8 @@ func (c *ApiClient) LookupNeighborhoodCode(ctx context.Context, cfg *config.Conf
 		} `json:"features"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&geoJSON); err != nil {
-		logutil.Debugf("[CBS] Decode error: %v", err)
-		return nil, fmt.Errorf("failed to parse WFS response: %w", err)
+	if err := c.GetJSON(ctx, "CBS WFS", url, nil, &geoJSON); err != nil {
+		return nil, fmt.Errorf("WFS request failed: %w", err)
 	}
 
 	logutil.Debugf("[CBS] Found %d features", len(geoJSON.Features))

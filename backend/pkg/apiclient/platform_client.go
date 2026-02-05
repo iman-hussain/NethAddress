@@ -2,9 +2,7 @@ package apiclient
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/models"
@@ -18,26 +16,10 @@ func (c *ApiClient) FetchPDOKPlatformData(ctx context.Context, cfg *config.Confi
 	}
 
 	url := fmt.Sprintf("%s/comprehensive?lat=%f&lon=%f", cfg.PDOKApiURL, lat, lon)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("PDOK platform API returned status %d", resp.StatusCode)
-	}
 
 	var result models.PDOKPlatformData
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode PDOK platform response: %w", err)
+	if err := c.GetJSON(ctx, "PDOK Platform", url, nil, &result); err != nil {
+		return nil, fmt.Errorf("PDOK platform API request failed: %w", err)
 	}
 
 	return &result, nil
@@ -51,29 +33,15 @@ func (c *ApiClient) FetchStratopoEnvironmentData(ctx context.Context, cfg *confi
 	}
 
 	url := fmt.Sprintf("%s/environment?lat=%f&lon=%f", cfg.StratopoApiURL, lat, lon)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
 
+	headers := make(map[string]string)
 	if cfg.StratopoApiKey != "" {
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", cfg.StratopoApiKey))
-	}
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("stratopo API returned status %d", resp.StatusCode)
+		headers["Authorization"] = fmt.Sprintf("Bearer %s", cfg.StratopoApiKey)
 	}
 
 	var result models.StratopoEnvironmentData
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode stratopo response: %w", err)
+	if err := c.GetJSON(ctx, "Stratopo", url, headers, &result); err != nil {
+		return nil, fmt.Errorf("stratopo API request failed: %w", err)
 	}
 
 	return &result, nil
@@ -87,26 +55,10 @@ func (c *ApiClient) FetchLandUseData(ctx context.Context, cfg *config.Config, la
 	}
 
 	url := fmt.Sprintf("%s/land-use?lat=%f&lon=%f", cfg.LandUseApiURL, lat, lon)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("land use API returned status %d", resp.StatusCode)
-	}
 
 	var result models.LandUseData
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode land use response: %w", err)
+	if err := c.GetJSON(ctx, "Land Use", url, nil, &result); err != nil {
+		return nil, fmt.Errorf("land use API request failed: %w", err)
 	}
 
 	return &result, nil

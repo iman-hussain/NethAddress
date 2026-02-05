@@ -101,8 +101,16 @@ func TestFetchEnergyClimateData_NotFound(t *testing.T) {
 	}
 	client := NewApiClient(server.Client(), cfg)
 
-	_, err := client.FetchEnergyClimateData(context.Background(), cfg, "0000000000000000")
-	if err == nil {
-		t.Error("Expected error for non-existent address, got nil")
+	// Soft failure: returns default data instead of error for API failures
+	result, err := client.FetchEnergyClimateData(context.Background(), cfg, "0000000000000000")
+	if err != nil {
+		t.Errorf("Expected soft failure with default data, got error: %v", err)
+	}
+	if result == nil {
+		t.Error("Expected non-nil result for soft failure")
+	}
+	// Default fallback returns "Unknown" label
+	if result != nil && result.EnergyLabel != "Unknown" {
+		t.Errorf("Expected EnergyLabel 'Unknown' for soft failure, got: %s", result.EnergyLabel)
 	}
 }

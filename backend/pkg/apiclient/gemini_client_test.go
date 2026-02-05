@@ -102,7 +102,7 @@ func TestGeminiPrompt(t *testing.T) {
 		"Business",
 		"Liveability",
 		"risks",
-		"500 characters",
+		"800 characters",
 		"British English",
 	}
 

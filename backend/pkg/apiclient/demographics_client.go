@@ -2,9 +2,7 @@ package apiclient
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/logutil"
@@ -27,28 +25,8 @@ func (c *ApiClient) FetchCBSPopulationData(ctx context.Context, cfg *config.Conf
 	url := fmt.Sprintf("%s/collections/buurten/items?bbox=%s&f=json&limit=1", baseURL, bbox)
 	logutil.Debugf("[CBS Population] Request URL: %s", url)
 
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		logutil.Debugf("[CBS Population] Request error: %v", err)
-		return emptyPopulationData(), nil
-	}
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		logutil.Debugf("[CBS Population] HTTP error: %v", err)
-		return emptyPopulationData(), nil
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		logutil.Debugf("[CBS Population] Non-200 status: %d", resp.StatusCode)
-		return emptyPopulationData(), nil
-	}
-
 	var apiResp models.CBSBuurtenResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
-		logutil.Debugf("[CBS Population] Decode error: %v", err)
+	if err := c.GetJSON(ctx, "CBS Population", url, nil, &apiResp); err != nil {
 		return emptyPopulationData(), nil
 	}
 
@@ -159,52 +137,26 @@ func emptyPopulationData() *models.CBSPopulationData {
 // FetchCBSStatLineData retrieves socioeconomic data via OData API
 // Documentation: https://www.cbs.nl/en-gb/our-services/open-data/statline-as-open-data
 func (c *ApiClient) FetchCBSStatLineData(ctx context.Context, cfg *config.Config, regionCode string) (*models.CBSStatLineData, error) {
+	emptyData := &models.CBSStatLineData{
+		RegionCode:     regionCode,
+		RegionName:     regionCode,
+		Population:     0,
+		AverageIncome:  0,
+		EmploymentRate: 0,
+		EducationLevel: "Unknown",
+		HousingStock:   0,
+		AverageWOZ:     0,
+		Year:           2024,
+	}
+
 	if cfg.CBSStatLineApiURL == "" {
-		return &models.CBSStatLineData{
-			RegionCode:     regionCode,
-			RegionName:     regionCode,
-			Population:     0,
-			AverageIncome:  0,
-			EmploymentRate: 0,
-			EducationLevel: "Unknown",
-			HousingStock:   0,
-			AverageWOZ:     0,
-			Year:           2024,
-		}, nil
+		return emptyData, nil
 	}
 
 	// CBS OData API endpoint for regional statistics
 	// Using dataset 84286NED for compatibility
 	url := fmt.Sprintf("%s/ODataFeed/v4/CBS/84286NED/Observations?$filter=RegioS eq '%s'&$orderby=Perioden desc&$top=1",
 		cfg.CBSStatLineApiURL, regionCode)
-
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		// Return default data if API fails
-		return &models.CBSStatLineData{
-			RegionCode:     regionCode,
-			RegionName:     regionCode,
-			Population:     0,
-			AverageIncome:  0,
-			EmploymentRate: 0,
-			EducationLevel: "Unknown",
-			HousingStock:   0,
-			AverageWOZ:     0,
-			Year:           2024,
-		}, nil
-	}
 
 	var result struct {
 		Value []struct {
@@ -218,23 +170,12 @@ func (c *ApiClient) FetchCBSStatLineData(ctx context.Context, cfg *config.Config
 		} `json:"value"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode CBS StatLine response: %w", err)
+	if err := c.GetJSON(ctx, "CBS StatLine", url, nil, &result); err != nil {
+		return emptyData, nil
 	}
 
 	if len(result.Value) == 0 {
-		// Return default data instead of error
-		return &models.CBSStatLineData{
-			RegionCode:     regionCode,
-			RegionName:     regionCode,
-			Population:     0,
-			AverageIncome:  0,
-			EmploymentRate: 0,
-			EducationLevel: "Unknown",
-			HousingStock:   0,
-			AverageWOZ:     0,
-			Year:           2024,
-		}, nil
+		return emptyData, nil
 	}
 
 	data := result.Value[0]
@@ -266,28 +207,8 @@ func (c *ApiClient) FetchCBSSquareStats(ctx context.Context, cfg *config.Config,
 	url := fmt.Sprintf("%s/collections/buurten/items?bbox=%s&f=json&limit=1", baseURL, bbox)
 	logutil.Debugf("[CBS Square] Request URL: %s", url)
 
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		logutil.Debugf("[CBS Square] Request error: %v", err)
-		return emptySquareStats(), nil
-	}
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		logutil.Debugf("[CBS Square] HTTP error: %v", err)
-		return emptySquareStats(), nil
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		logutil.Debugf("[CBS Square] Non-200 status: %d", resp.StatusCode)
-		return emptySquareStats(), nil
-	}
-
 	var apiResp models.CBSSquareResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
-		logutil.Debugf("[CBS Square] Decode error: %v", err)
+	if err := c.GetJSON(ctx, "CBS Square", url, nil, &apiResp); err != nil {
 		return emptySquareStats(), nil
 	}
 

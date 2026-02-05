@@ -2,9 +2,7 @@ package apiclient
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/models"
@@ -18,29 +16,11 @@ func (c *ApiClient) FetchKadasterObjectInfo(ctx context.Context, cfg *config.Con
 	}
 
 	url := fmt.Sprintf("%s/objecten/%s", cfg.KadasterObjectInfoApiURL, bagID)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
 
-	// Add API key if provided
+	// Build custom headers for API key authentication
+	headers := make(map[string]string)
 	if cfg.KadasterObjectInfoApiKey != "" {
-		req.Header.Set("X-Api-Key", cfg.KadasterObjectInfoApiKey)
-	}
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == 404 {
-		return nil, fmt.Errorf("property not found for BAG ID: %s", bagID)
-	}
-
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("kadaster API returned status %d", resp.StatusCode)
+		headers["X-Api-Key"] = cfg.KadasterObjectInfoApiKey
 	}
 
 	var result struct {
@@ -69,8 +49,8 @@ func (c *ApiClient) FetchKadasterObjectInfo(ctx context.Context, cfg *config.Con
 		} `json:"gebouw"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode kadaster response: %w", err)
+	if err := c.GetJSON(ctx, "Kadaster", url, headers, &result); err != nil {
+		return nil, fmt.Errorf("kadaster API request failed: %w", err)
 	}
 
 	return &models.KadasterObjectInfo{

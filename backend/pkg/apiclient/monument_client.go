@@ -2,9 +2,7 @@ package apiclient
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/logutil"
@@ -14,6 +12,15 @@ import (
 // Default PDOK RCE Monuments API endpoint (free, no auth required)
 const defaultMonumentenApiURL = "https://api.pdok.nl/rce/beschermde-gebieden-cultuurhistorie/ogc/v1"
 
+// emptyMonumentData returns a default MonumentData struct for soft failures.
+func emptyMonumentData() *models.MonumentData {
+	return &models.MonumentData{
+		IsMonument: false,
+		Type:       "",
+		Date:       "",
+	}
+}
+
 // FetchMonumentData queries the PDOK RCE monuments API to check if an address is a monument
 // Uses bbox query with coordinates from BAG data
 func (c *ApiClient) FetchMonumentData(ctx context.Context, cfg *config.Config, bagPandID string) (*models.MonumentData, error) {
@@ -22,11 +29,7 @@ func (c *ApiClient) FetchMonumentData(ctx context.Context, cfg *config.Config, b
 
 	// For now, return not a monument - the coordinate-based method is more reliable
 	// The BAG Pand ID lookup requires Amsterdam's specific API
-	return &models.MonumentData{
-		IsMonument: false,
-		Type:       "",
-		Date:       "",
-	}, nil
+	return emptyMonumentData(), nil
 }
 
 // FetchMonumentDataByCoords queries PDOK RCE monuments API using coordinates
@@ -45,39 +48,15 @@ func (c *ApiClient) FetchMonumentDataByCoords(ctx context.Context, cfg *config.C
 	url := fmt.Sprintf("%s/collections/rce_inspire_points/items?bbox=%s&f=json&limit=5", baseURL, bbox)
 	logutil.Debugf("[Monument] Request URL: %s", url)
 
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		logutil.Debugf("[Monument] Request error: %v", err)
-		return &models.MonumentData{IsMonument: false}, nil
-	}
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		logutil.Debugf("[Monument] HTTP error: %v", err)
-		return &models.MonumentData{IsMonument: false}, nil
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		logutil.Debugf("[Monument] Non-200 status: %d", resp.StatusCode)
-		return &models.MonumentData{IsMonument: false}, nil
-	}
-
 	var apiResp models.MonumentResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
-		logutil.Debugf("[Monument] Decode error: %v", err)
-		return &models.MonumentData{IsMonument: false}, nil
+	if err := c.GetJSON(ctx, "Monument", url, nil, &apiResp); err != nil {
+		return emptyMonumentData(), nil
 	}
 
 	logutil.Debugf("[Monument] Found %d monuments near coordinates", len(apiResp.Features))
 
 	if len(apiResp.Features) == 0 {
-		return &models.MonumentData{
-			IsMonument: false,
-			Type:       "",
-			Date:       "",
-		}, nil
+		return emptyMonumentData(), nil
 	}
 
 	// Return the first monument found

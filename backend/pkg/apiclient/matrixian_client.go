@@ -2,9 +2,7 @@ package apiclient
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/models"
@@ -18,33 +16,15 @@ func (c *ApiClient) FetchPropertyValuePlus(ctx context.Context, cfg *config.Conf
 	}
 
 	url := fmt.Sprintf("%s/property-value-plus?bagId=%s&lat=%f&lon=%f", cfg.MatrixianApiURL, bagID, lat, lon)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
 
+	headers := make(map[string]string)
 	if cfg.MatrixianApiKey != "" {
-		req.Header.Set("X-API-Key", cfg.MatrixianApiKey)
-	}
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == 404 {
-		return nil, fmt.Errorf("property value data not found for BAG ID: %s", bagID)
-	}
-
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("matrixian API returned status %d", resp.StatusCode)
+		headers["X-API-Key"] = cfg.MatrixianApiKey
 	}
 
 	var result models.MatrixianPropertyValue
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode matrixian response: %w", err)
+	if err := c.GetJSON(ctx, "Matrixian", url, headers, &result); err != nil {
+		return nil, fmt.Errorf("matrixian API request failed: %w", err)
 	}
 
 	return &result, nil

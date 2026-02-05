@@ -34,6 +34,48 @@ func NewApiClient(client *http.Client, cfg *config.Config) *ApiClient {
 	}
 }
 
+// GetJSON performs a GET request to the given URL, sets standard headers (merged with
+// any custom headers provided), validates the response status is 2xx, and decodes the
+// JSON response body into the target interface.
+//
+// Returns an error if the request fails, the status is non-2xx, or JSON decoding fails.
+// Callers should handle errors by returning appropriate empty/default models to preserve
+// the "soft failure" behaviour.
+func (c *ApiClient) GetJSON(ctx context.Context, apiName, url string, headers map[string]string, target interface{}) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		logutil.Debugf("[%s] Request creation failed: %v", apiName, err)
+		return fmt.Errorf("request creation failed: %w", err)
+	}
+
+	// Set standard header
+	req.Header.Set("Accept", "application/json")
+
+	// Merge custom headers
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+
+	resp, err := c.HTTP.Do(req)
+	if err != nil {
+		logutil.Debugf("[%s] HTTP request failed: %v", apiName, err)
+		return fmt.Errorf("HTTP request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		logutil.Debugf("[%s] Non-2xx status: %d", apiName, resp.StatusCode)
+		return fmt.Errorf("API returned status %d", resp.StatusCode)
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(target); err != nil {
+		logutil.Debugf("[%s] JSON decode failed: %v", apiName, err)
+		return fmt.Errorf("JSON decode failed: %w", err)
+	}
+
+	return nil
+}
+
 // retryWithBackoff executes fn with exponential backoff retries on failure.
 // Retries up to maxAttempts times with the first retry after retryDelay.
 // Returns early if context is cancelled or if fn succeeds.

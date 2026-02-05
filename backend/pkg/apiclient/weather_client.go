@@ -2,15 +2,28 @@ package apiclient
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/logutil"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/models"
 )
+
+// emptyKNMIWeatherData returns a zeroed KNMIWeatherData struct for soft failures.
+func emptyKNMIWeatherData() *models.KNMIWeatherData {
+	return &models.KNMIWeatherData{
+		Temperature:        0,
+		Precipitation:      0,
+		RainfallForecast:   []float64{},
+		WindSpeed:          0,
+		WindDirection:      0,
+		Humidity:           0,
+		Pressure:           0,
+		LastUpdated:        time.Time{},
+		HistoricalRainfall: []models.HistoricalData{},
+	}
+}
 
 // FetchKNMIWeatherData retrieves real-time weather and historical data
 // Documentation: https://dataplatform.knmi.nl
@@ -19,71 +32,11 @@ func (c *ApiClient) FetchKNMIWeatherData(ctx context.Context, cfg *config.Config
 	// Return empty data if not configured
 	if cfg.KNMIWeatherApiURL == "" {
 		logutil.Debugf("[APIClient] FetchKNMIWeatherData: KNMIWeatherApiURL not configured")
-		return &models.KNMIWeatherData{
-			Temperature:        0,
-			Precipitation:      0,
-			RainfallForecast:   []float64{},
-			WindSpeed:          0,
-			WindDirection:      0,
-			Humidity:           0,
-			Pressure:           0,
-			LastUpdated:        time.Time{},
-			HistoricalRainfall: []models.HistoricalData{},
-		}, nil
+		return emptyKNMIWeatherData(), nil
 	}
 
 	url := fmt.Sprintf("%s?latitude=%f&longitude=%f&current_weather=true&hourly=precipitation,relativehumidity_2m,pressure_msl&timezone=Europe/Amsterdam", cfg.KNMIWeatherApiURL, lat, lon)
 	logutil.Debugf("[APIClient] FetchKNMIWeatherData: url=%s, lat=%.6f, lon=%.6f", cfg.KNMIWeatherApiURL, lat, lon)
-
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		logutil.Debugf("[APIClient] FetchKNMIWeatherData: request creation failed: %v", err)
-		return &models.KNMIWeatherData{
-			Temperature:        0,
-			Precipitation:      0,
-			RainfallForecast:   []float64{},
-			WindSpeed:          0,
-			WindDirection:      0,
-			Humidity:           0,
-			Pressure:           0,
-			LastUpdated:        time.Time{},
-			HistoricalRainfall: []models.HistoricalData{},
-		}, nil
-	}
-
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		logutil.Debugf("[APIClient] FetchKNMIWeatherData: HTTP request failed: %v", err)
-		return &models.KNMIWeatherData{
-			Temperature:        0,
-			Precipitation:      0,
-			RainfallForecast:   []float64{},
-			WindSpeed:          0,
-			WindDirection:      0,
-			Humidity:           0,
-			Pressure:           0,
-			LastUpdated:        time.Time{},
-			HistoricalRainfall: []models.HistoricalData{},
-		}, nil
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		logutil.Debugf("[APIClient] FetchKNMIWeatherData: response status=%d", resp.StatusCode)
-		return &models.KNMIWeatherData{
-			Temperature:        0,
-			Precipitation:      0,
-			RainfallForecast:   []float64{},
-			WindSpeed:          0,
-			WindDirection:      0,
-			Humidity:           0,
-			Pressure:           0,
-			LastUpdated:        time.Time{},
-			HistoricalRainfall: []models.HistoricalData{},
-		}, nil
-	}
 
 	var result struct {
 		CurrentWeather struct {
@@ -100,18 +53,8 @@ func (c *ApiClient) FetchKNMIWeatherData(ctx context.Context, cfg *config.Config
 		} `json:"hourly"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return &models.KNMIWeatherData{
-			Temperature:        0,
-			Precipitation:      0,
-			RainfallForecast:   []float64{},
-			WindSpeed:          0,
-			WindDirection:      0,
-			Humidity:           0,
-			Pressure:           0,
-			LastUpdated:        time.Time{},
-			HistoricalRainfall: []models.HistoricalData{},
-		}, nil
+	if err := c.GetJSON(ctx, "KNMI Weather", url, nil, &result); err != nil {
+		return emptyKNMIWeatherData(), nil
 	}
 
 	weather := &models.KNMIWeatherData{
@@ -159,99 +102,53 @@ func (c *ApiClient) FetchKNMIWeatherData(ctx context.Context, cfg *config.Config
 	return weather, nil
 }
 
+// emptyWeerliveWeatherData returns a zeroed WeerliveWeatherData struct for soft failures.
+func emptyWeerliveWeatherData() *models.WeerliveWeatherData {
+	return &models.WeerliveWeatherData{
+		Temperature:   0,
+		WeatherDesc:   "",
+		WindSpeed:     0,
+		WindDirection: "",
+		Pressure:      0,
+		Humidity:      0,
+		Visibility:    0,
+		Forecast:      []models.WeerliveForecast{},
+	}
+}
+
 // FetchWeerliveWeather retrieves current weather and 5-day forecast
 // Documentation: https://weerlive.nl/delen.php
 func (c *ApiClient) FetchWeerliveWeather(ctx context.Context, cfg *config.Config, lat, lon float64) (*models.WeerliveWeatherData, error) {
 	// Return empty data if not configured
 	if cfg.WeerliveApiURL == "" {
-		return &models.WeerliveWeatherData{
-			Temperature:   0,
-			WeatherDesc:   "",
-			WindSpeed:     0,
-			WindDirection: "",
-			Pressure:      0,
-			Humidity:      0,
-			Visibility:    0,
-			Forecast:      []models.WeerliveForecast{},
-		}, nil
+		return emptyWeerliveWeatherData(), nil
 	}
 
 	url := fmt.Sprintf("%s?key=%s&locatie=%f,%f", cfg.WeerliveApiURL, cfg.WeerliveApiKey, lat, lon)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return &models.WeerliveWeatherData{
-			Temperature:   0,
-			WeatherDesc:   "",
-			WindSpeed:     0,
-			WindDirection: "",
-			Pressure:      0,
-			Humidity:      0,
-			Visibility:    0,
-			Forecast:      []models.WeerliveForecast{},
-		}, nil
-	}
-
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		return &models.WeerliveWeatherData{
-			Temperature:   0,
-			WeatherDesc:   "",
-			WindSpeed:     0,
-			WindDirection: "",
-			Pressure:      0,
-			Humidity:      0,
-			Visibility:    0,
-			Forecast:      []models.WeerliveForecast{},
-		}, nil
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return &models.WeerliveWeatherData{
-			Temperature:   0,
-			WeatherDesc:   "",
-			WindSpeed:     0,
-			WindDirection: "",
-			Pressure:      0,
-			Humidity:      0,
-			Visibility:    0,
-			Forecast:      []models.WeerliveForecast{},
-		}, nil
-	}
 
 	var response struct {
 		LiveWeather []models.WeerliveWeatherData `json:"liveweer"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		return &models.WeerliveWeatherData{
-			Temperature:   0,
-			WeatherDesc:   "",
-			WindSpeed:     0,
-			WindDirection: "",
-			Pressure:      0,
-			Humidity:      0,
-			Visibility:    0,
-			Forecast:      []models.WeerliveForecast{},
-		}, nil
+	if err := c.GetJSON(ctx, "Weerlive", url, nil, &response); err != nil {
+		return emptyWeerliveWeatherData(), nil
 	}
 
 	if len(response.LiveWeather) == 0 {
-		return &models.WeerliveWeatherData{
-			Temperature:   0,
-			WeatherDesc:   "",
-			WindSpeed:     0,
-			WindDirection: "",
-			Pressure:      0,
-			Humidity:      0,
-			Visibility:    0,
-			Forecast:      []models.WeerliveForecast{},
-		}, nil
+		return emptyWeerliveWeatherData(), nil
 	}
 
 	return &response.LiveWeather[0], nil
+}
+
+// emptyKNMISolarData returns a zeroed KNMISolarData struct for soft failures.
+func emptyKNMISolarData() *models.KNMISolarData {
+	return &models.KNMISolarData{
+		SolarRadiation: 0,
+		SunshineHours:  0,
+		UVIndex:        0,
+		Historical:     []models.HistoricalData{},
+	}
 }
 
 // FetchKNMISolarData retrieves solar radiation for solar panel potential
@@ -260,51 +157,11 @@ func (c *ApiClient) FetchKNMISolarData(ctx context.Context, cfg *config.Config, 
 	// Return empty data if not configured
 	if cfg.KNMISolarApiURL == "" {
 		logutil.Debugf("[APIClient] FetchKNMISolarData: KNMISolarApiURL not configured")
-		return &models.KNMISolarData{
-			SolarRadiation: 0,
-			SunshineHours:  0,
-			UVIndex:        0,
-			Historical:     []models.HistoricalData{},
-		}, nil
+		return emptyKNMISolarData(), nil
 	}
 
 	url := fmt.Sprintf("%s?latitude=%f&longitude=%f&hourly=shortwave_radiation&daily=sunshine_duration,uv_index_max&timezone=Europe/Amsterdam", cfg.KNMISolarApiURL, lat, lon)
 	logutil.Debugf("[APIClient] FetchKNMISolarData: url=%s, lat=%.6f, lon=%.6f", cfg.KNMISolarApiURL, lat, lon)
-
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		logutil.Debugf("[APIClient] FetchKNMISolarData: request creation failed: %v", err)
-		return &models.KNMISolarData{
-			SolarRadiation: 0,
-			SunshineHours:  0,
-			UVIndex:        0,
-			Historical:     []models.HistoricalData{},
-		}, nil
-	}
-
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		logutil.Debugf("[APIClient] FetchKNMISolarData: HTTP request failed: %v", err)
-		return &models.KNMISolarData{
-			SolarRadiation: 0,
-			SunshineHours:  0,
-			UVIndex:        0,
-			Historical:     []models.HistoricalData{},
-		}, nil
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		logutil.Debugf("[APIClient] FetchKNMISolarData: response status=%d", resp.StatusCode)
-		return &models.KNMISolarData{
-			SolarRadiation: 0,
-			SunshineHours:  0,
-			UVIndex:        0,
-			Historical:     []models.HistoricalData{},
-		}, nil
-	}
 
 	var result struct {
 		Hourly struct {
@@ -318,13 +175,8 @@ func (c *ApiClient) FetchKNMISolarData(ctx context.Context, cfg *config.Config, 
 		} `json:"daily"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return &models.KNMISolarData{
-			SolarRadiation: 0,
-			SunshineHours:  0,
-			UVIndex:        0,
-			Historical:     []models.HistoricalData{},
-		}, nil
+	if err := c.GetJSON(ctx, "KNMI Solar", url, nil, &result); err != nil {
+		return emptyKNMISolarData(), nil
 	}
 
 	solar := &models.KNMISolarData{
@@ -339,12 +191,6 @@ func (c *ApiClient) FetchKNMISolarData(ctx context.Context, cfg *config.Config, 
 	}
 	if len(result.Daily.UVIndexMax) > 0 {
 		solar.UVIndex = result.Daily.UVIndexMax[0]
-	}
-	// Note: Date set from result.Hourly.Time is missing in my manual reconstruction if not careful,
-	// but I see in previous code `solar.Date = result.Hourly.Time[0]` if avail.
-	if len(result.Hourly.Time) > 0 {
-		// solar.Date = ... wait, KNMISolarData struct in models has no Date field?
-		// checking models.go content...
 	}
 
 	for i := 0; i < len(result.Hourly.Time) && i < len(result.Hourly.ShortwaveRadiation); i++ {

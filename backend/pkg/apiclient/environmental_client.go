@@ -12,21 +12,28 @@ import (
 	"github.com/iman-hussain/AddressIQ/backend/pkg/models"
 )
 
+// emptyAirQualityData returns a default AirQualityData struct for soft failures.
+func emptyAirQualityData() *models.AirQualityData {
+	return &models.AirQualityData{
+		StationID:    "",
+		StationName:  "",
+		Measurements: []models.AirMeasurement{},
+		AQI:          0,
+		Category:     "Unknown",
+		LastUpdated:  "",
+	}
+}
+
 // FetchAirQualityData retrieves real-time air quality data
 // Documentation: https://api-docs.luchtmeetnet.nl
+// Note: This function makes 2 sequential API calls (find station, then get measurements)
+// and is intentionally not refactored to use GetJSON due to intermediate state handling.
 func (c *ApiClient) FetchAirQualityData(ctx context.Context, cfg *config.Config, lat, lon float64) (*models.AirQualityData, error) {
 	logutil.Debugf("[APIClient] FetchAirQualityData: url=%s, lat=%.6f, lon=%.6f", cfg.LuchtmeetnetApiURL, lat, lon)
 
 	// Return empty data if not configured
 	if cfg.LuchtmeetnetApiURL == "" {
-		return &models.AirQualityData{
-			StationID:    "",
-			StationName:  "",
-			Measurements: []models.AirMeasurement{},
-			AQI:          0,
-			Category:     "Unknown",
-			LastUpdated:  "",
-		}, nil
+		return emptyAirQualityData(), nil
 	}
 
 	// Find nearest station
@@ -34,41 +41,20 @@ func (c *ApiClient) FetchAirQualityData(ctx context.Context, cfg *config.Config,
 	logutil.Debugf("[APIClient] FetchAirQualityData: stationURL=%s", stationURL)
 	req, err := http.NewRequestWithContext(ctx, "GET", stationURL, nil)
 	if err != nil {
-		return &models.AirQualityData{
-			StationID:    "",
-			StationName:  "",
-			Measurements: []models.AirMeasurement{},
-			AQI:          0,
-			Category:     "Unknown",
-			LastUpdated:  "",
-		}, nil
+		return emptyAirQualityData(), nil
 	}
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
-		return &models.AirQualityData{
-			StationID:    "",
-			StationName:  "",
-			Measurements: []models.AirMeasurement{},
-			AQI:          0,
-			Category:     "Unknown",
-			LastUpdated:  "",
-		}, nil
+		return emptyAirQualityData(), nil
 	}
 	defer resp.Body.Close()
 
 	logutil.Debugf("[APIClient] FetchAirQualityData: response status=%d", resp.StatusCode)
 
 	if resp.StatusCode != 200 {
-		return &models.AirQualityData{
-			StationID:    "",
-			StationName:  "",
-			Measurements: []models.AirMeasurement{},
-			AQI:          0,
-			Category:     "Unknown",
-			LastUpdated:  "",
-		}, nil
+		return emptyAirQualityData(), nil
 	}
 
 	var stations struct {
@@ -79,26 +65,12 @@ func (c *ApiClient) FetchAirQualityData(ctx context.Context, cfg *config.Config,
 	}
 
 	if err := json.NewDecoder(resp.Body).Decode(&stations); err != nil {
-		return &models.AirQualityData{
-			StationID:    "",
-			StationName:  "",
-			Measurements: []models.AirMeasurement{},
-			AQI:          0,
-			Category:     "Unknown",
-			LastUpdated:  "",
-		}, nil
+		return emptyAirQualityData(), nil
 	}
 
 	if len(stations.Data) == 0 {
-		logutil.Debugf("[APIClient] FetchAirQualityData: measure request error: %v", err)
-		return &models.AirQualityData{
-			StationID:    "",
-			StationName:  "",
-			Measurements: []models.AirMeasurement{},
-			AQI:          0,
-			Category:     "Unknown",
-			LastUpdated:  "",
-		}, nil
+		logutil.Debugf("[APIClient] FetchAirQualityData: no stations found")
+		return emptyAirQualityData(), nil
 	}
 
 	stationID := stations.Data[0].Number
@@ -203,90 +175,34 @@ func (c *ApiClient) FetchAirQualityData(ctx context.Context, cfg *config.Config,
 	}, nil
 }
 
+// emptyNoisePollutionData returns a default NoisePollutionData struct for soft failures.
+func emptyNoisePollutionData() *models.NoisePollutionData {
+	return &models.NoisePollutionData{
+		TotalNoise:    0,
+		RoadNoise:     0,
+		RailNoise:     0,
+		IndustryNoise: 0,
+		AircraftNoise: 0,
+		NoiseCategory: "Unknown",
+		ExceedsLimit:  false,
+		Sources:       []models.NoiseSource{},
+	}
+}
+
 // FetchNoisePollutionData retrieves noise pollution data for livability scoring
 // Documentation: Government noise API
 func (c *ApiClient) FetchNoisePollutionData(ctx context.Context, cfg *config.Config, lat, lon float64) (*models.NoisePollutionData, error) {
 	// Return default data if not configured
 	if cfg.NoisePollutionApiURL == "" {
-		return &models.NoisePollutionData{
-			TotalNoise:    0,
-			RoadNoise:     0,
-			RailNoise:     0,
-			IndustryNoise: 0,
-			AircraftNoise: 0,
-			NoiseCategory: "Unknown",
-			ExceedsLimit:  false,
-			Sources:       []models.NoiseSource{},
-		}, nil
+		return emptyNoisePollutionData(), nil
 	}
 
 	url := fmt.Sprintf("%s/noise?lat=%f&lon=%f", cfg.NoisePollutionApiURL, lat, lon)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return &models.NoisePollutionData{
-			TotalNoise:    0,
-			RoadNoise:     0,
-			RailNoise:     0,
-			IndustryNoise: 0,
-			AircraftNoise: 0,
-			NoiseCategory: "Unknown",
-			ExceedsLimit:  false,
-			Sources:       []models.NoiseSource{},
-		}, nil
-	}
-
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		return &models.NoisePollutionData{
-			TotalNoise:    0,
-			RoadNoise:     0,
-			RailNoise:     0,
-			IndustryNoise: 0,
-			AircraftNoise: 0,
-			NoiseCategory: "Unknown",
-			ExceedsLimit:  false,
-			Sources:       []models.NoiseSource{},
-		}, nil
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == 404 {
-		// No noise data - assume quiet area
-		return &models.NoisePollutionData{
-			TotalNoise:    45.0,
-			NoiseCategory: "Quiet",
-			ExceedsLimit:  false,
-			Sources:       []models.NoiseSource{},
-		}, nil
-	}
-
-	if resp.StatusCode != 200 {
-		return &models.NoisePollutionData{
-			TotalNoise:    0,
-			RoadNoise:     0,
-			RailNoise:     0,
-			IndustryNoise: 0,
-			AircraftNoise: 0,
-			NoiseCategory: "Unknown",
-			ExceedsLimit:  false,
-			Sources:       []models.NoiseSource{},
-		}, nil
-	}
 
 	var result models.NoisePollutionData
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return &models.NoisePollutionData{
-			TotalNoise:    0,
-			RoadNoise:     0,
-			RailNoise:     0,
-			IndustryNoise: 0,
-			AircraftNoise: 0,
-			NoiseCategory: "Unknown",
-			ExceedsLimit:  false,
-			Sources:       []models.NoiseSource{},
-		}, nil
+	if err := c.GetJSON(ctx, "NoisePollution", url, nil, &result); err != nil {
+		// Return default data for failures (soft failure)
+		return emptyNoisePollutionData(), nil
 	}
 
 	// Categorize noise level

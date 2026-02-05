@@ -2,9 +2,7 @@ package apiclient
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"strings"
 
 	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
@@ -28,29 +26,9 @@ func (c *ApiClient) FetchFloodRiskData(ctx context.Context, cfg *config.Config, 
 	url := fmt.Sprintf("%s/collections/risk_zone/items?bbox=%s&f=json&limit=5", baseURL, bbox)
 	logutil.Debugf("[FloodRisk] Request URL: %s", url)
 
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		logutil.Debugf("[FloodRisk] Request error: %v", err)
-		return defaultFloodRiskData("Unknown"), nil
-	}
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		logutil.Debugf("[FloodRisk] HTTP error: %v", err)
-		return defaultFloodRiskData("Unknown"), nil
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		logutil.Debugf("[FloodRisk] Non-200 status: %d", resp.StatusCode)
-		// If API returns error, assume low risk (most of Netherlands is protected)
-		return defaultFloodRiskData("Low"), nil
-	}
-
 	var apiResp models.FloodRiskResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
-		logutil.Debugf("[FloodRisk] Decode error: %v", err)
+	if err := c.GetJSON(ctx, "FloodRisk", url, nil, &apiResp); err != nil {
+		// If API returns error, assume low risk (most of Netherlands is protected)
 		return defaultFloodRiskData("Low"), nil
 	}
 
@@ -126,6 +104,15 @@ func defaultFloodRiskData(level string) *models.FloodRiskData {
 	}
 }
 
+// emptyWaterQualityData returns a default WaterQualityData struct for soft failures.
+func emptyWaterQualityData() *models.WaterQualityData {
+	return &models.WaterQualityData{
+		WaterQuality: "N/A",
+		Distance:     9999,
+		Parameters:   make(map[string]float64),
+	}
+}
+
 // FetchWaterQualityData retrieves water quality and management data
 // Documentation: https://www.dutchwatersector.com (Digital Delta)
 func (c *ApiClient) FetchWaterQualityData(ctx context.Context, cfg *config.Config, lat, lon float64) (*models.WaterQualityData, error) {
@@ -134,35 +121,11 @@ func (c *ApiClient) FetchWaterQualityData(ctx context.Context, cfg *config.Confi
 	}
 
 	url := fmt.Sprintf("%s/water-quality?lat=%f&lon=%f", cfg.DigitalDeltaApiURL, lat, lon)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == 404 {
-		// No nearby water body
-		return &models.WaterQualityData{
-			WaterQuality: "N/A",
-			Distance:     9999,
-			Parameters:   make(map[string]float64),
-		}, nil
-	}
-
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("water quality API returned status %d", resp.StatusCode)
-	}
 
 	var result models.WaterQualityData
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode water quality response: %w", err)
+	if err := c.GetJSON(ctx, "Water Quality", url, nil, &result); err != nil {
+		// Return empty data for failures (soft failure)
+		return emptyWaterQualityData(), nil
 	}
 
 	return &result, nil
@@ -176,35 +139,15 @@ func (c *ApiClient) FetchSafetyData(ctx context.Context, cfg *config.Config, nei
 	}
 
 	url := fmt.Sprintf("%s/safety?neighborhood=%s", cfg.SafetyExperienceApiURL, neighborhoodCode)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
 
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == 404 {
-		// No safety data available
+	var result models.SafetyData
+	if err := c.GetJSON(ctx, "Safety", url, nil, &result); err != nil {
+		// Return default data for failures (soft failure)
 		return &models.SafetyData{
 			SafetyScore:      70.0, // Neutral default
 			SafetyPerception: "Moderate",
 			CrimeTypes:       make(map[string]int),
 		}, nil
-	}
-
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("safety API returned status %d", resp.StatusCode)
-	}
-
-	var result models.SafetyData
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode safety response: %w", err)
 	}
 
 	// Categorize safety perception
@@ -221,6 +164,17 @@ func (c *ApiClient) FetchSafetyData(ctx context.Context, cfg *config.Config, nei
 	return &result, nil
 }
 
+// emptySchipholData returns a default SchipholFlightData struct for soft failures.
+func emptySchipholData() *models.SchipholFlightData {
+	return &models.SchipholFlightData{
+		DailyFlights: 0,
+		NoiseLevel:   0,
+		FlightPaths:  []models.FlightPath{},
+		NightFlights: 0,
+		NoiseContour: "None",
+	}
+}
+
 // FetchSchipholFlightData retrieves flight path and noise data
 // Documentation: https://developer.schiphol.nl
 func (c *ApiClient) FetchSchipholFlightData(ctx context.Context, cfg *config.Config, lat, lon float64) (*models.SchipholFlightData, error) {
@@ -229,43 +183,19 @@ func (c *ApiClient) FetchSchipholFlightData(ctx context.Context, cfg *config.Con
 	}
 
 	url := fmt.Sprintf("%s/noise-impact?lat=%f&lon=%f", cfg.SchipholApiURL, lat, lon)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
 
-	// Schiphol requires both API key and App ID
+	// Schiphol requires both API key and App ID in specific headers
+	headers := make(map[string]string)
 	if cfg.SchipholApiKey != "" {
-		req.Header.Set("ResourceVersion", "v4")
-		req.Header.Set("app_id", cfg.SchipholAppID)
-		req.Header.Set("app_key", cfg.SchipholApiKey)
-	}
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == 404 {
-		// Location not affected by Schiphol noise
-		return &models.SchipholFlightData{
-			DailyFlights: 0,
-			NoiseLevel:   0,
-			FlightPaths:  []models.FlightPath{},
-			NightFlights: 0,
-			NoiseContour: "None",
-		}, nil
-	}
-
-	if resp.StatusCode != 200 {
-		return nil, fmt.Errorf("schiphol API returned status %d", resp.StatusCode)
+		headers["ResourceVersion"] = "v4"
+		headers["app_id"] = cfg.SchipholAppID
+		headers["app_key"] = cfg.SchipholApiKey
 	}
 
 	var result models.SchipholFlightData
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode schiphol response: %w", err)
+	if err := c.GetJSON(ctx, "Schiphol", url, headers, &result); err != nil {
+		// Return empty data for failures (soft failure - location may not be affected)
+		return emptySchipholData(), nil
 	}
 
 	return &result, nil

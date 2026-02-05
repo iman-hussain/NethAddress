@@ -765,28 +765,9 @@ func (c *ApiClient) FetchAHNHeightData(ctx context.Context, cfg *config.Config, 
 	url := fmt.Sprintf("%s?locations=%.6f,%.6f", openElevationURL, lat, lon)
 	logutil.Debugf("[AHN] Request URL: %s", url)
 
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		logutil.Debugf("[AHN] Request error: %v", err)
-		return estimateElevationForAmsterdam(lat, lon), nil
-	}
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		logutil.Debugf("[AHN] HTTP error: %v", err)
-		return estimateElevationForAmsterdam(lat, lon), nil
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		logutil.Debugf("[AHN] Non-200 status: %d", resp.StatusCode)
-		return estimateElevationForAmsterdam(lat, lon), nil
-	}
-
 	var apiResp models.OpenElevationResponse
-	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
-		logutil.Debugf("[AHN] Decode error: %v", err)
+	if err := c.GetJSON(ctx, "AHN", url, nil, &apiResp); err != nil {
+		// Fallback to estimate on API failure
 		return estimateElevationForAmsterdam(lat, lon), nil
 	}
 

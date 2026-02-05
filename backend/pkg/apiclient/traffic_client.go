@@ -14,40 +14,29 @@ import (
 	"github.com/iman-hussain/AddressIQ/backend/pkg/models"
 )
 
+// emptyNDWTrafficData returns an empty slice for soft failures.
+func emptyNDWTrafficData() []models.NDWTrafficData {
+	return []models.NDWTrafficData{}
+}
+
 // FetchNDWTrafficData retrieves real-time traffic data for accessibility scoring
 // Documentation: https://opendata.ndw.nu
 func (c *ApiClient) FetchNDWTrafficData(ctx context.Context, cfg *config.Config, lat, lon float64, radius int) ([]models.NDWTrafficData, error) {
 	// NDW requires registration - return empty data if not configured
 	if cfg.NDWTrafficApiURL == "" {
 		logutil.Debugf("[NDW Traffic] No API URL configured, returning empty data")
-		return []models.NDWTrafficData{}, nil
+		return emptyNDWTrafficData(), nil
 	}
 
 	// Query traffic data within radius (meters) of location
 	url := fmt.Sprintf("%s/traffic?lat=%f&lon=%f&radius=%d", cfg.NDWTrafficApiURL, lat, lon, radius)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return []models.NDWTrafficData{}, nil
-	}
 
 	var result struct {
 		Data []models.NDWTrafficData `json:"data"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, fmt.Errorf("failed to decode NDW traffic response: %w", err)
+	if err := c.GetJSON(ctx, "NDW Traffic", url, nil, &result); err != nil {
+		return emptyNDWTrafficData(), nil
 	}
 
 	return result.Data, nil
@@ -263,56 +252,28 @@ func emptyTransportData() *models.OpenOVTransportData {
 	}
 }
 
+// emptyParkingData returns a default ParkingData struct for soft failures.
+func emptyParkingData() *models.ParkingData {
+	return &models.ParkingData{
+		TotalSpaces:     0,
+		AvailableSpaces: 0,
+		ParkingZones:    []models.ParkingZone{},
+	}
+}
+
 // FetchParkingData retrieves parking availability for convenience scoring
 // Documentation: Municipal API (varies by city)
 func (c *ApiClient) FetchParkingData(ctx context.Context, cfg *config.Config, lat, lon float64, radius int) (*models.ParkingData, error) {
 	// Return empty data if not configured
 	if cfg.ParkingApiURL == "" {
-		return &models.ParkingData{
-			TotalSpaces:     0,
-			AvailableSpaces: 0,
-			ParkingZones:    []models.ParkingZone{},
-		}, nil
+		return emptyParkingData(), nil
 	}
 
 	url := fmt.Sprintf("%s/parking?lat=%f&lon=%f&radius=%d", cfg.ParkingApiURL, lat, lon, radius)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return &models.ParkingData{
-			TotalSpaces:     0,
-			AvailableSpaces: 0,
-			ParkingZones:    []models.ParkingZone{},
-		}, nil
-	}
-
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := c.HTTP.Do(req)
-	if err != nil {
-		return &models.ParkingData{
-			TotalSpaces:     0,
-			AvailableSpaces: 0,
-			ParkingZones:    []models.ParkingZone{},
-		}, nil
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		// Return empty data for any non-200 status (including 404)
-		return &models.ParkingData{
-			TotalSpaces:     0,
-			AvailableSpaces: 0,
-			ParkingZones:    []models.ParkingZone{},
-		}, nil
-	}
 
 	var result models.ParkingData
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return &models.ParkingData{
-			TotalSpaces:     0,
-			AvailableSpaces: 0,
-			ParkingZones:    []models.ParkingZone{},
-		}, nil
+	if err := c.GetJSON(ctx, "Parking", url, nil, &result); err != nil {
+		return emptyParkingData(), nil
 	}
 
 	return &result, nil
