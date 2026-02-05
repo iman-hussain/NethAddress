@@ -17,13 +17,8 @@ func (c *ApiClient) FetchAltumWOZData(ctx context.Context, cfg *config.Config, b
 
 	url := fmt.Sprintf("%s/woz/%s", cfg.AltumWOZApiURL, bagID)
 
-	headers := make(map[string]string)
-	if cfg.AltumWOZApiKey != "" {
-		headers["Authorization"] = fmt.Sprintf("Bearer %s", cfg.AltumWOZApiKey)
-	}
-
 	var result models.AltumWOZData
-	if err := c.GetJSON(ctx, "Altum WOZ", url, headers, &result); err != nil {
+	if err := c.GetJSON(ctx, "Altum WOZ", url, BearerAuthHeader(cfg.AltumWOZApiKey), &result); err != nil {
 		return nil, fmt.Errorf("altum WOZ API request failed: %w", err)
 	}
 
@@ -39,13 +34,8 @@ func (c *ApiClient) FetchTransactionHistory(ctx context.Context, cfg *config.Con
 
 	url := fmt.Sprintf("%s/transactions/%s", cfg.AltumTransactionApiURL, bagID)
 
-	headers := make(map[string]string)
-	if cfg.AltumTransactionApiKey != "" {
-		headers["Authorization"] = fmt.Sprintf("Bearer %s", cfg.AltumTransactionApiKey)
-	}
-
 	var result models.TransactionHistory
-	if err := c.GetJSON(ctx, "Altum Transaction", url, headers, &result); err != nil {
+	if err := c.GetJSON(ctx, "Altum Transaction", url, BearerAuthHeader(cfg.AltumTransactionApiKey), &result); err != nil {
 		// Return empty transaction history on failure (soft failure for 404)
 		return &models.TransactionHistory{Transactions: []models.TransactionData{}, TotalCount: 0}, nil
 	}

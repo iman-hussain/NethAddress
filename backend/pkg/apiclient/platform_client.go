@@ -34,13 +34,8 @@ func (c *ApiClient) FetchStratopoEnvironmentData(ctx context.Context, cfg *confi
 
 	url := fmt.Sprintf("%s/environment?lat=%f&lon=%f", cfg.StratopoApiURL, lat, lon)
 
-	headers := make(map[string]string)
-	if cfg.StratopoApiKey != "" {
-		headers["Authorization"] = fmt.Sprintf("Bearer %s", cfg.StratopoApiKey)
-	}
-
 	var result models.StratopoEnvironmentData
-	if err := c.GetJSON(ctx, "Stratopo", url, headers, &result); err != nil {
+	if err := c.GetJSON(ctx, "Stratopo", url, BearerAuthHeader(cfg.StratopoApiKey), &result); err != nil {
 		return nil, fmt.Errorf("stratopo API request failed: %w", err)
 	}
 

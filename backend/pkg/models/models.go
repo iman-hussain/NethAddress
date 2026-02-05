@@ -60,6 +60,8 @@ type AggregatedData struct {
 	MonumentJSON     *string       `json:"monument_data_json"`
 	AsbestosJSON     *string       `json:"asbestos_data_json"`
 	EnergyJSON       *string       `json:"energy_data_json"`
+	NoiseJSON        *string       `json:"noise_data_json"`
+	SoilJSON         *string       `json:"soil_data_json"`
 }
 
 // BagResponse mirrors the PDOK Locatieserver free endpoint JSON payload.

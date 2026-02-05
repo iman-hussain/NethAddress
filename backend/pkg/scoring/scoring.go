@@ -1,8 +1,10 @@
 package scoring
 
 import (
+	"encoding/json"
 	"strings"
 
+	"github.com/iman-hussain/AddressIQ/backend/pkg/apiclient"
 	"github.com/iman-hussain/AddressIQ/backend/pkg/models"
 )
 
@@ -46,40 +48,89 @@ func scoreZoning(data *models.AggregatedData) float64 {
 }
 
 func scoreEnergy(data *models.AggregatedData) float64 {
-	// Example: energy label scoring
-	if data.EnergyJSON != nil && *data.EnergyJSON != "" {
-		// Parse label from JSON (mock)
-		label := "A" // TODO: parse real label
-		switch label {
-		case "A++", "A+", "A":
-			return 10
-		case "B":
-			return 8
-		case "C":
-			return 6
-		default:
-			return 2
-		}
+	if data.EnergyJSON == nil || *data.EnergyJSON == "" {
+		return 5.0 // Default score when no data available
 	}
-	return 5
+
+	var energy models.EnergyClimateData
+	if err := json.Unmarshal([]byte(*data.EnergyJSON), &energy); err != nil {
+		return 5.0
+	}
+
+	label := strings.ToUpper(energy.EnergyLabel)
+	switch label {
+	case "A++++", "A+++", "A++", "A+", "A":
+		return 10.0
+	case "B":
+		return 8.0
+	case "C":
+		return 6.0
+	case "D":
+		return 4.0
+	case "E":
+		return 3.0
+	case "F":
+		return 2.0
+	case "G":
+		return 1.0
+	default:
+		return 5.0
+	}
 }
 
 func scoreNoise(data *models.AggregatedData) float64 {
-	// Example: noise dB scoring
-	db := 50.0 // TODO: parse real dB from NoiseJSON
-	if db > 70 {
-		return 1
+	if data.NoiseJSON == nil || *data.NoiseJSON == "" {
+		return 5.0 // Default score when no data available
 	}
-	return 10
+
+	var noise models.NoisePollutionData
+	if err := json.Unmarshal([]byte(*data.NoiseJSON), &noise); err != nil {
+		return 5.0
+	}
+
+	db := noise.TotalNoise
+	switch {
+	case db <= 40:
+		return 10.0
+	case db <= 50:
+		return 8.0
+	case db <= 55:
+		return 6.0
+	case db <= 65:
+		return 4.0
+	case db <= 70:
+		return 2.0
+	default:
+		return 1.0
+	}
 }
 
 func scoreSoil(data *models.AggregatedData) float64 {
-	// Example: soil contamination scoring
-	contaminated := false // TODO: parse from SoilJSON
-	if contaminated {
-		return 1
+	if data.SoilJSON == nil || *data.SoilJSON == "" {
+		return 5.0 // Default score when no data available
 	}
-	return 10
+
+	var soil models.SoilQualityData
+	if err := json.Unmarshal([]byte(*data.SoilJSON), &soil); err != nil {
+		return 5.0
+	}
+
+	level := strings.ToLower(soil.ContaminationLevel)
+	switch level {
+	case "clean":
+		return 10.0
+	case "light":
+		return 7.0
+	case "moderate":
+		return 4.0
+	case "severe":
+		return 1.0
+	default:
+		if soil.RestrictedUse {
+			return 2.0
+		}
+		return 5.0
+	}
 }
 
 func scoreInvestment(data *models.AggregatedData) float64 {
@@ -90,29 +141,64 @@ func scoreInvestment(data *models.AggregatedData) float64 {
 }
 
 func scoreCBS(data *models.AggregatedData) float64 {
-	// Example: higher income, higher score
-	income := 30000.0 // TODO: parse from CBSJSON
-	if income > 40000 {
-		return 10
-	} else if income > 30000 {
-		return 7
+	if data.CBSJSON == nil || *data.CBSJSON == "" {
+		return 5.0 // Default score when no data available
 	}
-	return 4
+
+	var cbs models.CBSData
+	if err := json.Unmarshal([]byte(*data.CBSJSON), &cbs); err != nil {
+		return 5.0
+	}
+
+	income := cbs.AvgIncome
+	switch {
+	case income >= 50000:
+		return 10.0
+	case income >= 40000:
+		return 8.0
+	case income >= 35000:
+		return 7.0
+	case income >= 30000:
+		return 6.0
+	case income >= 25000:
+		return 5.0
+	case income >= 20000:
+		return 4.0
+	default:
+		return 3.0
+	}
 }
 
 func scoreMonument(data *models.AggregatedData) float64 {
-	// Example: monument status scoring
-	isMonument := false // TODO: parse from MonumentJSON
-	if isMonument {
-		return 2
+	if data.MonumentJSON == nil || *data.MonumentJSON == "" {
+		return 8.0 // Default: assume not a monument
 	}
-	return 8
+
+	var monument models.MonumentData
+	if err := json.Unmarshal([]byte(*data.MonumentJSON), &monument); err != nil {
+		return 8.0
+	}
+
+	// Monuments have more restrictions on modifications, impacting investment flexibility
+	if monument.IsMonument {
+		return 2.0
+	}
+	return 8.0
 }
 
 func scoreAsbestos(data *models.AggregatedData) float64 {
-	hasAsbestos := false // TODO: parse from AsbestosJSON
-	if hasAsbestos {
-		return 1
+	if data.AsbestosJSON == nil || *data.AsbestosJSON == "" {
+		return 10.0 // Default: assume no asbestos
 	}
-	return 10
+
+	var asbestos apiclient.AsbestosData
+	if err := json.Unmarshal([]byte(*data.AsbestosJSON), &asbestos); err != nil {
+		return 10.0
+	}
+
+	// Properties with asbestos reports have significant remediation concerns
+	if asbestos.HasAsbestosReport {
+		return 1.0
+	}
+	return 10.0
 }

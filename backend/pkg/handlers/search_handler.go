@@ -142,8 +142,8 @@ func (h *SearchHandler) HandleSearch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Aggregate all API data (no user keys for regular POST/GET for now, only stream)
-	// TODO: Add user keys support for regular endpoints if needed, for new just nil
+	// Aggregate all API data
+	// User API keys are only supported on the streaming endpoint; regular endpoints use free APIs only
 	comprehensiveData, err := h.aggregator.AggregatePropertyDataWithOptions(r.Context(), postcode, houseNumber, bypassCache, nil, nil)
 	if err != nil {
 		logutil.Errorf("Error aggregating property data: %v", err)

@@ -47,6 +47,14 @@ type geminiResponse struct {
 	} `json:"error,omitempty"`
 }
 
+// failedGeminiSummary returns a GeminiSummary indicating failure with the given error message.
+func failedGeminiSummary(errorMsg string) *models.GeminiSummary {
+	return &models.GeminiSummary{
+		Generated: false,
+		Error:     errorMsg,
+	}
+}
+
 // GeminiPrompt is the hardcoded prompt template for generating location summaries.
 // Location: backend/pkg/apiclient/gemini_client.go, line ~55
 // Modify this prompt to change how Gemini analyses and summarises property data.
@@ -67,20 +75,14 @@ JSON Data:
 func (c *ApiClient) GenerateLocationSummary(ctx context.Context, cfg *config.Config, propertyData interface{}) (*models.GeminiSummary, error) {
 	if cfg.GeminiApiKey == "" {
 		logutil.Debugf("[Gemini] API key not configured")
-		return &models.GeminiSummary{
-			Generated: false,
-			Error:     "Gemini API key not configured",
-		}, nil
+		return failedGeminiSummary("Gemini API key not configured"), nil
 	}
 
 	// Marshal property data to JSON
 	jsonData, err := json.Marshal(propertyData)
 	if err != nil {
 		logutil.Debugf("[Gemini] Failed to marshal property data: %v", err)
-		return &models.GeminiSummary{
-			Generated: false,
-			Error:     "Failed to prepare data for AI analysis",
-		}, nil
+		return failedGeminiSummary("Failed to prepare data for AI analysis"), nil
 	}
 
 	// Truncate JSON if too large (Gemini has input limits)
@@ -111,10 +113,7 @@ func (c *ApiClient) GenerateLocationSummary(ctx context.Context, cfg *config.Con
 	reqJSON, err := json.Marshal(reqBody)
 	if err != nil {
 		logutil.Debugf("[Gemini] Failed to marshal request: %v", err)
-		return &models.GeminiSummary{
-			Generated: false,
-			Error:     "Failed to prepare AI request",
-		}, nil
+		return failedGeminiSummary("Failed to prepare AI request"), nil
 	}
 
 	// Gemini 2.5 Flash-Lite API endpoint (GA model, optimised for low latency)
@@ -125,66 +124,45 @@ func (c *ApiClient) GenerateLocationSummary(ctx context.Context, cfg *config.Con
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(reqJSON))
 	if err != nil {
 		logutil.Debugf("[Gemini] Failed to create request: %v", err)
-		return &models.GeminiSummary{
-			Generated: false,
-			Error:     "Failed to create AI request",
-		}, nil
+		return failedGeminiSummary("Failed to create AI request"), nil
 	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.HTTP.Do(req)
 	if err != nil {
 		logutil.Debugf("[Gemini] HTTP request failed: %v", err)
-		return &models.GeminiSummary{
-			Generated: false,
-			Error:     "Failed to connect to AI service",
-		}, nil
+		return failedGeminiSummary("Failed to connect to AI service"), nil
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logutil.Debugf("[Gemini] Failed to read response: %v", err)
-		return &models.GeminiSummary{
-			Generated: false,
-			Error:     "Failed to read AI response",
-		}, nil
+		return failedGeminiSummary("Failed to read AI response"), nil
 	}
 
 	logutil.Debugf("[Gemini] Response status: %d", resp.StatusCode)
 
 	if resp.StatusCode != http.StatusOK {
 		logutil.Debugf("[Gemini] API error response: %s", string(body))
-		return &models.GeminiSummary{
-			Generated: false,
-			Error:     fmt.Sprintf("AI service returned status %d", resp.StatusCode),
-		}, nil
+		return failedGeminiSummary(fmt.Sprintf("AI service returned status %d", resp.StatusCode)), nil
 	}
 
 	var geminiResp geminiResponse
 	if err := json.Unmarshal(body, &geminiResp); err != nil {
 		logutil.Debugf("[Gemini] Failed to parse response: %v", err)
-		return &models.GeminiSummary{
-			Generated: false,
-			Error:     "Failed to parse AI response",
-		}, nil
+		return failedGeminiSummary("Failed to parse AI response"), nil
 	}
 
 	if geminiResp.Error != nil {
 		logutil.Debugf("[Gemini] API error: %s", geminiResp.Error.Message)
-		return &models.GeminiSummary{
-			Generated: false,
-			Error:     geminiResp.Error.Message,
-		}, nil
+		return failedGeminiSummary(geminiResp.Error.Message), nil
 	}
 
 	// Extract the generated text
 	if len(geminiResp.Candidates) == 0 || len(geminiResp.Candidates[0].Content.Parts) == 0 {
 		logutil.Debugf("[Gemini] No content in response")
-		return &models.GeminiSummary{
-			Generated: false,
-			Error:     "AI returned empty response",
-		}, nil
+		return failedGeminiSummary("AI returned empty response"), nil
 	}
 
 	summary := geminiResp.Candidates[0].Content.Parts[0].Text

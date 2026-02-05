@@ -30,13 +30,8 @@ func (c *ApiClient) FetchEnergyClimateData(ctx context.Context, cfg *config.Conf
 
 	url := fmt.Sprintf("%s/energy/%s", cfg.AltumEnergyApiURL, bagID)
 
-	headers := make(map[string]string)
-	if cfg.AltumEnergyApiKey != "" {
-		headers["Authorization"] = fmt.Sprintf("Bearer %s", cfg.AltumEnergyApiKey)
-	}
-
 	var result models.EnergyClimateData
-	if err := c.GetJSON(ctx, "Energy Climate", url, headers, &result); err != nil {
+	if err := c.GetJSON(ctx, "Energy Climate", url, BearerAuthHeader(cfg.AltumEnergyApiKey), &result); err != nil {
 		return emptyEnergyClimateData(), nil
 	}
 
@@ -66,13 +61,8 @@ func (c *ApiClient) FetchSustainabilityData(ctx context.Context, cfg *config.Con
 
 	url := fmt.Sprintf("%s/sustainability/%s", cfg.AltumSustainabilityApiURL, bagID)
 
-	headers := make(map[string]string)
-	if cfg.AltumSustainabilityApiKey != "" {
-		headers["Authorization"] = fmt.Sprintf("Bearer %s", cfg.AltumSustainabilityApiKey)
-	}
-
 	var result models.SustainabilityData
-	if err := c.GetJSON(ctx, "Sustainability", url, headers, &result); err != nil {
+	if err := c.GetJSON(ctx, "Sustainability", url, BearerAuthHeader(cfg.AltumSustainabilityApiKey), &result); err != nil {
 		return emptySustainabilityData(), nil
 	}
 

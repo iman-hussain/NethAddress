@@ -1,6 +1,7 @@
 package apiclient
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -32,6 +33,15 @@ func NewApiClient(client *http.Client, cfg *config.Config) *ApiClient {
 		HTTP: client,
 		cfg:  cfg,
 	}
+}
+
+// BearerAuthHeader returns a header map with Bearer token authorization.
+// Returns nil if token is empty.
+func BearerAuthHeader(token string) map[string]string {
+	if token == "" {
+		return nil
+	}
+	return map[string]string{"Authorization": fmt.Sprintf("Bearer %s", token)}
 }
 
 // GetJSON performs a GET request to the given URL, sets standard headers (merged with
@@ -74,6 +84,100 @@ func (c *ApiClient) GetJSON(ctx context.Context, apiName, url string, headers ma
 	}
 
 	return nil
+}
+
+// PostJSON performs a POST request with a JSON body to the given URL.
+// Sets Content-Type and Accept to application/json, merges custom headers,
+// validates the response status is 2xx, and decodes the JSON response body into target.
+func (c *ApiClient) PostJSON(ctx context.Context, apiName, url string, body interface{}, headers map[string]string, target interface{}) error {
+	jsonBody, err := json.Marshal(body)
+	if err != nil {
+		logutil.Debugf("[%s] JSON marshal failed: %v", apiName, err)
+		return fmt.Errorf("JSON marshal failed: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(jsonBody))
+	if err != nil {
+		logutil.Debugf("[%s] Request creation failed: %v", apiName, err)
+		return fmt.Errorf("request creation failed: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+
+	resp, err := c.HTTP.Do(req)
+	if err != nil {
+		logutil.Debugf("[%s] HTTP request failed: %v", apiName, err)
+		return fmt.Errorf("HTTP request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		logutil.Debugf("[%s] Non-2xx status: %d", apiName, resp.StatusCode)
+		return fmt.Errorf("API returned status %d", resp.StatusCode)
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(target); err != nil {
+		logutil.Debugf("[%s] JSON decode failed: %v", apiName, err)
+		return fmt.Errorf("JSON decode failed: %w", err)
+	}
+
+	return nil
+}
+
+// PostFormJSON performs a POST request with form-encoded body (application/x-www-form-urlencoded).
+// Expects a JSON response and decodes it into target.
+func (c *ApiClient) PostFormJSON(ctx context.Context, apiName, url, formData string, headers map[string]string, target interface{}) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, strings.NewReader(formData))
+	if err != nil {
+		logutil.Debugf("[%s] Request creation failed: %v", apiName, err)
+		return fmt.Errorf("request creation failed: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Set("Accept", "application/json")
+
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+
+	resp, err := c.HTTP.Do(req)
+	if err != nil {
+		logutil.Debugf("[%s] HTTP request failed: %v", apiName, err)
+		return fmt.Errorf("HTTP request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		logutil.Debugf("[%s] Non-2xx status: %d", apiName, resp.StatusCode)
+		return fmt.Errorf("API returned status %d", resp.StatusCode)
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(target); err != nil {
+		logutil.Debugf("[%s] JSON decode failed: %v", apiName, err)
+		return fmt.Errorf("JSON decode failed: %w", err)
+	}
+
+	return nil
+}
+
+// GetJSONWithRetry performs a GET request with exponential backoff retry logic.
+// Combines retryWithBackoff + GetJSON for convenience.
+func (c *ApiClient) GetJSONWithRetry(ctx context.Context, apiName, url string, headers map[string]string, maxAttempts int, initialDelay time.Duration, target interface{}) error {
+	return c.retryWithBackoff(ctx, apiName, maxAttempts, initialDelay, func(retryCtx context.Context) error {
+		return c.GetJSON(retryCtx, apiName, url, headers, target)
+	})
+}
+
+// PostFormJSONWithRetry performs a POST form request with exponential backoff retry logic.
+func (c *ApiClient) PostFormJSONWithRetry(ctx context.Context, apiName, url, formData string, headers map[string]string, maxAttempts int, initialDelay time.Duration, target interface{}) error {
+	return c.retryWithBackoff(ctx, apiName, maxAttempts, initialDelay, func(retryCtx context.Context) error {
+		return c.PostFormJSON(retryCtx, apiName, url, formData, headers, target)
+	})
 }
 
 // retryWithBackoff executes fn with exponential backoff retries on failure.

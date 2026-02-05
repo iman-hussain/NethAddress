@@ -362,17 +362,15 @@ func (se *EnhancedScoringEngine) calculateOpportunityScore(data *aggregator.Comp
 		stopCount := len(data.PublicTransport.NearestStops)
 		accessibility = math.Min(100, 50+float64(stopCount)*10)
 	}
-	if data.TrafficData != nil && len(data.TrafficData) > 0 {
+	if len(data.TrafficData) > 0 {
 		// Check for good traffic flow
 		avgSpeed := 0.0
 		for _, traffic := range data.TrafficData {
 			avgSpeed += traffic.AverageSpeed
 		}
-		if len(data.TrafficData) > 0 {
-			avgSpeed /= float64(len(data.TrafficData))
-			if avgSpeed > 40 {
-				accessibility = math.Min(100, accessibility+10)
-			}
+		avgSpeed /= float64(len(data.TrafficData))
+		if avgSpeed > 40 {
+			accessibility = math.Min(100, accessibility+10)
 		}
 	}
 	breakdown.Accessibility = accessibility
