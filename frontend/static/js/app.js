@@ -236,7 +236,7 @@ document.addEventListener('DOMContentLoaded', function () {
 	if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
 		apiHost = 'http://localhost:8080';
 	} else {
-		apiHost = 'https://api.addressiq.imanhussain.com';
+		apiHost = 'https://api.nethaddress.imanhussain.com';
 	}
 
 	// Populate build info dynamically from API

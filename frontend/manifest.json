@@ -1,6 +1,6 @@
 {
-  "name": "AddressIQ - Dutch Property Intelligence",
-  "short_name": "AddressIQ",
+  "name": "NethAddress - Dutch Property Intelligence",
+  "short_name": "NethAddress",
   "description": "Comprehensive property intelligence for Dutch addresses - get instant insights on any property in the Netherlands",
   "start_url": "/",
   "display": "standalone",
