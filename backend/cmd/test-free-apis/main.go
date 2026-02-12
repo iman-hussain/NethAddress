@@ -39,7 +39,7 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
 	defer cancel()
 
-	fmt.Println("🔍 AddressIQ Free API Connectivity Test")
+	fmt.Println("🔍 NethAddress Free API Connectivity Test")
 	fmt.Println("========================================")
 	fmt.Println()
 
@@ -675,7 +675,7 @@ func doGet(ctx context.Context, url string) ([]byte, int, error) {
 		return nil, 0, err
 	}
 
-	req.Header.Set("User-Agent", "AddressIQ-API-Test/1.0")
+	req.Header.Set("User-Agent", "NethAddress-API-Test/1.0")
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {

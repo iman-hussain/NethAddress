@@ -2,7 +2,7 @@
 
 echo ""
 echo "========================================"
-echo "  AddressIQ Local Development - STOP"
+echo "  NethAddress Local Development - STOP"
 echo "========================================"
 echo ""
 
@@ -25,7 +25,7 @@ echo -e "${GREEN}      Frontend server stopped.${NC}"
 echo ""
 
 echo "========================================"
-echo "  AddressIQ stopped successfully!"
+echo "  NethAddress stopped successfully!"
 echo "========================================"
 echo ""
 echo "All services have been stopped."

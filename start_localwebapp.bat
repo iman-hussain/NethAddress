@@ -6,7 +6,7 @@ cd /d "%~dp0"
 
 echo.
 echo ========================================
-echo   AddressIQ Local Development Setup
+echo   NethAddress Local Development Setup
 echo ========================================
 echo   Working directory: %CD%
 echo ========================================
@@ -77,9 +77,9 @@ if not exist backend\backend.exe (
     goto :error
 )
 if "%DOCKER_AVAILABLE%"=="1" (
-    start "AddressIQ Backend" cmd /k "cd /d %CD%\backend && set DATABASE_URL=postgres://addressiq_user:addressiq_password@localhost:5432/addressiq_db?sslmode=disable && set REDIS_URL=redis://localhost:6379 && backend.exe"
+    start "NethAddress Backend" cmd /k "cd /d %CD%\backend && set DATABASE_URL=postgres://nethaddress_user:nethaddress_password@localhost:5432/nethaddress_db?sslmode=disable && set REDIS_URL=redis://localhost:6379 && backend.exe"
 ) else (
-    start "AddressIQ Backend" cmd /k "cd /d %CD%\backend && backend.exe"
+    start "NethAddress Backend" cmd /k "cd /d %CD%\backend && backend.exe"
 )
 echo       Backend started in new window.
 echo.
@@ -92,7 +92,7 @@ for /f "tokens=5" %%a in ('netstat -aon ^| find ":3000" ^| find "LISTENING" 2^>n
 )
 
 echo       Starting frontend server on port 3000...
-start "AddressIQ Frontend" cmd /k "cd /d %CD%\frontend && python -m http.server 3000"
+start "NethAddress Frontend" cmd /k "cd /d %CD%\frontend && python -m http.server 3000"
 echo       Frontend server started in new window.
 echo.
 
@@ -102,7 +102,7 @@ timeout /t 2 /nobreak >nul
 start http://localhost:3000
 echo.
 echo ========================================
-echo   AddressIQ is now running!
+echo   NethAddress is now running!
 echo ========================================
 echo   Frontend: http://localhost:3000
 echo   Backend:  http://localhost:8080

@@ -3,8 +3,8 @@ package scoring
 import (
 	"testing"
 
-	"github.com/iman-hussain/AddressIQ/backend/pkg/aggregator"
-	"github.com/iman-hussain/AddressIQ/backend/pkg/models"
+	"github.com/iman-hussain/nethaddress/backend/pkg/aggregator"
+	"github.com/iman-hussain/nethaddress/backend/pkg/models"
 )
 
 func TestCalculateComprehensiveScores_Basic(t *testing.T) {

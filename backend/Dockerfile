@@ -41,7 +41,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     CGO_ENABLED=0 GOOS=linux go build \
     -ldflags "-s -w -X 'main.BuildCommit=$COMMIT_HASH' -X 'main.BuildDate=$BUILD_TIMESTAMP'" \
     -trimpath \
-    -o addressiq .
+    -o nethaddress .
 
 # Final stage - use latest Alpine for security patches
 FROM alpine:3.19
@@ -54,7 +54,7 @@ RUN apk --no-cache add ca-certificates tzdata && \
 WORKDIR /home/appuser
 
 # Copy binary with correct permissions from builder
-COPY --from=builder --chown=appuser:appgroup /app/addressiq ./addressiq
+COPY --from=builder --chown=appuser:appgroup /app/nethaddress ./nethaddress
 
 USER appuser
 
@@ -62,4 +62,4 @@ EXPOSE 8080
 
 HEALTHCHECK NONE
 
-CMD ["./addressiq"]
+CMD ["./nethaddress"]

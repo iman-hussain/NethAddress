@@ -5,14 +5,14 @@ import (
 	"os"
 	"time"
 
-	"github.com/iman-hussain/AddressIQ/backend/pkg/aggregator"
-	"github.com/iman-hussain/AddressIQ/backend/pkg/apiclient"
-	"github.com/iman-hussain/AddressIQ/backend/pkg/cache"
-	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
-	"github.com/iman-hussain/AddressIQ/backend/pkg/handlers"
-	"github.com/iman-hussain/AddressIQ/backend/pkg/logutil"
-	"github.com/iman-hussain/AddressIQ/backend/pkg/routes"
-	"github.com/iman-hussain/AddressIQ/backend/pkg/scoring"
+	"github.com/iman-hussain/nethaddress/backend/pkg/aggregator"
+	"github.com/iman-hussain/nethaddress/backend/pkg/apiclient"
+	"github.com/iman-hussain/nethaddress/backend/pkg/cache"
+	"github.com/iman-hussain/nethaddress/backend/pkg/config"
+	"github.com/iman-hussain/nethaddress/backend/pkg/handlers"
+	"github.com/iman-hussain/nethaddress/backend/pkg/logutil"
+	"github.com/iman-hussain/nethaddress/backend/pkg/routes"
+	"github.com/iman-hussain/nethaddress/backend/pkg/scoring"
 	"github.com/rs/cors"
 )
 
@@ -25,7 +25,7 @@ var (
 )
 
 func main() {
-	logutil.Info("Starting AddressIQ backend...")
+	logutil.Info("Starting NethAddress backend...")
 	logutil.Infof("Build metadata: commit=%s, date=%s", BuildCommit, BuildDate)
 
 	cfg, err := config.LoadConfig()
@@ -124,7 +124,7 @@ func main() {
 	}
 
 	// Start server
-	logutil.Infof("AddressIQ API server starting on port %s", port)
+	logutil.Infof("NethAddress API server starting on port %s", port)
 	logutil.Info("Endpoints available:")
 	logutil.Info("   GET  /                                  - API information")
 	logutil.Info("   GET  /healthz                           - Health check")

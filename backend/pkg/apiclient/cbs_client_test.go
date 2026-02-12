@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
+	"github.com/iman-hussain/nethaddress/backend/pkg/config"
 )
 
 type roundTripFunc func(*http.Request) (*http.Response, error)

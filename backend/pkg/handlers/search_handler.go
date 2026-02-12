@@ -9,12 +9,12 @@ import (
 
 	"os"
 
-	"github.com/iman-hussain/AddressIQ/backend/pkg/aggregator"
-	"github.com/iman-hussain/AddressIQ/backend/pkg/apiclient"
-	"github.com/iman-hussain/AddressIQ/backend/pkg/cache"
-	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
-	"github.com/iman-hussain/AddressIQ/backend/pkg/logutil"
-	"github.com/iman-hussain/AddressIQ/backend/pkg/models"
+	"github.com/iman-hussain/nethaddress/backend/pkg/aggregator"
+	"github.com/iman-hussain/nethaddress/backend/pkg/apiclient"
+	"github.com/iman-hussain/nethaddress/backend/pkg/cache"
+	"github.com/iman-hussain/nethaddress/backend/pkg/config"
+	"github.com/iman-hussain/nethaddress/backend/pkg/logutil"
+	"github.com/iman-hussain/nethaddress/backend/pkg/models"
 )
 
 // SearchHandler handles the web search interface

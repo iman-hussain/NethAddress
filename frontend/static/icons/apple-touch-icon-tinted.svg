@@ -1,24 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!--
-    iOS 18 Tinted Mode Icon
-    Dark teal on transparent - iOS converts to grayscale and applies tint
-  -->
-
-  <!-- NO background - iOS applies tinted glass background -->
-
-  <!-- Main "A" letter - dark teal for tinting -->
-  <text x="256" y="405"
-        font-family="Inter, -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif"
-        font-size="420"
-        font-weight="800"
-        text-anchor="middle"
-        fill="#0A6B62">A</text>
-
-  <!-- "IQ" - matching teal -->
-  <text x="256" y="400"
-        font-family="Inter, -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif"
-        font-size="85"
-        font-weight="700"
-        text-anchor="middle"
-        fill="#0A6B62">IQ</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+  <defs>
+    <mask id="cutout">
+      <circle cx="90" cy="90" r="84" fill="white"/>
+      <text x="90" y="132"
+            font-family="Inter, -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif"
+            font-size="148" font-weight="800"
+            text-anchor="middle" fill="black">A</text>
+    </mask>
+  </defs>
+  <g mask="url(#cutout)">
+    <rect x="6" y="6" width="168" height="56" fill="#333333" opacity="0.9"/>
+    <rect x="6" y="62" width="168" height="56" fill="#333333" opacity="0.3"/>
+    <rect x="6" y="118" width="168" height="56" fill="#333333" opacity="0.7"/>
+  </g>
 </svg>

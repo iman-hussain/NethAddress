@@ -6,7 +6,7 @@ cd "$(dirname "$0")"
 
 echo ""
 echo "========================================"
-echo "  AddressIQ Local Development Setup"
+echo "  NethAddress Local Development Setup"
 echo "========================================"
 echo ""
 
@@ -57,10 +57,10 @@ echo ""
 
 # Step 4: Start Backend Locally
 echo -e "${YELLOW}[4/5] Starting Backend locally...${NC}"
-export POSTGRES_DB=addressiq_db
-export POSTGRES_USER=addressiq_user
-export POSTGRES_PASSWORD=addressiq_password
-export DATABASE_URL=postgres://addressiq_user:addressiq_password@localhost:5432/addressiq_db?sslmode=disable
+export POSTGRES_DB=nethaddress_db
+export POSTGRES_USER=nethaddress_user
+export POSTGRES_PASSWORD=nethaddress_password
+export DATABASE_URL=postgres://nethaddress_user:nethaddress_password@localhost:5432/nethaddress_db?sslmode=disable
 export REDIS_URL=redis://localhost:6379
 
 # Build backend if binary doesn't exist
@@ -94,7 +94,7 @@ open http://localhost:3000 &
 
 echo ""
 echo "========================================"
-echo -e "${GREEN}  AddressIQ is now running!${NC}"
+echo -e "${GREEN}  NethAddress is now running!${NC}"
 echo "========================================"
 echo "  Frontend: http://localhost:3000"
 echo "  Backend:  http://localhost:8080"

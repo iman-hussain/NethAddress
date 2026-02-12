@@ -1,5 +1,5 @@
 /**
- * AddressIQ API Constants
+ * NethAddress API Constants
  * Centralised API definitions and tier configuration.
  *
  * This module exports static API tier definitions used by app.js

@@ -1,5 +1,5 @@
 /**
- * AddressIQ Main Application
+ * NethAddress Main Application
  * Handles MapLibre initialization, HTMX integration, and API result rendering
  */
 
@@ -194,7 +194,7 @@ async function fetchBuildInfo() {
 		const response = await fetch(apiHost + '/build-info');
 		const data = await response.json();
 
-		const repoUrl = 'https://github.com/iman-hussain/AddressIQ/commit/';
+		const repoUrl = 'https://github.com/iman-hussain/nethaddress/commit/';
 		const buildLine = (label, info) => {
 			if (!info || !info.commit || info.commit === 'unknown') {
 				return `${label}: (unknown)`;
@@ -1535,7 +1535,7 @@ window.exportCSV = function () {
 	const link = document.createElement('a');
 	const url = URL.createObjectURL(blob);
 	link.setAttribute('href', url);
-	link.setAttribute('download', `addressiq_${currentResponse.address.replace(/[^a-zA-Z0-9]/g, '_')}.csv`);
+	link.setAttribute('download', `nethaddress_${currentResponse.address.replace(/[^a-zA-Z0-9]/g, '_')}.csv`);
 	link.style.visibility = 'hidden';
 	document.body.appendChild(link);
 	link.click();
@@ -1554,7 +1554,7 @@ window.exportAPIKeys = function () {
 	const encodedUri = encodeURI(csvContent);
 	const link = document.createElement("a");
 	link.setAttribute("href", encodedUri);
-	link.setAttribute("download", "addressiq_api_keys.csv");
+	link.setAttribute("download", "nethaddress_api_keys.csv");
 	document.body.appendChild(link);
 	link.click();
 	document.body.removeChild(link);

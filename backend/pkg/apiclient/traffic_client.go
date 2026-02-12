@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
-	"github.com/iman-hussain/AddressIQ/backend/pkg/logutil"
-	"github.com/iman-hussain/AddressIQ/backend/pkg/models"
+	"github.com/iman-hussain/nethaddress/backend/pkg/config"
+	"github.com/iman-hussain/nethaddress/backend/pkg/logutil"
+	"github.com/iman-hussain/nethaddress/backend/pkg/models"
 )
 
 // emptyNDWTrafficData returns an empty slice for soft failures.
@@ -78,7 +78,7 @@ out body qt 50;`, radius, lat, lon, radius, lat, lon, radius, lat, lon, radius, 
 		}
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		req.Header.Set("Accept", "application/json")
-		req.Header.Set("User-Agent", "AddressIQ/1.0 (https://github.com/iman-hussain/AddressIQ)")
+		req.Header.Set("User-Agent", "NethAddress/1.0 (https://github.com/iman-hussain/nethaddress)")
 
 		resp, err := c.HTTP.Do(req)
 		if err != nil {

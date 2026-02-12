@@ -1,6 +1,6 @@
 package aggregator
 
-import "github.com/iman-hussain/AddressIQ/backend/pkg/config"
+import "github.com/iman-hussain/nethaddress/backend/pkg/config"
 
 // countEnabledSources calculates the total number of expected API calls based on configuration
 func (pa *PropertyAggregator) countEnabledSources(cfg *config.Config) int {

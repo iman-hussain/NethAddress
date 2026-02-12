@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
+	"github.com/iman-hussain/nethaddress/backend/pkg/config"
 )
 
 func TestGenerateLocationSummary_NoAPIKey(t *testing.T) {

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/iman-hussain/AddressIQ/backend/pkg/apiclient"
-	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
+	"github.com/iman-hussain/nethaddress/backend/pkg/apiclient"
+	"github.com/iman-hussain/nethaddress/backend/pkg/config"
 )
 
 // roundTripperFunc allows using a function as http.RoundTripper for test mocks

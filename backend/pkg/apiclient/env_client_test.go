@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
+	"github.com/iman-hussain/nethaddress/backend/pkg/config"
 )
 
 func TestFetchAsbestosData(t *testing.T) {

@@ -1,5 +1,5 @@
 /**
- * Icon Generator Script for AddressIQ
+ * Icon Generator Script for NethAddress
  *
  * Generates PNG icons from SVG sources for PWA/home screen support.
  * Run with: node generate-icons.mjs
@@ -21,7 +21,7 @@ const GRADIENT_START = '#2DD4BF';
 const GRADIENT_END = '#0F766E';
 
 /**
- * Creates an SVG icon with the AddressIQ branding
+ * Creates an SVG icon with the NethAddress branding
  * @param {number} size - Icon dimensions
  * @param {boolean} maskable - Whether to use maskable safe zone
  * @param {boolean} simplified - Whether to use simplified version (favicon)
@@ -270,7 +270,7 @@ async function writeSVG(filename, svgContent) {
 }
 
 async function main() {
-	console.log('Generating AddressIQ icons...\n');
+	console.log('Generating NethAddress icons...\n');
 
 	try {
 		// 1. Standard PWA Icons (Teal Gradient Background)

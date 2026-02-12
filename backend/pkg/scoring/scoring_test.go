@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/iman-hussain/AddressIQ/backend/pkg/models"
+	"github.com/iman-hussain/nethaddress/backend/pkg/models"
 )
 
 func floatEquals(a, b float64) bool {

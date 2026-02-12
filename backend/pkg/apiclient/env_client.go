@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
-	"github.com/iman-hussain/AddressIQ/backend/pkg/logutil"
+	"github.com/iman-hussain/nethaddress/backend/pkg/config"
+	"github.com/iman-hussain/nethaddress/backend/pkg/logutil"
 )
 
 // AsbestosData contains information about asbestos presence at a property

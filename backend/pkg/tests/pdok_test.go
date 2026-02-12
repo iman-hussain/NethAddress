@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/iman-hussain/AddressIQ/backend/pkg/apiclient"
-	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
+	"github.com/iman-hussain/nethaddress/backend/pkg/apiclient"
+	"github.com/iman-hussain/nethaddress/backend/pkg/config"
 )
 
 // Use roundTripperFunc from bag_test.go

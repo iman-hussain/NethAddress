@@ -1,10 +1,10 @@
-# AddressIQ
+# NethAddress
 
-AddressIQ is a property intelligence toolkit for the Netherlands: it looks up an address, enriches it with cadastral, demographic, environmental and market data from external APIs, and returns a consolidated property profile and investment/ESG scores. Target audience: developers building property tools, data engineers, and product teams who need fast, reusable property-level insights.
+NethAddress is a property intelligence toolkit for the Netherlands: it looks up an address, enriches it with cadastral, demographic, environmental and market data from external APIs, and returns a consolidated property profile and investment/ESG scores. Target audience: developers building property tools, data engineers, and product teams who need fast, reusable property-level insights.
 
 ## Table of Contents
 
-- [AddressIQ](#addressiq)
+- [NethAddress](#nethaddress)
 	- [Table of Contents](#table-of-contents)
 	- [Quick start](#quick-start)
 	- [Project structure](#project-structure)
@@ -40,7 +40,7 @@ AddressIQ is a property intelligence toolkit for the Netherlands: it looks up an
 ## Project structure
 
 ```text
-AddressIQ/
+NethAddress/
 ├── backend/
 │   ├── pkg/
 │   │   ├── aggregator/      # Data aggregation service
@@ -205,7 +205,7 @@ The frontend calls `/build-info` API endpoint to retrieve and display both hashe
 
 ## Privacy Disclaimer
 
-**Important:** This application integrates with numerous third-party APIs to collect property data. When using AddressIQ:
+**Important:** This application integrates with numerous third-party APIs to collect property data. When using NethAddress:
 
 - **Data Collection:** Address lookups and queries are sent to external API providers (Kadaster, CBS, PDOK, Altum, Matrixian, and others). Each provider has their own data collection and privacy policies.
 - **API Keys:** Some APIs require registration and API keys. You are responsible for reviewing and complying with each provider's terms of service and privacy policy.
@@ -228,7 +228,7 @@ You are free to use, modify, and distribute this software under the terms of the
 
 **For-profit commercial use** in proprietary or closed-source applications is **not permitted** under the AGPLv3 licence.
 
-If you wish to use AddressIQ in a commercial, closed-source product, you must obtain a separate commercial licence.
+If you wish to use NethAddress in a commercial, closed-source product, you must obtain a separate commercial licence.
 
 **Contact for commercial licensing:** Iman Hussain at [contact@imanhussain.com](mailto:contact@imanhussain.com)
 

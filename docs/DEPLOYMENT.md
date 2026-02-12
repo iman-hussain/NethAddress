@@ -1,12 +1,12 @@
 
-# AddressIQ Deployment Guide
+# NethAddress Deployment Guide
 
 Deploy to Hetzner VPS with Coolify. Assumes basic familiarity with servers.
 
 ## Prerequisites
 
 - Hetzner account and domain.
-- AddressIQ GitHub access.
+- NethAddress GitHub access.
 - API keys (see `API_REFERENCE.md`).
 
 ## Server Setup (Hetzner)
@@ -29,10 +29,10 @@ Access at `http://<ip>:8000`. Create admin account.
 
 In Coolify:
 
-- PostgreSQL: Name `addressiq`, user `addressiq`, strong password.
+- PostgreSQL: Name `nethaddress`, user `nethaddress`, strong password.
 - Redis: Default settings.
 
-## Deploy AddressIQ
+## Deploy NethAddress
 
 1. Add app from GitHub repo.
 2. Branch: `main`.
@@ -46,9 +46,9 @@ Set in Coolify (bulk add):
 PORT=8080
 DB_HOST=postgres
 DB_PORT=5432
-DB_USER=addressiq
+DB_USER=nethaddress
 DB_PASSWORD=<password>
-DB_NAME=addressiq
+DB_NAME=nethaddress
 REDIS_URL=redis://redis:6379
 # Add API keys from [.env.example](.env.example)
 ```

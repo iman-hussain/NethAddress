@@ -1,12 +1,12 @@
-# AddressIQ Documentation
+# NethAddress Documentation
 
-Welcome to the AddressIQ documentation wiki. This repository contains comprehensive guides and references for working with the AddressIQ property intelligence toolkit.
+Welcome to the NethAddress documentation wiki. This repository contains comprehensive guides and references for working with the NethAddress property intelligence toolkit.
 
 ## Documentation Index
 
 ### [API Reference](API_REFERENCE.md)
 
-Complete reference for all external API integrations used by AddressIQ. Includes:
+Complete reference for all external API integrations used by NethAddress. Includes:
 
 - List of 35+ integrated APIs (cadastral, demographic, environmental, market data)
 - Environment variable configuration for each API

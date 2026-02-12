@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
-	"github.com/iman-hussain/AddressIQ/backend/pkg/logutil"
-	"github.com/iman-hussain/AddressIQ/backend/pkg/models"
+	"github.com/iman-hussain/nethaddress/backend/pkg/config"
+	"github.com/iman-hussain/nethaddress/backend/pkg/logutil"
+	"github.com/iman-hussain/nethaddress/backend/pkg/models"
 )
 
 // emptyKNMIWeatherData returns a zeroed KNMIWeatherData struct for soft failures.

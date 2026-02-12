@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/iman-hussain/AddressIQ/backend/pkg/aggregator"
-	"github.com/iman-hussain/AddressIQ/backend/pkg/logutil"
+	"github.com/iman-hussain/nethaddress/backend/pkg/aggregator"
+	"github.com/iman-hussain/nethaddress/backend/pkg/logutil"
 )
 
 // HandleSearchStream handles the /api/search/stream endpoint for SSE

@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/iman-hussain/AddressIQ/backend/pkg/aggregator"
-	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
-	"github.com/iman-hussain/AddressIQ/backend/pkg/logutil"
-	"github.com/iman-hussain/AddressIQ/backend/pkg/scoring"
+	"github.com/iman-hussain/nethaddress/backend/pkg/aggregator"
+	"github.com/iman-hussain/nethaddress/backend/pkg/config"
+	"github.com/iman-hussain/nethaddress/backend/pkg/logutil"
+	"github.com/iman-hussain/nethaddress/backend/pkg/scoring"
 )
 
 // PropertyHandler handles property-related HTTP requests

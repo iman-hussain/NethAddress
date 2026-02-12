@@ -1,4 +1,4 @@
-module github.com/iman-hussain/AddressIQ/backend
+module github.com/iman-hussain/nethaddress/backend
 
 go 1.23
 

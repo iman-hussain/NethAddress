@@ -1,14 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <text x="256" y="502"
-        font-family="Inter, Arial, sans-serif"
-        font-size="589"
-        font-weight="800"
-        text-anchor="middle"
-        fill="#0A6B62">A</text>
-  <text x="256" y="486"
-        font-family="Inter, Arial, sans-serif"
-        font-size="123"
-        font-weight="700"
-        text-anchor="middle"
-        fill="#0A6B62">IQ</text>
+  <defs>
+    <mask id="cutout">
+      <circle cx="256" cy="256" r="240" fill="white"/>
+      <text x="256" y="370"
+            font-family="Inter, Arial, sans-serif"
+            font-size="420" font-weight="800"
+            text-anchor="middle" fill="black">A</text>
+    </mask>
+  </defs>
+  <g mask="url(#cutout)">
+    <rect x="16" y="16" width="480" height="160" fill="#AE1C28"/>
+    <rect x="16" y="176" width="480" height="160" fill="#FFFFFF"/>
+    <rect x="16" y="336" width="480" height="160" fill="#21468B"/>
+  </g>
+  <circle cx="256" cy="256" r="240" fill="none" stroke="#1a1a1a" stroke-width="6" opacity="0.15"/>
 </svg>

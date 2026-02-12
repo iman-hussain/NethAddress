@@ -1,4 +1,4 @@
-# AddressIQ API Reference
+# NethAddress API Reference
 
 Complete reference for integrated APIs and REST endpoints.
 

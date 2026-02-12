@@ -1,6 +1,6 @@
 # Troubleshooting Guide
 
-Testing, diagnostics, and fixes for AddressIQ.
+Testing, diagnostics, and fixes for NethAddress.
 
 ## API Testing
 

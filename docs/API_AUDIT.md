@@ -1,4 +1,4 @@
-# AddressIQ API Audit Report
+# NethAddress API Audit Report
 
 **Date:** 2025-12-15
 **Test Address:** 3541ED / 53 (Rigastraat 53, Utrecht)
@@ -7,7 +7,7 @@
 
 ## Executive Summary
 
-AddressIQ integrates **33 APIs** across Free, Freemium, and Premium tiers. This audit verifies:
+NethAddress integrates **33 APIs** across Free, Freemium, and Premium tiers. This audit verifies:
 
 1. Each API returns data correctly
 2. Frontend formatters display data properly

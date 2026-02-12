@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/iman-hussain/AddressIQ/backend/pkg/apiclient"
-	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
-	"github.com/iman-hussain/AddressIQ/backend/pkg/models"
-	"github.com/iman-hussain/AddressIQ/backend/pkg/scoring"
+	"github.com/iman-hussain/nethaddress/backend/pkg/apiclient"
+	"github.com/iman-hussain/nethaddress/backend/pkg/config"
+	"github.com/iman-hussain/nethaddress/backend/pkg/models"
+	"github.com/iman-hussain/nethaddress/backend/pkg/scoring"
 )
 
 func floatEquals(a, b float64) bool {

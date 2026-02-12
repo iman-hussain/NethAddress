@@ -20,7 +20,7 @@ echo ""
 echo "Building backend..."
 cd backend
 # Use a unique temporary file for security
-TEMP_BINARY=$(mktemp /tmp/addressiq-test-XXXXXX)
+TEMP_BINARY=$(mktemp /tmp/nethaddress-test-XXXXXX)
 go build -ldflags "-X 'main.BuildCommit=$COMMIT_SHA' -X 'main.BuildDate=$BUILD_DATE'" -o "$TEMP_BINARY" .
 cd ..
 

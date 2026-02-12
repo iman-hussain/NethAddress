@@ -2,7 +2,7 @@
 
 echo.
 echo ========================================
-echo   AddressIQ Local Development - STOP
+echo   NethAddress Local Development - STOP
 echo ========================================
 echo.
 
@@ -19,7 +19,7 @@ taskkill /f /im python.exe >nul 2>&1
 
 echo.
 echo ========================================
-echo   AddressIQ stopped successfully!
+echo   NethAddress stopped successfully!
 echo ========================================
 echo.
 echo All services have been stopped.

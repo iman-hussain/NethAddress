@@ -3,7 +3,7 @@ version: '3.8'
 services:
   db:
     image: postgis/postgis:16-3.4
-    container_name: addressiq-db-dev
+    container_name: nethaddress-db-dev
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -20,7 +20,7 @@ services:
 
   cache:
     image: redis:7-alpine
-    container_name: addressiq-cache-dev
+    container_name: nethaddress-cache-dev
     ports:
       - "6379:6379"
     healthcheck:
@@ -33,8 +33,8 @@ services:
     build:
       context: ./backend
       cache_from:
-        - addressiq-backend:latest
-    container_name: addressiq-backend-dev
+        - nethaddress-backend:latest
+    container_name: nethaddress-backend-dev
     ports:
       - "8080:8080"
     env_file:

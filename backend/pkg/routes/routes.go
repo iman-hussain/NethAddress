@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/iman-hussain/AddressIQ/backend/pkg/cache"
-	"github.com/iman-hussain/AddressIQ/backend/pkg/handlers"
+	"github.com/iman-hussain/nethaddress/backend/pkg/cache"
+	"github.com/iman-hussain/nethaddress/backend/pkg/handlers"
 )
 
 // Build-time variables (set by main.go during initialization)
@@ -81,7 +81,7 @@ func handleHealthCheck(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{
 		"status":  "ok",
-		"service": "addressiq-backend",
+		"service": "nethaddress-backend",
 	})
 }
 
@@ -175,7 +175,7 @@ func handleRoot(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"service": "AddressIQ API",
+		"service": "NethAddress API",
 		"version": "2.0",
 		"endpoints": map[string]string{
 			"GET /healthz":                      "Health check",

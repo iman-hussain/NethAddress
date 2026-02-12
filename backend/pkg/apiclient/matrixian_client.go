@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/iman-hussain/AddressIQ/backend/pkg/config"
-	"github.com/iman-hussain/AddressIQ/backend/pkg/models"
+	"github.com/iman-hussain/nethaddress/backend/pkg/config"
+	"github.com/iman-hussain/nethaddress/backend/pkg/models"
 )
 
 // FetchPropertyValuePlus retrieves market value and 30+ features

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/iman-hussain/AddressIQ/backend/pkg/aggregator"
+	"github.com/iman-hussain/nethaddress/backend/pkg/aggregator"
 )
 
 // PropertyScores contains all calculated scores for a property

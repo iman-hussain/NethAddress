@@ -1,12 +1,12 @@
-2025/11/04 15:08:01 Starting AddressIQ backend...
+2025/11/04 15:08:01 Starting NethAddress backend...
 2025/11/04 15:08:01 Initial build metadata: commit=unknown, date=unknown
 2025/11/04 15:08:01 Final build metadata: commit=44ed6c6e751e46fc39c647937486c86e5e13c1db, date=2025-11-04T13:55:19Z
 2025/11/04 15:08:01 After debug set: commit=44ed6c6e751e46fc39c647937486c86e5e13c1db, date=2025-11-04T13:55:19Z
 2025/11/04 15:08:01 ✅ Configuration loaded successfully
 2025/11/04 15:08:01 ⚠️  Redis not configured, using direct API calls (no caching)
-2025/11/04 15:08:01 🌐 CORS allowed origins: [http://localhost:3000 https://addressiq.imanhussain.com]
+2025/11/04 15:08:01 🌐 CORS allowed origins: [http://localhost:3000 https://nethaddress.imanhussain.com]
 2025/11/04 15:08:01 📡 Server will listen on port 8082
-2025/11/04 15:08:01 🚀 AddressIQ API server starting on port 8082
+2025/11/04 15:08:01 🚀 NethAddress API server starting on port 8082
 2025/11/04 15:08:01 📍 Endpoints available:
 2025/11/04 15:08:01    GET  /                                  - API information
 2025/11/04 15:08:01    GET  /healthz                           - Health check
