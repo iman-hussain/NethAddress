@@ -1,16 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
   <defs>
     <mask id="cutout">
-      <circle cx="90" cy="90" r="84" fill="white"/>
-      <text x="90" y="132"
-            font-family="Inter, -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif"
-            font-size="148" font-weight="800"
+      <rect width="180" height="180" rx="32" ry="32" fill="white"/>
+      <text x="90" y="144"
+            font-family="Inter, Arial, sans-serif"
+            font-size="162" font-weight="800"
             text-anchor="middle" fill="black">A</text>
     </mask>
   </defs>
   <g mask="url(#cutout)">
-    <rect x="6" y="6" width="168" height="56" fill="#333333" opacity="0.9"/>
-    <rect x="6" y="62" width="168" height="56" fill="#333333" opacity="0.3"/>
-    <rect x="6" y="118" width="168" height="56" fill="#333333" opacity="0.7"/>
+    <rect x="0" y="0" width="180" height="60" fill="#333333" opacity="0.9"/>
+    <rect x="0" y="60" width="180" height="60" fill="#333333" opacity="0.3"/>
+    <rect x="0" y="120" width="180" height="60" fill="#333333" opacity="0.7"/>
   </g>
 </svg>

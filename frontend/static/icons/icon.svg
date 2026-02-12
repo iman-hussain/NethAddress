@@ -2,16 +2,16 @@
   <defs>
     <mask id="cutout">
       <rect width="512" height="512" rx="90" ry="90" fill="white"/>
-      <text x="256" y="390"
+      <text x="256" y="410"
             font-family="Inter, Arial, sans-serif"
-            font-size="420" font-weight="800"
+            font-size="461" font-weight="800"
             text-anchor="middle" fill="black">A</text>
     </mask>
   </defs>
   <g mask="url(#cutout)">
     <rect x="0" y="0" width="512" height="171" fill="#AE1C28"/>
-    <rect x="0" y="171" width="512" height="170" fill="#FFFFFF"/>
-    <rect x="0" y="341" width="512" height="171" fill="#21468B"/>
+    <rect x="0" y="171" width="512" height="171" fill="#FFFFFF"/>
+    <rect x="0" y="342" width="512" height="170" fill="#21468B"/>
   </g>
   <rect width="512" height="512" rx="90" ry="90" fill="none" stroke="#1a1a1a" stroke-width="6" opacity="0.15"/>
 </svg>
