@@ -36,7 +36,6 @@ NethAddress is a property intelligence toolkit for the Netherlands: it looks up 
    - **macOS**: `end_localwebapp.command`
    - **Linux**: `end_localwebapp.sh`
 
-
 ## Project structure
 
 ```text
@@ -124,7 +123,6 @@ graph TD
     classDef box fill:#f9f9f9,stroke:#333,stroke-width:1px;
     class A,B,C,D,E,F,G,H,I,J,K,L box;
 ```
-
 
 ## API reference
 

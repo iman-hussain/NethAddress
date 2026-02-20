@@ -64,7 +64,7 @@ func main() {
 	scoringEngine := scoring.NewEnhancedScoringEngine()
 
 	// Initialize handlers
-	propertyHandler := handlers.NewPropertyHandler(propertyAggregator, scoringEngine, cfg)
+	propertyHandler := handlers.NewPropertyHandler(propertyAggregator, scoringEngine, apiClient, cfg)
 	searchHandler := handlers.NewSearchHandler(apiClient, cfg)
 
 	// Set build info for routes

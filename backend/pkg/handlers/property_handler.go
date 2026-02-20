@@ -3,8 +3,10 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"sync"
 
 	"github.com/iman-hussain/nethaddress/backend/pkg/aggregator"
+	"github.com/iman-hussain/nethaddress/backend/pkg/apiclient"
 	"github.com/iman-hussain/nethaddress/backend/pkg/config"
 	"github.com/iman-hussain/nethaddress/backend/pkg/logutil"
 	"github.com/iman-hussain/nethaddress/backend/pkg/scoring"
@@ -14,6 +16,7 @@ import (
 type PropertyHandler struct {
 	aggregator    *aggregator.PropertyAggregator
 	scoringEngine *scoring.EnhancedScoringEngine
+	apiClient     *apiclient.ApiClient
 	config        *config.Config
 }
 
@@ -21,11 +24,13 @@ type PropertyHandler struct {
 func NewPropertyHandler(
 	agg *aggregator.PropertyAggregator,
 	scoringEngine *scoring.EnhancedScoringEngine,
+	apiClient *apiclient.ApiClient,
 	cfg *config.Config,
 ) *PropertyHandler {
 	return &PropertyHandler{
 		aggregator:    agg,
 		scoringEngine: scoringEngine,
+		apiClient:     apiClient,
 		config:        cfg,
 	}
 }
@@ -186,4 +191,87 @@ func respondWithJSON(w http.ResponseWriter, statusCode int, payload interface{})
 
 func respondWithError(w http.ResponseWriter, statusCode int, message string) {
 	respondWithJSON(w, statusCode, map[string]string{"error": message})
+}
+
+// SolarEligibilityRequest represents the request payload for solar check
+type SolarEligibilityRequest struct {
+	Lat  float64 `json:"lat"`
+	Lng  float64 `json:"lng"`
+	Area float64 `json:"area"`
+}
+
+// SolarEligibilityResponse represents the solar check response
+type SolarEligibilityResponse struct {
+	Summary   string `json:"summary"`
+	Generated bool   `json:"generated"`
+	Error     string `json:"error,omitempty"`
+}
+
+// HandleCheckSolarEligibility returns AI solar assessment for a drawn polygon
+// POST /api/property/solar
+func (h *PropertyHandler) HandleCheckSolarEligibility(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		respondWithError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	var req SolarEligibilityRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondWithError(w, http.StatusBadRequest, "invalid request payload")
+		return
+	}
+
+	if req.Lat == 0 || req.Lng == 0 || req.Area <= 0 {
+		respondWithError(w, http.StatusBadRequest, "invalid latitude, longitude, or area")
+		return
+	}
+
+	logutil.Infof("Checking solar eligibility for lat=%.6f, lng=%.6f, area=%.2f", req.Lat, req.Lng, req.Area)
+
+	// Fetch weather and solar data concurrently
+	var weatherData interface{}
+	var solarData interface{}
+	var wg sync.WaitGroup
+
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		data, _ := h.apiClient.FetchKNMIWeatherData(r.Context(), h.config, req.Lat, req.Lng)
+		weatherData = data
+	}()
+
+	go func() {
+		defer wg.Done()
+		data, _ := h.apiClient.FetchKNMISolarData(r.Context(), h.config, req.Lat, req.Lng)
+		solarData = data
+	}()
+
+	wg.Wait()
+
+	// Combine data
+	combinedData := map[string]interface{}{
+		"weather": weatherData,
+		"solar":   solarData,
+	}
+
+	// Generate summary
+	summary, err := h.apiClient.GenerateSolarEligibilitySummary(r.Context(), h.config, req.Area, combinedData)
+	if err != nil || summary == nil {
+		logutil.Errorf("Failed to generate solar summary: %v", err)
+		respondWithError(w, http.StatusInternalServerError, "failed to generate AI summary")
+		return
+	}
+
+	if summary.Error != "" {
+		respondWithJSON(w, http.StatusOK, SolarEligibilityResponse{
+			Generated: false,
+			Error:     summary.Error,
+		})
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, SolarEligibilityResponse{
+		Summary:   summary.Summary,
+		Generated: true,
+	})
 }

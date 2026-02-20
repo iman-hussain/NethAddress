@@ -67,6 +67,7 @@ func (router *Router) SetupRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/property/analysis", router.propertyHandler.HandleGetFullAnalysis)
 	mux.HandleFunc("/api/property/scores", router.propertyHandler.HandleGetPropertyScores)
 	mux.HandleFunc("/api/property/recommendations", router.propertyHandler.HandleGetRecommendations)
+	mux.HandleFunc("/api/property/solar", router.propertyHandler.HandleCheckSolarEligibility)
 	mux.HandleFunc("/api/property", router.propertyHandler.HandleGetPropertyData)
 }
 

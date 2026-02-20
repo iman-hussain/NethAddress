@@ -5,7 +5,7 @@
 
 import { getRenderer, initializeRegistry } from './renderers/index.js';
 import { formatUnknownData } from './utils.js';
-import { setPropertyLocation, showPOIsOnMap, removePOILayer, clearAllPOILayers, isLayerActive } from './map-visualisations.js';
+import { setPropertyLocation, showPOIsOnMap, removePOILayer, clearAllPOILayers, isLayerActive, initSolarDrawingTool } from './map-visualisations.js';
 import { AVAILABLE_APIS, DEFAULT_ENABLED_APIS, getTierConfig } from './state.js';
 
 // Application state
@@ -305,6 +305,11 @@ document.addEventListener('DOMContentLoaded', function () {
 		]
 	});
 	window.map = map;
+
+	// Wait for map to load before initializing Solar Draw tools
+	map.on('load', () => {
+		initSolarDrawingTool(map);
+	});
 
 	// Global helper for toggling POI layers from onclick handlers
 	window.toggleTransportLayer = function (layerId, displayName, dataId, poiType) {

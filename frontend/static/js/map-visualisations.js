@@ -393,6 +393,116 @@ function updateActiveLayersPanel() {
     panel.innerHTML = html;
 }
 
+// Tracker for the solar popup
+let currentSolarPopup = null;
+
+/**
+ * Initialize Polygon Drawing tool for Solar Analysis
+ */
+export function initSolarDrawingTool(map) {
+    if (!window.MapboxDraw || !window.turf) {
+        console.warn('MapboxDraw or Turf.js not loaded. Cannot init solar tool.');
+        return;
+    }
+
+    const draw = new MapboxDraw({
+        displayControlsDefault: false,
+        controls: {
+            polygon: true,
+            trash: true
+        }
+    });
+
+    map.addControl(draw, 'top-left');
+
+    const updateArea = (e) => {
+        const data = draw.getAll();
+        if (data.features.length > 0) {
+            // Process the latest drawn feature
+            const feature = data.features[data.features.length - 1];
+
+            // Clear old popup
+            if (currentSolarPopup) {
+                currentSolarPopup.remove();
+                currentSolarPopup = null;
+            }
+
+            try {
+                // Calculate area using turf.js
+                const area = turf.area(feature); // area is in square meters
+                if (area === 0) return; // Invalid geometry handling
+
+                // Get centroid for popup placement
+                const centroid = turf.centerOfMass(feature);
+                const [lng, lat] = centroid.geometry.coordinates;
+
+                const popupContent = document.createElement('div');
+                popupContent.innerHTML = `
+                    <div style="text-align: center; padding: 5px;">
+                        <h4 style="margin: 0 0 10px 0; font-weight: bold; color: #0d9488;">Solar Potential Area</h4>
+                        <p style="margin: 0 0 10px 0; color: #1e293b;">${Math.round(area).toLocaleString()} m² (2D Footprint)</p>
+                        <button id="btn-check-solar" class="button is-primary is-small" style="width: 100%; border-radius: 8px;">☀️ Check Solar Eligibility</button>
+                        <div id="solar-result" style="margin-top: 10px; font-size: 0.9em; text-align: left; display: none; max-height: 250px; overflow-y: auto; color: #1e293b;"></div>
+                    </div>
+                `;
+
+                currentSolarPopup = new maplibregl.Popup({ closeOnClick: false, maxWidth: '300px' })
+                    .setLngLat([lng, lat])
+                    .setDOMContent(popupContent)
+                    .addTo(map);
+
+                // Add button click listener for POST request
+                popupContent.querySelector('#btn-check-solar').addEventListener('click', async (btnEvt) => {
+                    const btn = btnEvt.target;
+                    const resultDiv = popupContent.querySelector('#solar-result');
+
+                    btn.classList.add('is-loading');
+                    resultDiv.style.display = 'none';
+                    resultDiv.innerHTML = '';
+
+                    try {
+                        const response = await fetch('/api/property/solar', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ lat, lng, area })
+                        });
+
+                        const responseData = await response.json();
+                        btn.classList.remove('is-loading');
+
+                        if (!response.ok || responseData.error) {
+                            resultDiv.innerHTML = `<span style="color: #ef4444;">Error: ${responseData.error || 'Failed to check eligibility'}</span>`;
+                        } else {
+                            // Only show the report box
+                            btn.style.display = 'none';
+                            // Format markdown bold
+                            const formattedSummary = responseData.summary.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>');
+                            resultDiv.innerHTML = formattedSummary;
+                        }
+                        resultDiv.style.display = 'block';
+                    } catch (err) {
+                        btn.classList.remove('is-loading');
+                        resultDiv.innerHTML = `<span style="color: #ef4444;">Network Error: Could not check eligibility.</span>`;
+                        resultDiv.style.display = 'block';
+                    }
+                });
+
+            } catch (err) {
+                console.error("Error calculating area or center:", err);
+            }
+        }
+    };
+
+    map.on('draw.create', updateArea);
+    map.on('draw.update', updateArea);
+    map.on('draw.delete', (e) => {
+        if (currentSolarPopup) {
+            currentSolarPopup.remove();
+            currentSolarPopup = null;
+        }
+    });
+}
+
 // Expose functions globally for onclick handlers
 window.showPOIsOnMap = showPOIsOnMap;
 window.removePOILayer = removePOILayer;
